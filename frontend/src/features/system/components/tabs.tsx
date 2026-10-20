@@ -15,12 +15,14 @@ import { SecuritySettings } from './security-settings';
 import { StorageSettings } from './storage-settings';
 import { BackupSettings } from './backup-settings';
 import { ProxyPresetsSettings } from './proxy-presets-settings';
+import { WebSearchSettings } from './web-search-settings';
 import { WebhookSettings } from './webhook-settings';
 import { usePermissions } from '@/hooks/usePermissions';
 
 export type SystemTabKey =
   | 'general'
   | 'security'
+  | 'websearch'
   | 'brand'
   | 'storage'
   | 'retry'
@@ -35,6 +37,7 @@ export type SystemTabKey =
 const systemTabKeys = new Set<SystemTabKey>([
   'general',
   'security',
+  'websearch',
   'brand',
   'storage',
   'retry',
@@ -127,6 +130,9 @@ export function SystemSettingsTabs({ initialTab }: SystemSettingsTabsProps) {
         <TabsTrigger value='security' data-value='security'>
           {t('system.tabs.security')}
         </TabsTrigger>
+        <TabsTrigger value='websearch' data-value='websearch'>
+          {t('system.tabs.websearch')}
+        </TabsTrigger>
         <TabsTrigger value='brand' data-value='brand'>
           {t('system.tabs.brand')}
         </TabsTrigger>
@@ -168,6 +174,9 @@ export function SystemSettingsTabs({ initialTab }: SystemSettingsTabsProps) {
         </TabsContent>
         <TabsContent value='security' className='mt-0 p-0'>
           <SecuritySettings />
+        </TabsContent>
+        <TabsContent value='websearch' className='mt-0 p-0'>
+          <WebSearchSettings />
         </TabsContent>
         <TabsContent value='brand' className='mt-0 p-0'>
           <BrandSettings />

@@ -70,6 +70,10 @@ func NewAnthropicHandlers(params AnthropicHandlersParams) *AnthropicHandlers {
 }
 
 func (handlers *AnthropicHandlers) CreateMessage(c *gin.Context) {
+	if handlers.tryServeNativeWebSearch(c) {
+		return
+	}
+
 	handlers.ChatCompletionHandlers.ChatCompletion(c)
 }
 

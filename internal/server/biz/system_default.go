@@ -143,3 +143,7 @@ var defaultSecuritySettings = SecuritySettings{
 	BlockedIPs:              []string{},
 	ShowRequestLogIPBanIcon: true,
 }
+
+var defaultWebSearchSettings = WebSearchSettings{
+	Enabled: false,
+}

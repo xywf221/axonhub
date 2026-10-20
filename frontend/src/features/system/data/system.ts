@@ -268,6 +268,18 @@ export interface UpdateSecuritySettingsInput {
   showRequestLogIPBanIcon?: boolean;
 }
 
+export interface WebSearchSettings {
+  enabled: boolean;
+  endpoint: string;
+  apiKey: string;
+}
+
+export interface UpdateWebSearchSettingsInput {
+  enabled?: boolean;
+  endpoint?: string;
+  apiKey?: string;
+}
+
 export interface StoragePolicy {
   storeChunks: boolean;
   livePreview: boolean;
@@ -965,6 +977,22 @@ const UPDATE_SECURITY_SETTINGS_MUTATION = `
   }
 `;
 
+const WEB_SEARCH_SETTINGS_QUERY = `
+  query WebSearchSettings {
+    webSearchSettings {
+      enabled
+      endpoint
+      apiKey
+    }
+  }
+`;
+
+const UPDATE_WEB_SEARCH_SETTINGS_MUTATION = `
+  mutation UpdateWebSearchSettings($input: UpdateWebSearchSettingsInput!) {
+    updateWebSearchSettings(input: $input)
+  }
+`;
+
 export interface ModelSettings {
   fallbackToChannelsOnModelNotFound: boolean;
   queryAllChannelModels: boolean;
@@ -1208,6 +1236,43 @@ export function useUpdateSecuritySettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['securitySettings'] });
+      toast.success(i18n.t('common.success.systemUpdated'));
+    },
+    onError: () => {
+      toast.error(i18n.t('common.errors.systemUpdateFailed'));
+    },
+  });
+}
+
+export function useWebSearchSettings() {
+  const { handleError } = useErrorHandler();
+  const { hasSystemScope } = usePermissions();
+
+  return useQuery({
+    queryKey: ['webSearchSettings'],
+    enabled: hasSystemScope('read_settings'),
+    queryFn: async () => {
+      try {
+        const data = await graphqlRequest<{ webSearchSettings: WebSearchSettings }>(WEB_SEARCH_SETTINGS_QUERY);
+        return data.webSearchSettings;
+      } catch (error) {
+        handleError(error, i18n.t('common.errors.internalServerError'));
+        throw error;
+      }
+    },
+  });
+}
+
+export function useUpdateWebSearchSettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: UpdateWebSearchSettingsInput) => {
+      const data = await graphqlRequest<{ updateWebSearchSettings: boolean }>(UPDATE_WEB_SEARCH_SETTINGS_MUTATION, { input });
+      return data.updateWebSearchSettings;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['webSearchSettings'] });
       toast.success(i18n.t('common.success.systemUpdated'));
     },
     onError: () => {

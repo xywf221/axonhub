@@ -132,7 +132,19 @@ const (
 	// SystemKeySecuritySettings is the key used to store security settings.
 	// The value is JSON-encoded SecuritySettings struct.
 	SystemKeySecuritySettings = "security_settings"
+
+	// SystemKeyWebSearchSettings is the key used to store the global web search endpoint.
+	// The value is JSON-encoded WebSearchSettings struct.
+	SystemKeyWebSearchSettings = "web_search_settings"
 )
+
+// WebSearchSettings configures the external endpoint used to answer Anthropic
+// native web search tool calls.
+type WebSearchSettings struct {
+	Enabled  bool   `json:"enabled"`
+	Endpoint string `json:"endpoint"`
+	APIKey   string `json:"api_key"`
+}
 
 // SystemGeneralSettings represents general system configuration settings.
 type SystemGeneralSettings struct {
@@ -1970,6 +1982,60 @@ func normalizeSecuritySettings(settings *SecuritySettings) {
 	}
 
 	settings.BlockedIPs = blockedIPs
+}
+
+// WebSearchSettings retrieves the global web search endpoint settings.
+func (s *SystemService) WebSearchSettings(ctx context.Context) (*WebSearchSettings, error) {
+	value, err := s.getSystemValue(ctx, SystemKeyWebSearchSettings)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return lo.ToPtr(defaultWebSearchSettings), nil
+		}
+
+		return nil, fmt.Errorf("failed to get web search settings: %w", err)
+	}
+
+	var settings WebSearchSettings
+	if err := json.Unmarshal([]byte(value), &settings); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal web search settings: %w", err)
+	}
+
+	normalizeWebSearchSettings(&settings)
+
+	return &settings, nil
+}
+
+// WebSearchSettingsOrDefault retrieves the web search settings or returns the default.
+func (s *SystemService) WebSearchSettingsOrDefault(ctx context.Context) *WebSearchSettings {
+	settings, err := s.WebSearchSettings(ctx)
+	if err != nil {
+		log.Warn(ctx, "failed to get web search settings", log.Cause(err))
+
+		return lo.ToPtr(defaultWebSearchSettings)
+	}
+
+	return settings
+}
+
+// SetWebSearchSettings sets the global web search endpoint settings.
+func (s *SystemService) SetWebSearchSettings(ctx context.Context, settings WebSearchSettings) error {
+	normalizeWebSearchSettings(&settings)
+
+	jsonBytes, err := json.Marshal(settings)
+	if err != nil {
+		return fmt.Errorf("failed to marshal web search settings: %w", err)
+	}
+
+	return s.setSystemValue(ctx, SystemKeyWebSearchSettings, string(jsonBytes))
+}
+
+func normalizeWebSearchSettings(settings *WebSearchSettings) {
+	if settings == nil {
+		return
+	}
+
+	settings.Endpoint = strings.TrimSpace(settings.Endpoint)
+	settings.APIKey = strings.TrimSpace(settings.APIKey)
 }
 
 // UpdateAutoBackupLastRun updates the last backup timestamp and error status.

@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/looplj/axonhub/internal/authz"
@@ -265,6 +266,32 @@ func (r *mutationResolver) UpdateSecuritySettings(ctx context.Context, input Upd
 	err = r.systemService.SetSecuritySettings(ctx, newSettings)
 	if err != nil {
 		return false, fmt.Errorf("failed to update security settings: %w", err)
+	}
+
+	return true, nil
+}
+
+// UpdateWebSearchSettings is the resolver for the updateWebSearchSettings field.
+func (r *mutationResolver) UpdateWebSearchSettings(ctx context.Context, input UpdateWebSearchSettingsInput) (bool, error) {
+	current, err := r.systemService.WebSearchSettings(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to read current web search settings: %w", err)
+	}
+
+	newSettings := *current
+
+	if input.Enabled != nil {
+		newSettings.Enabled = *input.Enabled
+	}
+	if input.Endpoint != nil {
+		newSettings.Endpoint = strings.TrimSpace(*input.Endpoint)
+	}
+	if input.APIKey != nil {
+		newSettings.APIKey = strings.TrimSpace(*input.APIKey)
+	}
+
+	if err := r.systemService.SetWebSearchSettings(ctx, newSettings); err != nil {
+		return false, fmt.Errorf("failed to update web search settings: %w", err)
 	}
 
 	return true, nil
@@ -703,6 +730,11 @@ func (r *queryResolver) ProviderQuotaCollectionSettings(ctx context.Context) (*b
 // SecuritySettings is the resolver for the securitySettings field.
 func (r *queryResolver) SecuritySettings(ctx context.Context) (*biz.SecuritySettings, error) {
 	return r.systemService.SecuritySettings(ctx)
+}
+
+// WebSearchSettings is the resolver for the webSearchSettings field.
+func (r *queryResolver) WebSearchSettings(ctx context.Context) (*biz.WebSearchSettings, error) {
+	return r.systemService.WebSearchSettings(ctx)
 }
 
 // ProxyPresets is the resolver for the proxyPresets field.

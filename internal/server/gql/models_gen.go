@@ -666,6 +666,12 @@ type UpdateUserAgentPassThroughSettingsInput struct {
 	Enabled bool `json:"enabled"`
 }
 
+type UpdateWebSearchSettingsInput struct {
+	Enabled  *bool   `json:"enabled,omitempty"`
+	Endpoint *string `json:"endpoint,omitempty"`
+	APIKey   *string `json:"apiKey,omitempty"`
+}
+
 type UsageCostInjectionSettings struct {
 	Enabled bool `json:"enabled"`
 }

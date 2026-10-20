@@ -205,6 +205,18 @@ input UpdateSecuritySettingsInput {
   showRequestLogIPBanIcon: Boolean
 }
 
+type WebSearchSettings {
+  enabled: Boolean!
+  endpoint: String!
+  apiKey: String!
+}
+
+input UpdateWebSearchSettingsInput {
+  enabled: Boolean
+  endpoint: String
+  apiKey: String
+}
+
 type SystemModelSettings {
   fallbackToChannelsOnModelNotFound: Boolean!
   queryAllChannelModels: Boolean!
@@ -453,6 +465,7 @@ extend type Mutation {
   updateQuotaRoutingSettings(input: UpdateQuotaRoutingSettingsInput!): Boolean!
   updateProviderQuotaCollectionSettings(input: UpdateProviderQuotaCollectionSettingsInput!): Boolean!
   updateSecuritySettings(input: UpdateSecuritySettingsInput!): Boolean!
+  updateWebSearchSettings(input: UpdateWebSearchSettingsInput!): Boolean!
   checkProviderQuotas: Boolean!
   resetChannelQuotaNow(channelID: ID!): Boolean!
   triggerGcCleanup(input: TriggerGcCleanupInput!): Boolean!
@@ -528,6 +541,7 @@ extend type Query {
   quotaRoutingSettings: QuotaRoutingSettings!
   providerQuotaCollectionSettings: ProviderQuotaCollectionSettings!
   securitySettings: SecuritySettings!
+  webSearchSettings: WebSearchSettings!
   proxyPresets: [ProxyPreset!]!
   userAgentPassThroughSettings: UserAgentPassThroughSettings!
   passThroughSettings: PassThroughSettings!
