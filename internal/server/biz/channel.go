@@ -93,11 +93,10 @@ type Channel struct {
 type ChannelServiceParams struct {
 	fx.In
 
-	CacheConfig     xcache.Config
-	Ent             *ent.Client
-	SystemService   *SystemService
-	WebhookNotifier *WebhookNotifier
-	HttpClient      *httpclient.HttpClient
+	CacheConfig   xcache.Config
+	Ent           *ent.Client
+	SystemService *SystemService
+	HttpClient    *httpclient.HttpClient
 }
 
 func NewChannelService(params ChannelServiceParams) *ChannelService {
@@ -106,7 +105,6 @@ func NewChannelService(params ChannelServiceParams) *ChannelService {
 			db: params.Ent,
 		},
 		SystemService:             params.SystemService,
-		WebhookNotifier:           params.WebhookNotifier,
 		httpClient:                params.HttpClient,
 		channelPerfMetrics:        make(map[int]*channelMetrics),
 		apiKeyErrorCounts:         make(map[int]map[string]map[int]int),
@@ -158,8 +156,7 @@ func (svc *ChannelService) Stop() {
 type ChannelService struct {
 	*AbstractService
 
-	SystemService   *SystemService
-	WebhookNotifier *WebhookNotifier
+	SystemService *SystemService
 
 	httpClient *httpclient.HttpClient
 

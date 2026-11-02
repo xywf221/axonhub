@@ -10,7 +10,6 @@ import (
 	"github.com/looplj/axonhub/internal/authz"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/enttest"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/request"
 	"github.com/looplj/axonhub/internal/ent/usagelog"
 	"github.com/looplj/axonhub/internal/objects"
@@ -26,14 +25,8 @@ func TestUsageLogService_CreateUsageLog_PromptWriteCachedTokens(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 	ctx = authz.WithTestBypass(ctx)
 
-	p, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	req, err := client.Request.Create().
-		SetProjectID(p.ID).
 		SetModelID("test-model").
 		SetStatus(request.StatusCompleted).
 		SetRequestBody(objects.JSONRawMessage([]byte(`{}`))).
@@ -59,7 +52,6 @@ func TestUsageLogService_CreateUsageLog_PromptWriteCachedTokens(t *testing.T) {
 
 	created, err := svc.CreateUsageLog(ctx, CreateUsageLogParams{
 		RequestID:     req.ID,
-		ProjectID:     p.ID,
 		ChannelID:     0,
 		ActualModelID: "test-model",
 		Usage:         usage,
@@ -82,12 +74,6 @@ func TestUsageLogService_CreateUsageLog_WithPriceReferenceID(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 	ctx = authz.WithTestBypass(ctx)
 
-	// Create project
-	p, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	// Create channel
 	ch, err := client.Channel.Create().
@@ -128,7 +114,6 @@ func TestUsageLogService_CreateUsageLog_WithPriceReferenceID(t *testing.T) {
 
 	// Create request
 	req, err := client.Request.Create().
-		SetProjectID(p.ID).
 		SetChannelID(ch.ID).
 		SetModelID("gpt-4").
 		SetStatus(request.StatusCompleted).
@@ -166,7 +151,6 @@ func TestUsageLogService_CreateUsageLog_WithPriceReferenceID(t *testing.T) {
 	channelID := ch.ID
 	created, err := svc.CreateUsageLog(ctx, CreateUsageLogParams{
 		RequestID:     req.ID,
-		ProjectID:     p.ID,
 		ChannelID:     channelID,
 		ActualModelID: "gpt-4",
 		Usage:         usage,
@@ -195,12 +179,6 @@ func TestUsageLogService_CreateUsageLog_WithCachedTokens(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 	ctx = authz.WithTestBypass(ctx)
 
-	// Create project
-	p, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	// Create channel
 	ch, err := client.Channel.Create().
@@ -251,7 +229,6 @@ func TestUsageLogService_CreateUsageLog_WithCachedTokens(t *testing.T) {
 
 	// Create request
 	req, err := client.Request.Create().
-		SetProjectID(p.ID).
 		SetChannelID(ch.ID).
 		SetModelID("gpt-4").
 		SetStatus(request.StatusCompleted).
@@ -296,7 +273,6 @@ func TestUsageLogService_CreateUsageLog_WithCachedTokens(t *testing.T) {
 	channelID := ch.ID
 	created, err := svc.CreateUsageLog(ctx, CreateUsageLogParams{
 		RequestID:     req.ID,
-		ProjectID:     p.ID,
 		ChannelID:     channelID,
 		ActualModelID: "gpt-4",
 		Usage:         usage,

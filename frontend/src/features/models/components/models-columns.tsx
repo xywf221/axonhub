@@ -4,7 +4,6 @@ import { ColumnDef, Row, Table } from '@tanstack/react-table';
 import { IconCheck, IconX, IconLink, IconChevronDown, IconChevronRight } from '@tabler/icons-react';
 import * as Icons from '@lobehub/icons';
 import { useTranslation } from 'react-i18next';
-import { usePermissions } from '@/hooks/usePermissions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -21,7 +20,6 @@ import { useDeveloperLabel } from './models-table';
 function StatusSwitchCell({ row }: { row: Row<Model> }) {
   const model = row.original;
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { channelPermissions } = usePermissions();
 
   const isEnabled = model.status === 'enabled';
   const isArchived = model.status === 'archived';
@@ -31,10 +29,6 @@ function StatusSwitchCell({ row }: { row: Row<Model> }) {
       setDialogOpen(true);
     }
   }, [isArchived]);
-
-  if (!channelPermissions.canWrite) {
-    return <Badge variant='outline'>{model.status}</Badge>;
-  }
 
   return (
     <>
@@ -54,7 +48,6 @@ function DeveloperCell({ row }: { row: Row<Model> }) {
 function AssociationRulesCell({ row }: { row: Row<Model> }) {
   const model = row.original;
   const { setOpen, setCurrentRow } = useModels();
-  const { channelPermissions } = usePermissions();
 
   const handleOpenAssociationDialog = useCallback(() => {
     setCurrentRow(model);
@@ -62,15 +55,6 @@ function AssociationRulesCell({ row }: { row: Row<Model> }) {
   }, [model, setCurrentRow, setOpen]);
 
   const associationCount = model.settings?.associations?.length || 0;
-
-  // Only show button if user has write permissions
-  if (!channelPermissions.canWrite) {
-    return (
-      <div className='flex justify-center'>
-        <Badge variant='secondary'>{associationCount}</Badge>
-      </div>
-    );
-  }
 
   return (
     <Button size='sm' variant='outline' className='h-8 px-3' onClick={handleOpenAssociationDialog}>

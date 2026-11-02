@@ -3,7 +3,6 @@ import { IconEye, IconEyeOff, IconRotate } from '@tabler/icons-react';
 import { useRawNavGroups } from '@/sidebar';
 import { useTranslation } from 'react-i18next';
 import { useSidebarPrefsStore } from '@/stores/sidebarPrefsStore';
-import { useRoutePermissions } from '@/hooks/useRoutePermissions';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -19,18 +18,16 @@ interface MenuCustomizeDialogProps {
 export function MenuCustomizeDialog({ open, onOpenChange }: MenuCustomizeDialogProps) {
   const { t } = useTranslation();
   const rawNavGroups = useRawNavGroups();
-  const { filterNavGroups } = useRoutePermissions();
   const hiddenItems = useSidebarPrefsStore((state) => state.hiddenItems);
   const toggleItem = useSidebarPrefsStore((state) => state.toggleItem);
   const reset = useSidebarPrefsStore((state) => state.reset);
 
-  // Only offer items the current user can actually reach.
   const groups = useMemo<NavGroup[]>(
     () =>
-      filterNavGroups(rawNavGroups)
+      rawNavGroups
         .map((group) => ({ ...group, items: group.items.filter((item) => !item.isDisabled) }))
         .filter((group) => group.items.length > 0),
-    [filterNavGroups, rawNavGroups]
+    [rawNavGroups]
   );
 
   const hasItems = groups.length > 0;

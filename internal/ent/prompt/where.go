@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/looplj/axonhub/internal/ent/predicate"
 )
 
@@ -68,11 +67,6 @@ func UpdatedAt(v time.Time) predicate.Prompt {
 // DeletedAt applies equality check predicate on the "deleted_at" field. It's identical to DeletedAtEQ.
 func DeletedAt(v int) predicate.Prompt {
 	return predicate.Prompt(sql.FieldEQ(FieldDeletedAt, v))
-}
-
-// ProjectID applies equality check predicate on the "project_id" field. It's identical to ProjectIDEQ.
-func ProjectID(v int) predicate.Prompt {
-	return predicate.Prompt(sql.FieldEQ(FieldProjectID, v))
 }
 
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
@@ -218,26 +212,6 @@ func DeletedAtLT(v int) predicate.Prompt {
 // DeletedAtLTE applies the LTE predicate on the "deleted_at" field.
 func DeletedAtLTE(v int) predicate.Prompt {
 	return predicate.Prompt(sql.FieldLTE(FieldDeletedAt, v))
-}
-
-// ProjectIDEQ applies the EQ predicate on the "project_id" field.
-func ProjectIDEQ(v int) predicate.Prompt {
-	return predicate.Prompt(sql.FieldEQ(FieldProjectID, v))
-}
-
-// ProjectIDNEQ applies the NEQ predicate on the "project_id" field.
-func ProjectIDNEQ(v int) predicate.Prompt {
-	return predicate.Prompt(sql.FieldNEQ(FieldProjectID, v))
-}
-
-// ProjectIDIn applies the In predicate on the "project_id" field.
-func ProjectIDIn(vs ...int) predicate.Prompt {
-	return predicate.Prompt(sql.FieldIn(FieldProjectID, vs...))
-}
-
-// ProjectIDNotIn applies the NotIn predicate on the "project_id" field.
-func ProjectIDNotIn(vs ...int) predicate.Prompt {
-	return predicate.Prompt(sql.FieldNotIn(FieldProjectID, vs...))
 }
 
 // NameEQ applies the EQ predicate on the "name" field.
@@ -558,29 +532,6 @@ func OrderLT(v int) predicate.Prompt {
 // OrderLTE applies the LTE predicate on the "order" field.
 func OrderLTE(v int) predicate.Prompt {
 	return predicate.Prompt(sql.FieldLTE(FieldOrder, v))
-}
-
-// HasProject applies the HasEdge predicate on the "project" edge.
-func HasProject() predicate.Prompt {
-	return predicate.Prompt(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, ProjectTable, ProjectColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasProjectWith applies the HasEdge predicate on the "project" edge with a given conditions (other predicates).
-func HasProjectWith(preds ...predicate.Project) predicate.Prompt {
-	return predicate.Prompt(func(s *sql.Selector) {
-		step := newProjectStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
 }
 
 // And groups predicates with the AND operator between them.

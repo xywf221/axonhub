@@ -28,7 +28,6 @@ type DoubaoHandlersParams struct {
 	UsageLogService             *biz.UsageLogService
 	PromptService               *biz.PromptService
 	PromptProtectionRuleService *biz.PromptProtectionRuleService
-	QuotaService                *biz.QuotaService
 	HttpClient                  *httpclient.HttpClient
 	LiveStreamRegistry          *biz.LiveStreamRegistry
 	ChannelLimiterManager       *orchestrator.ChannelLimiterManager
@@ -55,7 +54,6 @@ func NewDoubaoHandlers(params DoubaoHandlersParams) *DoubaoHandlers {
 			params.SystemService,
 			params.UsageLogService,
 			params.PromptService,
-			params.QuotaService,
 			params.PromptProtectionRuleService,
 			params.LiveStreamRegistry,
 			params.ChannelLimiterManager,

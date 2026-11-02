@@ -37,7 +37,6 @@ func TestChatCompletionOrchestrator_Process_NonStreaming_PreservesGeminiGroundin
 
 	ctx = ent.NewContext(ctx, client)
 
-	project := createTestProject(t, ctx, client)
 	channelRow, err := client.Channel.Create().
 		SetType(channel.TypeGemini).
 		SetName("Test Gemini Channel").
@@ -118,7 +117,6 @@ func TestChatCompletionOrchestrator_Process_NonStreaming_PreservesGeminiGroundin
 	}
 
 	httpRequest := buildTestRequest("gpt-4", "Summarize with citations", false)
-	ctx = contexts.WithProjectID(ctx, project.ID)
 
 	result, err := orchestrator.Process(ctx, httpRequest)
 	require.NoError(t, err)
@@ -169,7 +167,6 @@ func TestChatCompletionOrchestrator_Process_NonStreaming_PreservesAnthropicCitat
 
 	ctx = ent.NewContext(ctx, client)
 
-	project := createTestProject(t, ctx, client)
 	channelRow, err := client.Channel.Create().
 		SetType(channel.TypeAnthropic).
 		SetName("Test Anthropic Channel").
@@ -238,7 +235,6 @@ func TestChatCompletionOrchestrator_Process_NonStreaming_PreservesAnthropicCitat
 	}
 
 	httpRequest := buildTestRequest("gpt-4", "Summarize with citations", false)
-	ctx = contexts.WithProjectID(ctx, project.ID)
 
 	result, err := orchestrator.Process(ctx, httpRequest)
 	require.NoError(t, err)
@@ -283,7 +279,6 @@ func TestChatCompletionOrchestrator_Process_NonStreaming(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 
 	// Setup
-	project := createTestProject(t, ctx, client)
 	ch := createTestChannel(t, ctx, client)
 	channelService, requestService, systemService, usageLogService := setupTestServices(t, client)
 
@@ -328,9 +323,6 @@ func TestChatCompletionOrchestrator_Process_NonStreaming(t *testing.T) {
 	// Build request
 	httpRequest := buildTestRequest("gpt-4", "Hello!", false)
 
-	// Set project ID in context
-	ctx = contexts.WithProjectID(ctx, project.ID)
-
 	// Execute
 	result, err := orchestrator.Process(ctx, httpRequest)
 
@@ -349,7 +341,6 @@ func TestChatCompletionOrchestrator_Process_NonStreaming(t *testing.T) {
 
 	dbRequest := requests[0]
 	assert.Equal(t, "gpt-4", dbRequest.ModelID)
-	assert.Equal(t, project.ID, dbRequest.ProjectID)
 	assert.Equal(t, ch.ID, dbRequest.ChannelID)
 	assert.Equal(t, request.StatusCompleted, dbRequest.Status)
 	assert.Equal(t, "chatcmpl-123", dbRequest.ExternalID)
@@ -385,7 +376,6 @@ func TestChatCompletionOrchestrator_Process_NonStreamingRequireStreamCandidate(t
 
 	ctx = ent.NewContext(ctx, client)
 
-	project := createTestProject(t, ctx, client)
 	ch, err := client.Channel.Create().
 		SetType(channel.TypeOpenai).
 		SetName("Require Stream Channel").
@@ -439,7 +429,6 @@ func TestChatCompletionOrchestrator_Process_NonStreamingRequireStreamCandidate(t
 	}
 
 	httpRequest := buildTestRequest("gpt-4", "Hello!", false)
-	ctx = contexts.WithProjectID(ctx, project.ID)
 
 	result, err := orchestrator.Process(ctx, httpRequest)
 	require.NoError(t, err)
@@ -466,7 +455,6 @@ func TestChatCompletionOrchestrator_Process_NonStreamingRequireStreamCandidate_D
 
 	ctx = ent.NewContext(ctx, client)
 
-	project := createTestProject(t, ctx, client)
 	ch, err := client.Channel.Create().
 		SetType(channel.TypeOpenai).
 		SetName("Require Stream PassThrough Channel").
@@ -515,7 +503,6 @@ func TestChatCompletionOrchestrator_Process_NonStreamingRequireStreamCandidate_D
 	}
 
 	httpRequest := buildTestRequest("gpt-4", "Hello!", false)
-	ctx = contexts.WithProjectID(ctx, project.ID)
 
 	result, err := orchestrator.Process(ctx, httpRequest)
 	require.NoError(t, err)
@@ -541,7 +528,6 @@ func TestChatCompletionOrchestrator_Process_WithModelMapping(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 
 	// Setup
-	project := createTestProject(t, ctx, client)
 	ch := createTestChannel(t, ctx, client)
 	channelService, requestService, systemService, usageLogService := setupTestServices(t, client)
 
@@ -556,7 +542,6 @@ func TestChatCompletionOrchestrator_Process_WithModelMapping(t *testing.T) {
 	apiKey, err := client.APIKey.Create().
 		SetName("Test API Key").
 		SetKey("sk-test-key").
-		SetProjectID(project.ID).
 		SetUserID(user.ID).
 		SetProfiles(&objects.APIKeyProfiles{
 			ActiveProfile: "default",
@@ -613,8 +598,7 @@ func TestChatCompletionOrchestrator_Process_WithModelMapping(t *testing.T) {
 	// Build request with custom model name
 	httpRequest := buildTestRequest("my-custom-model", "Test mapping", false)
 
-	// Set context with API key and project
-	ctx = contexts.WithProjectID(ctx, project.ID)
+	// Set context with API key
 	ctx = contexts.WithAPIKey(ctx, apiKey)
 
 	// Execute
@@ -646,7 +630,6 @@ func TestChatCompletionOrchestrator_Process_WithOverrideParameters(t *testing.T)
 	ctx = ent.NewContext(ctx, client)
 
 	// Setup
-	project := createTestProject(t, ctx, client)
 
 	// Create channel with override parameters
 	ch, err := client.Channel.Create().
@@ -704,9 +687,6 @@ func TestChatCompletionOrchestrator_Process_WithOverrideParameters(t *testing.T)
 	// Build request without temperature
 	httpRequest := buildTestRequest("gpt-4", "Test override", false)
 
-	// Set project ID in context
-	ctx = contexts.WithProjectID(ctx, project.ID)
-
 	// Execute
 	result, err := orchestrator.Process(ctx, httpRequest)
 
@@ -740,7 +720,6 @@ func TestChatCompletionOrchestrator_Process_MultipleRequests(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 
 	// Setup
-	project := createTestProject(t, ctx, client)
 	ch := createTestChannel(t, ctx, client)
 	channelService, requestService, systemService, usageLogService := setupTestServices(t, client)
 
@@ -772,8 +751,6 @@ func TestChatCompletionOrchestrator_Process_MultipleRequests(t *testing.T) {
 			stream.EnsureUsage(),
 		},
 	}
-
-	ctx = contexts.WithProjectID(ctx, project.ID)
 
 	// Execute multiple requests
 	for i := range 3 {
@@ -856,7 +833,6 @@ func TestChatCompletionOrchestrator_Process_SameChannelRetryNextModel(t *testing
 
 	ctx = ent.NewContext(ctx, client)
 
-	project := createTestProject(t, ctx, client)
 	ch := createTestChannel(t, ctx, client)
 	channelService, requestService, systemService, usageLogService := setupTestServices(t, client)
 
@@ -926,7 +902,6 @@ func TestChatCompletionOrchestrator_Process_SameChannelRetryNextModel(t *testing
 	}
 
 	httpRequest := buildTestRequest("gpt-4", "Hello!", false)
-	ctx = contexts.WithProjectID(ctx, project.ID)
 
 	result, err := orchestrator.Process(ctx, httpRequest)
 	require.NoError(t, err)
@@ -989,8 +964,6 @@ func TestChatCompletionOrchestrator_Process_StickyChannelRetryBudget(t *testing.
 			client := enttest.NewEntClient(t, "sqlite3", "file:ent?mode=memory&_fk=0")
 			defer client.Close()
 			ctx = ent.NewContext(ctx, client)
-			project := createTestProject(t, ctx, client)
-			ctx = contexts.WithProjectID(ctx, project.ID)
 			ch := createTestChannel(t, ctx, client)
 			channelService, requestService, systemService, usageLogService := setupTestServices(t, client)
 			require.NoError(t, systemService.SetRetryPolicy(ctx, &biz.RetryPolicy{

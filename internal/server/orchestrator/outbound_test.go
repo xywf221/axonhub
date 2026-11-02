@@ -1022,7 +1022,6 @@ func TestOutboundPersistentStream_Close_AggregatedResponsesCompletionHandling(t 
 		defer client.Close()
 
 		ctx := ent.NewContext(ctx, client)
-		project := createTestProject(t, ctx, client)
 		ch := createTestChannel(t, ctx, client)
 		_, requestService, systemService, usageLogService := setupTestServices(t, client)
 		require.NoError(t, systemService.SetStoragePolicy(ctx, &biz.StoragePolicy{
@@ -1032,7 +1031,6 @@ func TestOutboundPersistentStream_Close_AggregatedResponsesCompletionHandling(t 
 		}))
 
 		req, err := client.Request.Create().
-			SetProjectID(project.ID).
 			SetChannelID(ch.ID).
 			SetModelID("gpt-4.1").
 			SetStatus(request.StatusPending).
@@ -1042,7 +1040,6 @@ func TestOutboundPersistentStream_Close_AggregatedResponsesCompletionHandling(t 
 
 		exec, err := client.RequestExecution.Create().
 			SetRequestID(req.ID).
-			SetProjectID(project.ID).
 			SetChannelID(ch.ID).
 			SetModelID("gpt-4.1").
 			SetRequestBody([]byte(`{"stream":true}`)).
@@ -1087,12 +1084,10 @@ func TestOutboundPersistentStream_Close_AggregatedResponsesCompletionHandling(t 
 		defer client.Close()
 
 		ctx := ent.NewContext(ctx, client)
-		project := createTestProject(t, ctx, client)
 		ch := createTestChannel(t, ctx, client)
 		_, requestService, _, usageLogService := setupTestServices(t, client)
 
 		req, err := client.Request.Create().
-			SetProjectID(project.ID).
 			SetChannelID(ch.ID).
 			SetModelID("gpt-4.1").
 			SetStatus(request.StatusPending).
@@ -1102,7 +1097,6 @@ func TestOutboundPersistentStream_Close_AggregatedResponsesCompletionHandling(t 
 
 		exec, err := client.RequestExecution.Create().
 			SetRequestID(req.ID).
-			SetProjectID(project.ID).
 			SetChannelID(ch.ID).
 			SetModelID("gpt-4.1").
 			SetRequestBody([]byte(`{"stream":true}`)).
@@ -1145,12 +1139,10 @@ func TestOutboundPersistentStream_Close_AggregatedResponsesCompletionHandling(t 
 		defer client.Close()
 
 		ctx := ent.NewContext(ctx, client)
-		project := createTestProject(t, ctx, client)
 		ch := createTestChannel(t, ctx, client)
 		_, requestService, _, usageLogService := setupTestServices(t, client)
 
 		req, err := client.Request.Create().
-			SetProjectID(project.ID).
 			SetChannelID(ch.ID).
 			SetModelID("gpt-4.1").
 			SetStatus(request.StatusPending).
@@ -1160,7 +1152,6 @@ func TestOutboundPersistentStream_Close_AggregatedResponsesCompletionHandling(t 
 
 		exec, err := client.RequestExecution.Create().
 			SetRequestID(req.ID).
-			SetProjectID(project.ID).
 			SetChannelID(ch.ID).
 			SetModelID("gpt-4.1").
 			SetRequestBody([]byte(`{"stream":true}`)).
@@ -1208,12 +1199,10 @@ func TestOutboundPersistentStream_Close_AggregatedResponsesCompletionHandling(t 
 		defer client.Close()
 
 		baseCtx := ent.NewContext(ctx, client)
-		project := createTestProject(t, baseCtx, client)
 		ch := createTestChannel(t, baseCtx, client)
 		_, requestService, _, usageLogService := setupTestServices(t, client)
 
 		req, err := client.Request.Create().
-			SetProjectID(project.ID).
 			SetChannelID(ch.ID).
 			SetModelID("gpt-4.1").
 			SetStatus(request.StatusPending).
@@ -1223,7 +1212,6 @@ func TestOutboundPersistentStream_Close_AggregatedResponsesCompletionHandling(t 
 
 		exec, err := client.RequestExecution.Create().
 			SetRequestID(req.ID).
-			SetProjectID(project.ID).
 			SetChannelID(ch.ID).
 			SetModelID("gpt-4.1").
 			SetRequestBody([]byte(`{"stream":true}`)).
@@ -1273,12 +1261,10 @@ func TestOutboundPersistentStream_Close_AggregatedResponsesCompletionHandling(t 
 		defer client.Close()
 
 		baseCtx := ent.NewContext(ctx, client)
-		project := createTestProject(t, baseCtx, client)
 		ch := createTestChannel(t, baseCtx, client)
 		_, requestService, _, usageLogService := setupTestServices(t, client)
 
 		req, err := client.Request.Create().
-			SetProjectID(project.ID).
 			SetChannelID(ch.ID).
 			SetModelID("gpt-4.1").
 			SetStatus(request.StatusPending).
@@ -1288,7 +1274,6 @@ func TestOutboundPersistentStream_Close_AggregatedResponsesCompletionHandling(t 
 
 		exec, err := client.RequestExecution.Create().
 			SetRequestID(req.ID).
-			SetProjectID(project.ID).
 			SetChannelID(ch.ID).
 			SetModelID("gpt-4.1").
 			SetRequestBody([]byte(`{"stream":true}`)).
@@ -1335,11 +1320,9 @@ func TestOutboundPersistentStream_Close_AnthropicStopReasonAfterStreamErrorCompl
 	defer client.Close()
 
 	ctx = ent.NewContext(ctx, client)
-	project := createTestProject(t, ctx, client)
 	ch := createTestChannel(t, ctx, client)
 	_, requestService, _, usageLogService := setupTestServices(t, client)
 	req, err := client.Request.Create().
-		SetProjectID(project.ID).
 		SetChannelID(ch.ID).
 		SetModelID("claude-opus-5-5").
 		SetStatus(request.StatusPending).
@@ -1348,7 +1331,6 @@ func TestOutboundPersistentStream_Close_AnthropicStopReasonAfterStreamErrorCompl
 	require.NoError(t, err)
 	exec, err := client.RequestExecution.Create().
 		SetRequestID(req.ID).
-		SetProjectID(project.ID).
 		SetChannelID(ch.ID).
 		SetModelID("claude-opus-5-5").
 		SetRequestBody([]byte(`{"stream":true}`)).
@@ -1482,7 +1464,6 @@ func TestOutboundPersistentStream_Close_ResponsesTerminalPersistsOutcome(t *test
 			defer client.Close()
 
 			ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
-			project := createTestProject(t, ctx, client)
 			ch := createTestChannel(t, ctx, client)
 			_, requestService, systemService, usageLogService := setupTestServices(t, client)
 			require.NoError(t, systemService.SetStoragePolicy(ctx, &biz.StoragePolicy{
@@ -1492,7 +1473,6 @@ func TestOutboundPersistentStream_Close_ResponsesTerminalPersistsOutcome(t *test
 			}))
 
 			req, err := client.Request.Create().
-				SetProjectID(project.ID).
 				SetChannelID(ch.ID).
 				SetModelID("gpt-5").
 				SetStatus(request.StatusProcessing).
@@ -1502,7 +1482,6 @@ func TestOutboundPersistentStream_Close_ResponsesTerminalPersistsOutcome(t *test
 			require.NoError(t, err)
 			exec, err := client.RequestExecution.Create().
 				SetRequestID(req.ID).
-				SetProjectID(project.ID).
 				SetChannelID(ch.ID).
 				SetModelID("gpt-5").
 				SetFormat(llm.APIFormatOpenAIResponse.String()).
@@ -1593,19 +1572,18 @@ func TestOutboundPersistentStream_Close_AggregationErrorPreservesTerminal(t *tes
 			ctx := authz.WithTestBypass(ent.NewContext(t.Context(), client))
 			streamCtx, cancel := context.WithCancel(ctx)
 			defer cancel()
-			project := createTestProject(t, ctx, client)
 			channel := createTestChannel(t, ctx, client)
 			_, requestService, systemService, usageLogService := setupTestServices(t, client)
 			require.NoError(t, systemService.SetStoragePolicy(ctx, &biz.StoragePolicy{
 				StoreChunks: true, StoreRequestBody: true, StoreResponseBody: true,
 			}))
 			req, err := client.Request.Create().
-				SetProjectID(project.ID).SetChannelID(channel.ID).SetModelID("gpt-5").
+				SetChannelID(channel.ID).SetModelID("gpt-5").
 				SetStatus(request.StatusProcessing).SetRequestBody([]byte(`{"stream":true}`)).
 				SetStream(true).Save(ctx)
 			require.NoError(t, err)
 			execution, err := client.RequestExecution.Create().
-				SetRequestID(req.ID).SetProjectID(project.ID).SetChannelID(channel.ID).SetModelID("gpt-5").
+				SetRequestID(req.ID).SetChannelID(channel.ID).SetModelID("gpt-5").
 				SetFormat(llm.APIFormatOpenAIResponse.String()).SetStatus(requestexecution.StatusProcessing).
 				SetRequestBody([]byte(`{"stream":true}`)).SetExternalID("resp_existing").
 				SetResponseBody([]byte(`{"existing":true}`)).SetStream(true).Save(ctx)
@@ -1979,12 +1957,10 @@ func TestOutboundPersistentStream_Close_TransportErrorKeepsMetricsAndClassifiesE
 	defer client.Close()
 
 	ctx = ent.NewContext(ctx, client)
-	project := createTestProject(t, ctx, client)
 	ch := createTestChannel(t, ctx, client)
 	_, requestService, _, usageLogService := setupTestServices(t, client)
 
 	req, err := client.Request.Create().
-		SetProjectID(project.ID).
 		SetChannelID(ch.ID).
 		SetModelID("gpt-4.1").
 		SetStatus(request.StatusPending).
@@ -1994,7 +1970,6 @@ func TestOutboundPersistentStream_Close_TransportErrorKeepsMetricsAndClassifiesE
 
 	exec, err := client.RequestExecution.Create().
 		SetRequestID(req.ID).
-		SetProjectID(project.ID).
 		SetChannelID(ch.ID).
 		SetModelID("gpt-4.1").
 		SetRequestBody([]byte(`{"stream":true}`)).

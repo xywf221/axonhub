@@ -11,7 +11,6 @@ import (
 	"github.com/looplj/axonhub/internal/authz"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/enttest"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/request"
 	"github.com/looplj/axonhub/internal/ent/requestexecution"
 	"github.com/looplj/axonhub/internal/pkg/xcache"
@@ -45,15 +44,8 @@ func TestRequestService_ClearStaleProcessingOnStartup(t *testing.T) {
 	svc, client, ctx := setupTestRequestService(t)
 	defer client.Close()
 
-	proj, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	tr, err := client.Trace.Create().
 		SetTraceID("test-trace").
-		SetProjectID(proj.ID).
 		Save(ctx)
 	require.NoError(t, err)
 
@@ -61,7 +53,6 @@ func TestRequestService_ClearStaleProcessingOnStartup(t *testing.T) {
 	var staleRequestIDs []int
 	for i := 0; i < 2; i++ {
 		req, err := client.Request.Create().
-			SetProjectID(proj.ID).
 			SetTraceID(tr.ID).
 			SetModelID("gpt-4").
 			SetFormat("openai/chat_completions").
@@ -78,7 +69,6 @@ func TestRequestService_ClearStaleProcessingOnStartup(t *testing.T) {
 	var recentRequestIDs []int
 	for i := 0; i < 2; i++ {
 		req, err := client.Request.Create().
-			SetProjectID(proj.ID).
 			SetTraceID(tr.ID).
 			SetModelID("gpt-4").
 			SetFormat("openai/chat_completions").
@@ -95,7 +85,6 @@ func TestRequestService_ClearStaleProcessingOnStartup(t *testing.T) {
 	var staleExecIDs []int
 	for _, reqID := range staleRequestIDs {
 		exec, err := client.RequestExecution.Create().
-			SetProjectID(proj.ID).
 			SetRequestID(reqID).
 			SetModelID("gpt-4").
 			SetFormat("openai/chat_completions").
@@ -112,7 +101,6 @@ func TestRequestService_ClearStaleProcessingOnStartup(t *testing.T) {
 	var recentExecIDs []int
 	for _, reqID := range recentRequestIDs {
 		exec, err := client.RequestExecution.Create().
-			SetProjectID(proj.ID).
 			SetRequestID(reqID).
 			SetModelID("gpt-4").
 			SetFormat("openai/chat_completions").
@@ -167,21 +155,13 @@ func TestRequestService_ClearStaleProcessingOnStartup_PartialFailure(t *testing.
 	svc, client, ctx := setupTestRequestService(t)
 	defer client.Close()
 
-	proj, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	tr, err := client.Trace.Create().
 		SetTraceID("test-trace").
-		SetProjectID(proj.ID).
 		Save(ctx)
 	require.NoError(t, err)
 
 	// Create only stale executions (no stale requests)
 	req, err := client.Request.Create().
-		SetProjectID(proj.ID).
 		SetTraceID(tr.ID).
 		SetModelID("gpt-4").
 		SetFormat("openai/chat_completions").
@@ -193,7 +173,6 @@ func TestRequestService_ClearStaleProcessingOnStartup_PartialFailure(t *testing.
 	require.NoError(t, err)
 
 	exec, err := client.RequestExecution.Create().
-		SetProjectID(proj.ID).
 		SetRequestID(req.ID).
 		SetModelID("gpt-4").
 		SetFormat("openai/chat_completions").

@@ -27,9 +27,9 @@ func NewThreadService(ent *ent.Client, traceService *TraceService) *ThreadServic
 	}
 }
 
-// GetOrCreateThread retrieves an existing thread by thread_id and project_id,
+// GetOrCreateThread retrieves an existing thread by thread_id,
 // or creates a new one if it doesn't exist.
-func (s *ThreadService) GetOrCreateThread(ctx context.Context, projectID int, threadID string) (*ent.Thread, error) {
+func (s *ThreadService) GetOrCreateThread(ctx context.Context, threadID string) (*ent.Thread, error) {
 	client := s.entFromContext(ctx)
 	if client == nil {
 		return nil, fmt.Errorf("ent client not found in context")
@@ -37,10 +37,7 @@ func (s *ThreadService) GetOrCreateThread(ctx context.Context, projectID int, th
 
 	// Try to find existing thread
 	existingThread, err := client.Thread.Query().
-		Where(
-			thread.ThreadIDEQ(threadID),
-			thread.ProjectIDEQ(projectID),
-		).
+		Where(thread.ThreadIDEQ(threadID)).
 		Only(ctx)
 	if err == nil {
 		// Thread found
@@ -55,38 +52,31 @@ func (s *ThreadService) GetOrCreateThread(ctx context.Context, projectID int, th
 	// Thread not found, create new one
 	newThread, err := client.Thread.Create().
 		SetThreadID(threadID).
-		SetProjectID(projectID).
 		Save(ctx)
 	if err != nil {
 		if ent.IsConstraintError(err) {
 			return client.Thread.Query().
-				Where(
-					thread.ThreadIDEQ(threadID),
-					thread.ProjectIDEQ(projectID),
-				).
+				Where(thread.ThreadIDEQ(threadID)).
 				Only(ctx)
 		}
 
 		return nil, fmt.Errorf("failed to create thread: %w", err)
 	}
 
-	log.Debug(ctx, "created new thread", log.String("thread_id", threadID), log.Int("project_id", projectID))
+	log.Debug(ctx, "created new thread", log.String("thread_id", threadID))
 
 	return newThread, nil
 }
 
-// GetThreadByID retrieves a thread by its thread_id and project_id.
-func (s *ThreadService) GetThreadByID(ctx context.Context, threadID string, projectID int) (*ent.Thread, error) {
+// GetThreadByID retrieves a thread by its thread_id.
+func (s *ThreadService) GetThreadByID(ctx context.Context, threadID string) (*ent.Thread, error) {
 	client := s.entFromContext(ctx)
 	if client == nil {
 		return nil, fmt.Errorf("ent client not found in context")
 	}
 
 	thread, err := client.Thread.Query().
-		Where(
-			thread.ThreadIDEQ(threadID),
-			thread.ProjectIDEQ(projectID),
-		).
+		Where(thread.ThreadIDEQ(threadID)).
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get thread: %w", err)

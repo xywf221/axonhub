@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/authStore';
 import i18n from '@/lib/i18n';
 import { useErrorHandler } from '@/hooks/use-error-handler';
-import { usePermissions } from '@/hooks/usePermissions';
 import {
   codexAccess,
   codexTestReducer,
@@ -61,11 +60,10 @@ const TEST_CODEX_CATALOG_MUTATION = `
   }
 `;
 
-// Query keys carry the signed-in user and the scope flags so one user's cached data is never reused by another.
+// Query keys carry the signed-in user so one user's cached data is never reused by another.
 function useCodexQueryIdentity(): { authUserId: string | null; canReadSettings: boolean; access: CodexAccess } {
-  const { hasSystemScope } = usePermissions();
   const authUserId = useAuthStore((state) => state.auth.user?.id ?? null);
-  return { authUserId, canReadSettings: hasSystemScope('read_settings'), access: codexAccess(hasSystemScope) };
+  return { authUserId, canReadSettings: true, access: codexAccess() };
 }
 
 export function useCodexCompatibilitySettings() {

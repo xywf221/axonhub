@@ -51,19 +51,18 @@ func TestWorker_cleanupRequestExternalStorageDeletesFsArtifacts(t *testing.T) {
 
 	req := &ent.Request{
 		ID:            101,
-		ProjectID:     202,
 		DataStorageID: dataStorage.ID,
 	}
 
 	fileKeys := []string{
-		biz.GenerateRequestBodyKey(req.ProjectID, req.ID),
-		biz.GenerateResponseBodyKey(req.ProjectID, req.ID),
-		biz.GenerateResponseChunksKey(req.ProjectID, req.ID),
+		biz.GenerateRequestBodyKey(req.ID),
+		biz.GenerateResponseBodyKey(req.ID),
+		biz.GenerateResponseChunksKey(req.ID),
 	}
 
 	dirKeys := []string{
-		biz.GenerateRequestExecutionsDirKey(req.ProjectID, req.ID),
-		biz.GenerateRequestDirKey(req.ProjectID, req.ID),
+		biz.GenerateRequestExecutionsDirKey(req.ID),
+		biz.GenerateRequestDirKey(req.ID),
 	}
 
 	for _, key := range fileKeys {
@@ -86,25 +85,23 @@ func TestWorker_cleanupExecutionExternalStorageDeletesFsArtifacts(t *testing.T) 
 
 	req := &ent.Request{
 		ID:            303,
-		ProjectID:     404,
 		DataStorageID: dataStorage.ID,
 	}
 
 	exec := &ent.RequestExecution{
 		ID:            505,
 		RequestID:     req.ID,
-		ProjectID:     req.ProjectID,
 		DataStorageID: dataStorage.ID,
 	}
 
 	fileKeys := []string{
-		biz.GenerateExecutionRequestBodyKey(exec.ProjectID, exec.RequestID, exec.ID),
-		biz.GenerateExecutionResponseBodyKey(exec.ProjectID, exec.RequestID, exec.ID),
-		biz.GenerateExecutionResponseChunksKey(exec.ProjectID, exec.RequestID, exec.ID),
+		biz.GenerateExecutionRequestBodyKey(exec.RequestID, exec.ID),
+		biz.GenerateExecutionResponseBodyKey(exec.RequestID, exec.ID),
+		biz.GenerateExecutionResponseChunksKey(exec.RequestID, exec.ID),
 	}
 
 	dirKeys := []string{
-		biz.GenerateExecutionRequestDirKey(exec.ProjectID, exec.RequestID, exec.ID),
+		biz.GenerateExecutionRequestDirKey(exec.RequestID, exec.ID),
 	}
 
 	for _, key := range fileKeys {

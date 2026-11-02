@@ -14,7 +14,6 @@ type BackupData struct {
 	Version            string                     `json:"version"`
 	Timestamp          time.Time                  `json:"timestamp"`
 	SystemConfigs      []*BackupSystemConfig      `json:"system_configs,omitempty"`
-	Projects           []*BackupProject           `json:"projects,omitempty"`
 	Channels           []*BackupChannel           `json:"channels"`
 	Models             []*BackupModel             `json:"models"`
 	ChannelModelPrices []*BackupChannelModelPrice `json:"channel_model_prices,omitempty"`
@@ -31,10 +30,6 @@ type BackupSystemConfig struct {
 	Value string `json:"value"`
 }
 
-type BackupProject struct {
-	ent.Project
-}
-
 type BackupChannel struct {
 	ent.Channel
 
@@ -47,8 +42,6 @@ type BackupModel struct {
 
 type BackupAPIKey struct {
 	ent.APIKey
-
-	ProjectName string `json:"project_name"`
 }
 
 type BackupChannelModelPrice struct {
@@ -61,7 +54,6 @@ type BackupChannelModelPrice struct {
 type BackupUsageRequest struct {
 	ent.Request
 
-	ProjectName string `json:"project_name,omitempty"`
 	ChannelName string `json:"channel_name,omitempty"`
 	APIKeyKey   string `json:"api_key_key,omitempty"`
 }
@@ -71,7 +63,6 @@ func (r BackupUsageRequest) MarshalJSON() ([]byte, error) {
 		ID                         int                      `json:"id,omitempty"`
 		CreatedAt                  time.Time                `json:"created_at,omitzero"`
 		UpdatedAt                  time.Time                `json:"updated_at,omitzero"`
-		ProjectID                  int                      `json:"project_id,omitempty"`
 		Source                     request.Source           `json:"source,omitempty"`
 		ModelID                    string                   `json:"model_id,omitempty"`
 		ReasoningEffort            string                   `json:"reasoning_effort,omitempty"`
@@ -93,7 +84,6 @@ func (r BackupUsageRequest) MarshalJSON() ([]byte, error) {
 		ContentStorageID           *int                     `json:"content_storage_id,omitempty"`
 		ContentStorageKey          *string                  `json:"content_storage_key,omitempty"`
 		ContentSavedAt             *time.Time               `json:"content_saved_at,omitempty"`
-		ProjectName                string                   `json:"project_name,omitempty"`
 		ChannelName                string                   `json:"channel_name,omitempty"`
 		APIKeyKey                  string                   `json:"api_key_key,omitempty"`
 	}
@@ -102,7 +92,6 @@ func (r BackupUsageRequest) MarshalJSON() ([]byte, error) {
 		ID:                         r.ID,
 		CreatedAt:                  r.CreatedAt,
 		UpdatedAt:                  r.UpdatedAt,
-		ProjectID:                  r.ProjectID,
 		Source:                     r.Source,
 		ModelID:                    r.ModelID,
 		ReasoningEffort:            r.ReasoningEffort,
@@ -124,7 +113,6 @@ func (r BackupUsageRequest) MarshalJSON() ([]byte, error) {
 		ContentStorageID:           r.ContentStorageID,
 		ContentStorageKey:          r.ContentStorageKey,
 		ContentSavedAt:             r.ContentSavedAt,
-		ProjectName:                r.ProjectName,
 		ChannelName:                r.ChannelName,
 		APIKeyKey:                  r.APIKeyKey,
 	})
@@ -133,7 +121,6 @@ func (r BackupUsageRequest) MarshalJSON() ([]byte, error) {
 type BackupUsageLog struct {
 	ent.UsageLog
 
-	ProjectName string `json:"project_name,omitempty"`
 	ChannelName string `json:"channel_name,omitempty"`
 	APIKeyKey   string `json:"api_key_key,omitempty"`
 }
@@ -144,7 +131,6 @@ func (l BackupUsageLog) MarshalJSON() ([]byte, error) {
 		CreatedAt                          time.Time          `json:"created_at,omitzero"`
 		UpdatedAt                          time.Time          `json:"updated_at,omitzero"`
 		RequestID                          int                `json:"request_id,omitempty"`
-		ProjectID                          int                `json:"project_id,omitempty"`
 		ChannelID                          int                `json:"channel_id,omitempty"`
 		ModelID                            string             `json:"model_id,omitempty"`
 		PromptTokens                       int64              `json:"prompt_tokens,omitempty"`
@@ -164,7 +150,6 @@ func (l BackupUsageLog) MarshalJSON() ([]byte, error) {
 		TotalCost                          *float64           `json:"total_cost,omitempty"`
 		CostItems                          []objects.CostItem `json:"cost_items,omitempty"`
 		CostPriceReferenceID               string             `json:"cost_price_reference_id,omitempty"`
-		ProjectName                        string             `json:"project_name,omitempty"`
 		ChannelName                        string             `json:"channel_name,omitempty"`
 		APIKeyKey                          string             `json:"api_key_key,omitempty"`
 	}
@@ -174,7 +159,6 @@ func (l BackupUsageLog) MarshalJSON() ([]byte, error) {
 		CreatedAt:                          l.CreatedAt,
 		UpdatedAt:                          l.UpdatedAt,
 		RequestID:                          l.RequestID,
-		ProjectID:                          l.ProjectID,
 		ChannelID:                          l.ChannelID,
 		ModelID:                            l.ModelID,
 		PromptTokens:                       l.PromptTokens,
@@ -194,7 +178,6 @@ func (l BackupUsageLog) MarshalJSON() ([]byte, error) {
 		TotalCost:                          l.TotalCost,
 		CostItems:                          l.CostItems,
 		CostPriceReferenceID:               l.CostPriceReferenceID,
-		ProjectName:                        l.ProjectName,
 		ChannelName:                        l.ChannelName,
 		APIKeyKey:                          l.APIKeyKey,
 	})
@@ -210,7 +193,6 @@ const (
 
 type BackupOptions struct {
 	IncludeSystemConfigs bool
-	IncludeProjects      bool
 	IncludeChannels      bool
 	IncludeModels        bool
 	IncludeAPIKeys       bool
@@ -229,14 +211,12 @@ const (
 
 type RestoreOptions struct {
 	IncludeSystemConfigs       bool
-	IncludeProjects            bool
 	IncludeChannels            bool
 	IncludeModels              bool
 	IncludeAPIKeys             bool
 	IncludeModelPrices         bool
 	IncludeUsageStats          bool
 	IncludeRequestLogs         bool
-	ProjectConflictStrategy    ConflictStrategy
 	ChannelConflictStrategy    ConflictStrategy
 	ModelConflictStrategy      ConflictStrategy
 	ModelPriceConflictStrategy ConflictStrategy

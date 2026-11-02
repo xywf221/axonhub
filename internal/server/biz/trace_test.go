@@ -14,7 +14,6 @@ import (
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/datastorage"
 	"github.com/looplj/axonhub/internal/ent/enttest"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/pkg/xcache"
 	"github.com/looplj/axonhub/internal/pkg/xfile"
 	"github.com/looplj/axonhub/llm"
@@ -91,20 +90,13 @@ func TestRequestService_LoadersReturnEmptyJSONAndSlices(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 	ctx = authz.WithTestBypass(ctx)
 
-	projectEntity, err := client.Project.Create().
-		SetName("request-loader-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	traceEntity, err := client.Trace.Create().
 		SetTraceID("trace-request-loader").
-		SetProjectID(projectEntity.ID).
 		Save(ctx)
 	require.NoError(t, err)
 
 	req, err := client.Request.Create().
-		SetProjectID(projectEntity.ID).
 		SetTraceID(traceEntity.ID).
 		SetModelID("gpt-4").
 		SetFormat("openai/chat_completions").
@@ -125,7 +117,6 @@ func TestRequestService_LoadersReturnEmptyJSONAndSlices(t *testing.T) {
 	require.Empty(t, responseChunks)
 
 	exec, err := client.RequestExecution.Create().
-		SetProjectID(projectEntity.ID).
 		SetRequestID(req.ID).
 		SetModelID("gpt-4").
 		SetFormat("openai/chat_completions").
@@ -154,33 +145,25 @@ func TestTraceService_GetOrCreateTrace(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 	ctx = authz.WithTestBypass(ctx)
 
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	traceID := "trace-test-123"
 
 	// Test creating a new trace without thread
-	trace1, err := traceService.GetOrCreateTrace(ctx, testProject.ID, traceID, nil)
+	trace1, err := traceService.GetOrCreateTrace(ctx, traceID, nil)
 	require.NoError(t, err)
 	require.NotNil(t, trace1)
 	require.Equal(t, traceID, trace1.TraceID)
-	require.Equal(t, testProject.ID, trace1.ProjectID)
 
 	// Test getting existing trace (should return the same trace)
-	trace2, err := traceService.GetOrCreateTrace(ctx, testProject.ID, traceID, nil)
+	trace2, err := traceService.GetOrCreateTrace(ctx, traceID, nil)
 	require.NoError(t, err)
 	require.NotNil(t, trace2)
 	require.Equal(t, trace1.ID, trace2.ID)
 	require.Equal(t, traceID, trace2.TraceID)
-	require.Equal(t, testProject.ID, trace2.ProjectID)
 
 	// Test creating a trace with different traceID
 	differentTraceID := "trace-test-456"
-	trace3, err := traceService.GetOrCreateTrace(ctx, testProject.ID, differentTraceID, nil)
+	trace3, err := traceService.GetOrCreateTrace(ctx, differentTraceID, nil)
 	require.NoError(t, err)
 	require.NotNil(t, trace3)
 	require.NotEqual(t, trace1.ID, trace3.ID)
@@ -195,68 +178,21 @@ func TestTraceService_GetOrCreateTrace_WithThread(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 	ctx = authz.WithTestBypass(ctx)
 
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	// Create a thread
 	testThread, err := client.Thread.Create().
 		SetThreadID("thread-123").
-		SetProjectID(testProject.ID).
 		Save(ctx)
 	require.NoError(t, err)
 
 	traceID := "trace-with-thread-123"
 
 	// Test creating a trace with thread
-	trace, err := traceService.GetOrCreateTrace(ctx, testProject.ID, traceID, &testThread.ID)
+	trace, err := traceService.GetOrCreateTrace(ctx, traceID, &testThread.ID)
 	require.NoError(t, err)
 	require.NotNil(t, trace)
 	require.Equal(t, traceID, trace.TraceID)
-	require.Equal(t, testProject.ID, trace.ProjectID)
 	require.Equal(t, testThread.ID, trace.ThreadID)
-}
-
-func TestTraceService_GetOrCreateTrace_DifferentProjects(t *testing.T) {
-	traceService, client := setupTestTraceService(t, nil)
-	defer client.Close()
-
-	ctx := context.Background()
-	ctx = ent.NewContext(ctx, client)
-	ctx = authz.WithTestBypass(ctx)
-
-	// Create two test projects
-	project1, err := client.Project.Create().
-		SetName("project-1").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
-	project2, err := client.Project.Create().
-		SetName("project-2").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
-	// Use different trace IDs for different projects (trace_id is globally unique)
-	traceID1 := "trace-project1-123"
-	traceID2 := "trace-project2-456"
-
-	// Create trace in project 1
-	trace1, err := traceService.GetOrCreateTrace(ctx, project1.ID, traceID1, nil)
-	require.NoError(t, err)
-	require.Equal(t, project1.ID, trace1.ProjectID)
-	require.Equal(t, traceID1, trace1.TraceID)
-
-	// Create trace in project 2 with different traceID
-	trace2, err := traceService.GetOrCreateTrace(ctx, project2.ID, traceID2, nil)
-	require.NoError(t, err)
-	require.Equal(t, project2.ID, trace2.ProjectID)
-	require.Equal(t, traceID2, trace2.TraceID)
-	require.NotEqual(t, trace1.ID, trace2.ID)
 }
 
 func TestTraceService_GetTraceByID(t *testing.T) {
@@ -267,31 +203,24 @@ func TestTraceService_GetTraceByID(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 	ctx = authz.WithTestBypass(ctx)
 
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	traceID := "trace-get-test-123"
 
 	// Create a trace first
 	createdTrace, err := client.Trace.Create().
 		SetTraceID(traceID).
-		SetProjectID(testProject.ID).
 		Save(ctx)
 	require.NoError(t, err)
 
 	// Test getting the trace
-	retrievedTrace, err := traceService.GetTraceByID(ctx, traceID, testProject.ID)
+	retrievedTrace, err := traceService.GetTraceByID(ctx, traceID)
 	require.NoError(t, err)
 	require.NotNil(t, retrievedTrace)
 	require.Equal(t, createdTrace.ID, retrievedTrace.ID)
 	require.Equal(t, traceID, retrievedTrace.TraceID)
 
 	// Test getting non-existent trace
-	_, err = traceService.GetTraceByID(ctx, "non-existent", testProject.ID)
+	_, err = traceService.GetTraceByID(ctx, "non-existent")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "failed to get trace")
 }
@@ -304,19 +233,12 @@ func TestTraceService_GetRequestTrace(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 	ctx = authz.WithTestBypass(ctx)
 
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	traceID := "trace-spans-test-123"
 
 	// Create a trace
 	trace, err := client.Trace.Create().
 		SetTraceID(traceID).
-		SetProjectID(testProject.ID).
 		Save(ctx)
 	require.NoError(t, err)
 
@@ -349,7 +271,6 @@ func TestTraceService_GetRequestTrace(t *testing.T) {
 	}`)
 
 	req, err := client.Request.Create().
-		SetProjectID(testProject.ID).
 		SetTraceID(trace.ID).
 		SetModelID("gpt-4").
 		SetFormat("openai/chat_completions").
@@ -394,15 +315,9 @@ func TestTraceService_ImageGenerationTrace(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 	ctx = authz.WithTestBypass(ctx)
 
-	projectEntity, err := client.Project.Create().
-		SetName("image-generation-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	traceEntity, err := client.Trace.Create().
 		SetTraceID("trace-image-generation").
-		SetProjectID(projectEntity.ID).
 		Save(ctx)
 	require.NoError(t, err)
 
@@ -421,7 +336,6 @@ func TestTraceService_ImageGenerationTrace(t *testing.T) {
 	}`)
 
 	req, err := client.Request.Create().
-		SetProjectID(projectEntity.ID).
 		SetTraceID(traceEntity.ID).
 		SetModelID("gpt-image-1").
 		SetFormat(llm.APIFormatOpenAIImageGeneration.String()).
@@ -497,19 +411,12 @@ func TestTraceService_GetRequestTrace_WithToolCalls(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 	ctx = authz.WithTestBypass(ctx)
 
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	traceID := "trace-tool-test-456"
 
 	// Create a trace
 	trace, err := client.Trace.Create().
 		SetTraceID(traceID).
-		SetProjectID(testProject.ID).
 		Save(ctx)
 	require.NoError(t, err)
 
@@ -559,7 +466,6 @@ func TestTraceService_GetRequestTrace_WithToolCalls(t *testing.T) {
 	}`)
 
 	_, err = client.Request.Create().
-		SetProjectID(testProject.ID).
 		SetTraceID(trace.ID).
 		SetModelID("gpt-4").
 		SetFormat("openai/chat_completions").
@@ -593,16 +499,10 @@ func TestTraceService_GetRequestTrace_AnthropicResponseTransformation(t *testing
 	ctx = ent.NewContext(ctx, client)
 	ctx = authz.WithTestBypass(ctx)
 
-	projectEntity, err := client.Project.Create().
-		SetName("anthropic-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	traceID := "trace-anthropic-response"
 	traceEntity, err := client.Trace.Create().
 		SetTraceID(traceID).
-		SetProjectID(projectEntity.ID).
 		Save(ctx)
 	require.NoError(t, err)
 
@@ -637,7 +537,6 @@ func TestTraceService_GetRequestTrace_AnthropicResponseTransformation(t *testing
 	}`)
 
 	_, err = client.Request.Create().
-		SetProjectID(projectEntity.ID).
 		SetTraceID(traceEntity.ID).
 		SetModelID("claude-3-sonnet-20240229").
 		SetFormat("anthropic/messages").
@@ -684,19 +583,12 @@ func TestTraceService_GetRequestTrace_WithReasoningContent(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 	ctx = authz.WithTestBypass(ctx)
 
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	traceID := "trace-reasoning-test-789"
 
 	// Create a trace
 	trace, err := client.Trace.Create().
 		SetTraceID(traceID).
-		SetProjectID(testProject.ID).
 		Save(ctx)
 	require.NoError(t, err)
 
@@ -730,7 +622,6 @@ func TestTraceService_GetRequestTrace_WithReasoningContent(t *testing.T) {
 	}`)
 
 	_, err = client.Request.Create().
-		SetProjectID(testProject.ID).
 		SetTraceID(trace.ID).
 		SetModelID("deepseek-reasoner").
 		SetFormat("openai/chat_completions").
@@ -818,19 +709,12 @@ func TestTraceService_GetRequestTrace_EmptyTrace(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 	ctx = authz.WithTestBypass(ctx)
 
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	traceID := "trace-empty-test"
 
 	// Create a trace without any requests
 	trace, err := client.Trace.Create().
 		SetTraceID(traceID).
-		SetProjectID(testProject.ID).
 		Save(ctx)
 	require.NoError(t, err)
 
@@ -847,15 +731,9 @@ func TestTraceService_GetRequestTrace_MultipleRequestsWithToolResults(t *testing
 	ctx = ent.NewContext(ctx, client)
 	ctx = authz.WithTestBypass(ctx)
 
-	projectEntity, err := client.Project.Create().
-		SetName("multi-request-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	traceEntity, err := client.Trace.Create().
 		SetTraceID("trace-multi-request").
-		SetProjectID(projectEntity.ID).
 		Save(ctx)
 	require.NoError(t, err)
 
@@ -939,7 +817,6 @@ func TestTraceService_GetRequestTrace_MultipleRequestsWithToolResults(t *testing
 	}`)
 
 	req1, err := client.Request.Create().
-		SetProjectID(projectEntity.ID).
 		SetTraceID(traceEntity.ID).
 		SetModelID("gpt-4").
 		SetFormat("openai/chat_completions").
@@ -953,7 +830,6 @@ func TestTraceService_GetRequestTrace_MultipleRequestsWithToolResults(t *testing
 	require.NoError(t, err)
 
 	req2, err := client.Request.Create().
-		SetProjectID(projectEntity.ID).
 		SetTraceID(traceEntity.ID).
 		SetModelID("gpt-4").
 		SetFormat("openai/chat_completions").
@@ -999,15 +875,9 @@ func TestTraceService_GetRootSegment_TreeByToolCallID(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 	ctx = authz.WithTestBypass(ctx)
 
-	projectEntity, err := client.Project.Create().
-		SetName("tree-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	traceEntity, err := client.Trace.Create().
 		SetTraceID("trace-tree-toolcall").
-		SetProjectID(projectEntity.ID).
 		Save(ctx)
 	require.NoError(t, err)
 
@@ -1085,7 +955,6 @@ func TestTraceService_GetRootSegment_TreeByToolCallID(t *testing.T) {
 	}`)
 
 	req1, err := client.Request.Create().
-		SetProjectID(projectEntity.ID).
 		SetTraceID(traceEntity.ID).
 		SetModelID("gpt-4").
 		SetFormat("openai/chat_completions").
@@ -1099,7 +968,6 @@ func TestTraceService_GetRootSegment_TreeByToolCallID(t *testing.T) {
 	require.NoError(t, err)
 
 	req2, err := client.Request.Create().
-		SetProjectID(projectEntity.ID).
 		SetTraceID(traceEntity.ID).
 		SetModelID("gpt-4").
 		SetFormat("openai/chat_completions").
@@ -1113,7 +981,6 @@ func TestTraceService_GetRootSegment_TreeByToolCallID(t *testing.T) {
 	require.NoError(t, err)
 
 	req3, err := client.Request.Create().
-		SetProjectID(projectEntity.ID).
 		SetTraceID(traceEntity.ID).
 		SetModelID("gpt-4").
 		SetFormat("openai/chat_completions").
@@ -1164,15 +1031,9 @@ func TestTraceService_GetRootSegment_TreeBySpanPrefixMatch(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 	ctx = authz.WithTestBypass(ctx)
 
-	projectEntity, err := client.Project.Create().
-		SetName("prefix-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	traceEntity, err := client.Trace.Create().
 		SetTraceID("trace-prefix-match").
-		SetProjectID(projectEntity.ID).
 		Save(ctx)
 	require.NoError(t, err)
 
@@ -1219,7 +1080,7 @@ func TestTraceService_GetRootSegment_TreeBySpanPrefixMatch(t *testing.T) {
 	}`)
 
 	req1, err := client.Request.Create().
-		SetProjectID(projectEntity.ID).SetTraceID(traceEntity.ID).
+		SetTraceID(traceEntity.ID).
 		SetModelID("gpt-4").SetFormat("openai/chat_completions").
 		SetRequestBody(req1Body).SetResponseBody(resp1Body).
 		SetStatus("completed").SetStream(false).
@@ -1228,7 +1089,7 @@ func TestTraceService_GetRootSegment_TreeBySpanPrefixMatch(t *testing.T) {
 	require.NoError(t, err)
 
 	req2, err := client.Request.Create().
-		SetProjectID(projectEntity.ID).SetTraceID(traceEntity.ID).
+		SetTraceID(traceEntity.ID).
 		SetModelID("gpt-4").SetFormat("openai/chat_completions").
 		SetRequestBody(req2Body).SetResponseBody(resp2Body).
 		SetStatus("completed").SetStream(false).
@@ -1237,7 +1098,7 @@ func TestTraceService_GetRootSegment_TreeBySpanPrefixMatch(t *testing.T) {
 	require.NoError(t, err)
 
 	req3, err := client.Request.Create().
-		SetProjectID(projectEntity.ID).SetTraceID(traceEntity.ID).
+		SetTraceID(traceEntity.ID).
 		SetModelID("gpt-4").SetFormat("openai/chat_completions").
 		SetRequestBody(req3Body).SetResponseBody(resp3Body).
 		SetStatus("completed").SetStream(false).
@@ -1279,18 +1140,12 @@ func TestTraceService_GetRootSegment_FallbackChronologicalNearest(t *testing.T) 
 	ctx = ent.NewContext(ctx, client)
 	ctx = authz.WithTestBypass(ctx)
 
-	projectEntity, err := client.Project.Create().
-		SetName("fallback-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	now := time.Now()
 
 	t.Run("two disjoint requests form a linear chain", func(t *testing.T) {
 		traceEntity, err := client.Trace.Create().
 			SetTraceID("trace-fallback-2").
-			SetProjectID(projectEntity.ID).
 			Save(ctx)
 		require.NoError(t, err)
 
@@ -1315,7 +1170,7 @@ func TestTraceService_GetRootSegment_FallbackChronologicalNearest(t *testing.T) 
 		}`)
 
 		req1, err := client.Request.Create().
-			SetProjectID(projectEntity.ID).SetTraceID(traceEntity.ID).
+			SetTraceID(traceEntity.ID).
 			SetModelID("gpt-4").SetFormat("openai/chat_completions").
 			SetRequestBody(req1Body).SetResponseBody(resp1Body).
 			SetStatus("completed").SetStream(false).
@@ -1324,7 +1179,7 @@ func TestTraceService_GetRootSegment_FallbackChronologicalNearest(t *testing.T) 
 		require.NoError(t, err)
 
 		req2, err := client.Request.Create().
-			SetProjectID(projectEntity.ID).SetTraceID(traceEntity.ID).
+			SetTraceID(traceEntity.ID).
 			SetModelID("gpt-4").SetFormat("openai/chat_completions").
 			SetRequestBody(req2Body).SetResponseBody(resp2Body).
 			SetStatus("completed").SetStream(false).
@@ -1351,7 +1206,6 @@ func TestTraceService_GetRootSegment_FallbackChronologicalNearest(t *testing.T) 
 	t.Run("three disjoint requests form a linear chain via fallback", func(t *testing.T) {
 		traceEntity, err := client.Trace.Create().
 			SetTraceID("trace-fallback-3").
-			SetProjectID(projectEntity.ID).
 			Save(ctx)
 		require.NoError(t, err)
 
@@ -1384,7 +1238,7 @@ func TestTraceService_GetRootSegment_FallbackChronologicalNearest(t *testing.T) 
 		}`)
 
 		req1, err := client.Request.Create().
-			SetProjectID(projectEntity.ID).SetTraceID(traceEntity.ID).
+			SetTraceID(traceEntity.ID).
 			SetModelID("gpt-4").SetFormat("openai/chat_completions").
 			SetRequestBody(req1Body).SetResponseBody(resp1Body).
 			SetStatus("completed").SetStream(false).
@@ -1393,7 +1247,7 @@ func TestTraceService_GetRootSegment_FallbackChronologicalNearest(t *testing.T) 
 		require.NoError(t, err)
 
 		req2, err := client.Request.Create().
-			SetProjectID(projectEntity.ID).SetTraceID(traceEntity.ID).
+			SetTraceID(traceEntity.ID).
 			SetModelID("gpt-4").SetFormat("openai/chat_completions").
 			SetRequestBody(req2Body).SetResponseBody(resp2Body).
 			SetStatus("completed").SetStream(false).
@@ -1402,7 +1256,7 @@ func TestTraceService_GetRootSegment_FallbackChronologicalNearest(t *testing.T) 
 		require.NoError(t, err)
 
 		req3, err := client.Request.Create().
-			SetProjectID(projectEntity.ID).SetTraceID(traceEntity.ID).
+			SetTraceID(traceEntity.ID).
 			SetModelID("gpt-4").SetFormat("openai/chat_completions").
 			SetRequestBody(req3Body).SetResponseBody(resp3Body).
 			SetStatus("completed").SetStream(false).
@@ -1435,7 +1289,6 @@ func TestTraceService_GetRootSegment_FallbackChronologicalNearest(t *testing.T) 
 	t.Run("fallback is superseded when prefix match exists", func(t *testing.T) {
 		traceEntity, err := client.Trace.Create().
 			SetTraceID("trace-fallback-mixed").
-			SetProjectID(projectEntity.ID).
 			Save(ctx)
 		require.NoError(t, err)
 
@@ -1474,7 +1327,7 @@ func TestTraceService_GetRootSegment_FallbackChronologicalNearest(t *testing.T) 
 		}`)
 
 		req1, err := client.Request.Create().
-			SetProjectID(projectEntity.ID).SetTraceID(traceEntity.ID).
+			SetTraceID(traceEntity.ID).
 			SetModelID("gpt-4").SetFormat("openai/chat_completions").
 			SetRequestBody(req1Body).SetResponseBody(resp1Body).
 			SetStatus("completed").SetStream(false).
@@ -1483,7 +1336,7 @@ func TestTraceService_GetRootSegment_FallbackChronologicalNearest(t *testing.T) 
 		require.NoError(t, err)
 
 		req2, err := client.Request.Create().
-			SetProjectID(projectEntity.ID).SetTraceID(traceEntity.ID).
+			SetTraceID(traceEntity.ID).
 			SetModelID("gpt-4").SetFormat("openai/chat_completions").
 			SetRequestBody(req2Body).SetResponseBody(resp2Body).
 			SetStatus("completed").SetStream(false).
@@ -1492,7 +1345,7 @@ func TestTraceService_GetRootSegment_FallbackChronologicalNearest(t *testing.T) 
 		require.NoError(t, err)
 
 		req3, err := client.Request.Create().
-			SetProjectID(projectEntity.ID).SetTraceID(traceEntity.ID).
+			SetTraceID(traceEntity.ID).
 			SetModelID("gpt-4").SetFormat("openai/chat_completions").
 			SetRequestBody(req3Body).SetResponseBody(resp3Body).
 			SetStatus("completed").SetStream(false).
@@ -1534,15 +1387,9 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 		ctx = ent.NewContext(ctx, client)
 		ctx = authz.WithTestBypass(ctx)
 
-		projectEntity, err := client.Project.Create().
-			SetName("cross-trace-project").
-			SetStatus(project.StatusActive).
-			Save(ctx)
-		require.NoError(t, err)
 
 		threadEntity, err := client.Thread.Create().
 			SetThreadID("thread-cross-trace-dedup").
-			SetProjectID(projectEntity.ID).
 			Save(ctx)
 		require.NoError(t, err)
 
@@ -1551,7 +1398,6 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 		// --- Trace 1: user asks a question, LLM responds ---
 		trace1, err := client.Trace.Create().
 			SetTraceID("trace-cross-1").
-			SetProjectID(projectEntity.ID).
 			SetThreadID(threadEntity.ID).
 			SetCreatedAt(now).
 			Save(ctx)
@@ -1571,7 +1417,6 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 		}`)
 
 		_, err = client.Request.Create().
-			SetProjectID(projectEntity.ID).
 			SetTraceID(trace1.ID).
 			SetModelID("gpt-4").
 			SetFormat("openai/chat_completions").
@@ -1587,7 +1432,6 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 		// --- Trace 2: carries trace 1's full context + new user message ---
 		trace2, err := client.Trace.Create().
 			SetTraceID("trace-cross-2").
-			SetProjectID(projectEntity.ID).
 			SetThreadID(threadEntity.ID).
 			SetCreatedAt(now.Add(10 * time.Second)).
 			Save(ctx)
@@ -1609,7 +1453,6 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 		}`)
 
 		_, err = client.Request.Create().
-			SetProjectID(projectEntity.ID).
 			SetTraceID(trace2.ID).
 			SetModelID("gpt-4").
 			SetFormat("openai/chat_completions").
@@ -1653,17 +1496,11 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 		ctx = ent.NewContext(ctx, client)
 		ctx = authz.WithTestBypass(ctx)
 
-		projectEntity, err := client.Project.Create().
-			SetName("no-thread-project").
-			SetStatus(project.StatusActive).
-			Save(ctx)
-		require.NoError(t, err)
 
 		now := time.Now()
 
 		traceEntity, err := client.Trace.Create().
 			SetTraceID("trace-no-thread").
-			SetProjectID(projectEntity.ID).
 			Save(ctx)
 		require.NoError(t, err)
 
@@ -1680,7 +1517,6 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 		}`)
 
 		_, err = client.Request.Create().
-			SetProjectID(projectEntity.ID).
 			SetTraceID(traceEntity.ID).
 			SetModelID("gpt-4").
 			SetFormat("openai/chat_completions").
@@ -1710,15 +1546,9 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 		ctx = ent.NewContext(ctx, client)
 		ctx = authz.WithTestBypass(ctx)
 
-		projectEntity, err := client.Project.Create().
-			SetName("first-in-thread-project").
-			SetStatus(project.StatusActive).
-			Save(ctx)
-		require.NoError(t, err)
 
 		threadEntity, err := client.Thread.Create().
 			SetThreadID("thread-first-trace").
-			SetProjectID(projectEntity.ID).
 			Save(ctx)
 		require.NoError(t, err)
 
@@ -1726,7 +1556,6 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 
 		traceEntity, err := client.Trace.Create().
 			SetTraceID("trace-first-in-thread").
-			SetProjectID(projectEntity.ID).
 			SetThreadID(threadEntity.ID).
 			SetCreatedAt(now).
 			Save(ctx)
@@ -1745,7 +1574,6 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 		}`)
 
 		_, err = client.Request.Create().
-			SetProjectID(projectEntity.ID).
 			SetTraceID(traceEntity.ID).
 			SetModelID("gpt-4").
 			SetFormat("openai/chat_completions").
@@ -1775,15 +1603,9 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 		ctx = ent.NewContext(ctx, client)
 		ctx = authz.WithTestBypass(ctx)
 
-		projectEntity, err := client.Project.Create().
-			SetName("cross-trace-tools-project").
-			SetStatus(project.StatusActive).
-			Save(ctx)
-		require.NoError(t, err)
 
 		threadEntity, err := client.Thread.Create().
 			SetThreadID("thread-cross-trace-tools").
-			SetProjectID(projectEntity.ID).
 			Save(ctx)
 		require.NoError(t, err)
 
@@ -1792,7 +1614,6 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 		// --- Trace 1: Request 1 (user ask) → tool call ---
 		trace1, err := client.Trace.Create().
 			SetTraceID("trace-tools-1").
-			SetProjectID(projectEntity.ID).
 			SetThreadID(threadEntity.ID).
 			SetCreatedAt(now).
 			Save(ctx)
@@ -1812,7 +1633,7 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 		}`)
 
 		_, err = client.Request.Create().
-			SetProjectID(projectEntity.ID).SetTraceID(trace1.ID).
+			SetTraceID(trace1.ID).
 			SetModelID("gpt-4").SetFormat("openai/chat_completions").
 			SetRequestBody(t1Req1Body).SetResponseBody(t1Resp1Body).
 			SetStatus("completed").SetStream(false).
@@ -1835,7 +1656,7 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 		}`)
 
 		_, err = client.Request.Create().
-			SetProjectID(projectEntity.ID).SetTraceID(trace1.ID).
+			SetTraceID(trace1.ID).
 			SetModelID("gpt-4").SetFormat("openai/chat_completions").
 			SetRequestBody(t1Req2Body).SetResponseBody(t1Resp2Body).
 			SetStatus("completed").SetStream(false).
@@ -1846,7 +1667,6 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 		// --- Trace 2: carries all of trace 1's context + new user message ---
 		trace2, err := client.Trace.Create().
 			SetTraceID("trace-tools-2").
-			SetProjectID(projectEntity.ID).
 			SetThreadID(threadEntity.ID).
 			SetCreatedAt(now.Add(10 * time.Second)).
 			Save(ctx)
@@ -1868,7 +1688,7 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 		}`)
 
 		_, err = client.Request.Create().
-			SetProjectID(projectEntity.ID).SetTraceID(trace2.ID).
+			SetTraceID(trace2.ID).
 			SetModelID("gpt-4").SetFormat("openai/chat_completions").
 			SetRequestBody(t2ReqBody).SetResponseBody(t2RespBody).
 			SetStatus("completed").SetStream(false).
@@ -1903,15 +1723,9 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 		ctx = ent.NewContext(ctx, client)
 		ctx = authz.WithTestBypass(ctx)
 
-		projectEntity, err := client.Project.Create().
-			SetName("cross-trace-combined-project").
-			SetStatus(project.StatusActive).
-			Save(ctx)
-		require.NoError(t, err)
 
 		threadEntity, err := client.Thread.Create().
 			SetThreadID("thread-cross-trace-combined").
-			SetProjectID(projectEntity.ID).
 			Save(ctx)
 		require.NoError(t, err)
 
@@ -1920,14 +1734,13 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 		// --- Trace 1: simple Q&A ---
 		trace1, err := client.Trace.Create().
 			SetTraceID("trace-combined-1").
-			SetProjectID(projectEntity.ID).
 			SetThreadID(threadEntity.ID).
 			SetCreatedAt(now).
 			Save(ctx)
 		require.NoError(t, err)
 
 		_, err = client.Request.Create().
-			SetProjectID(projectEntity.ID).SetTraceID(trace1.ID).
+			SetTraceID(trace1.ID).
 			SetModelID("gpt-4").SetFormat("openai/chat_completions").
 			SetRequestBody([]byte(`{"model":"gpt-4","messages":[{"role":"user","content":"First question"}]}`)).
 			SetResponseBody([]byte(`{"id":"c1","object":"chat.completion","model":"gpt-4","choices":[{"index":0,"message":{"role":"assistant","content":"First answer"},"finish_reason":"stop"}]}`)).
@@ -1939,7 +1752,6 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 		// --- Trace 2: two requests, first carries trace 1 context, second carries trace 2 req 1 context ---
 		trace2, err := client.Trace.Create().
 			SetTraceID("trace-combined-2").
-			SetProjectID(projectEntity.ID).
 			SetThreadID(threadEntity.ID).
 			SetCreatedAt(now.Add(10 * time.Second)).
 			Save(ctx)
@@ -1962,7 +1774,7 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 		}`)
 
 		_, err = client.Request.Create().
-			SetProjectID(projectEntity.ID).SetTraceID(trace2.ID).
+			SetTraceID(trace2.ID).
 			SetModelID("gpt-4").SetFormat("openai/chat_completions").
 			SetRequestBody(t2Req1Body).SetResponseBody(t2Resp1Body).
 			SetStatus("completed").SetStream(false).
@@ -1987,7 +1799,7 @@ func TestTraceService_GetRootSegment_CrossTraceDedup(t *testing.T) {
 		}`)
 
 		_, err = client.Request.Create().
-			SetProjectID(projectEntity.ID).SetTraceID(trace2.ID).
+			SetTraceID(trace2.ID).
 			SetModelID("gpt-4").SetFormat("openai/chat_completions").
 			SetRequestBody(t2Req2Body).SetResponseBody(t2Resp2Body).
 			SetStatus("completed").SetStream(false).

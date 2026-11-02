@@ -293,7 +293,6 @@
   "channels.dialogs.oauth.labels.callbackUrl": "回调 URL",
   "channels.dialogs.oauth.placeholders.authorizationUrl": "启动 OAuth 后将在此显示授权地址",
   "channels.dialogs.oauth.placeholders.callbackUrl": "请粘贴完整回调 URL",
-  "channels.dialogs.oauth.errors.projectRequired": "请先选择项目",
   "channels.dialogs.oauth.errors.sessionMissing": "OAuth 会话已过期或不存在",
   "channels.dialogs.oauth.errors.callbackUrlRequired": "请粘贴回调 URL",
   "channels.dialogs.oauth.errors.deviceFlowExpired": "设备流已过期，请重试。",

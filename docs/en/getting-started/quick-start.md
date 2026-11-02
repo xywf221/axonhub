@@ -273,7 +273,7 @@ settings:
 
 ### Explore Features
 - **Tracing**: Set up request tracing for observability
-- **Permissions**: Configure role-based access control
+- **Permissions**: Understand the single-tenant model and API key scopes
 - **Model Profiles**: Create model mapping rules
 - **Usage Analytics**: Monitor API usage and costs
 

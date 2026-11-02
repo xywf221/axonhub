@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/looplj/axonhub/internal/authz"
-	"github.com/looplj/axonhub/internal/contexts"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/channel"
 	"github.com/looplj/axonhub/internal/ent/enttest"
@@ -46,7 +45,6 @@ func TestChatCompletionOrchestrator_Process_Streaming_PreservesGeminiGroundingAn
 
 	ctx = ent.NewContext(ctx, client)
 
-	project := createTestProject(t, ctx, client)
 	channelRow, err := client.Channel.Create().
 		SetType(channel.TypeGemini).
 		SetName("Test Gemini Channel").
@@ -138,7 +136,6 @@ func TestChatCompletionOrchestrator_Process_Streaming_PreservesGeminiGroundingAn
 	}
 
 	httpRequest := buildTestRequest("gpt-4", "Summarize with citations", true)
-	ctx = contexts.WithProjectID(ctx, project.ID)
 
 	result, err := orchestrator.Process(ctx, httpRequest)
 	require.NoError(t, err)
@@ -255,7 +252,6 @@ func TestChatCompletionOrchestrator_Process_Streaming_PreservesAnthropicCitation
 
 	ctx = ent.NewContext(ctx, client)
 
-	project := createTestProject(t, ctx, client)
 	channelRow, err := client.Channel.Create().
 		SetType(channel.TypeAnthropic).
 		SetName("Test Anthropic Channel").
@@ -309,7 +305,6 @@ func TestChatCompletionOrchestrator_Process_Streaming_PreservesAnthropicCitation
 	}
 
 	httpRequest := buildTestRequest("gpt-4", "Summarize with citations", true)
-	ctx = contexts.WithProjectID(ctx, project.ID)
 
 	result, err := orchestrator.Process(ctx, httpRequest)
 	require.NoError(t, err)
@@ -416,7 +411,6 @@ func TestChatCompletionOrchestrator_Process_Streaming(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 
 	// Setup
-	project := createTestProject(t, ctx, client)
 	ch := createTestChannel(t, ctx, client)
 	channelService, requestService, systemService, usageLogService := setupTestServices(t, client)
 
@@ -471,9 +465,6 @@ func TestChatCompletionOrchestrator_Process_Streaming(t *testing.T) {
 	// Build streaming request
 	httpRequest := buildTestRequest("gpt-4", "Hi!", true)
 
-	// Set project ID in context
-	ctx = contexts.WithProjectID(ctx, project.ID)
-
 	// Execute
 	result, err := orchestrator.Process(ctx, httpRequest)
 
@@ -501,7 +492,6 @@ func TestChatCompletionOrchestrator_Process_Streaming(t *testing.T) {
 
 	dbRequest := requests[0]
 	assert.Equal(t, "gpt-4", dbRequest.ModelID)
-	assert.Equal(t, project.ID, dbRequest.ProjectID)
 
 	// Verify request execution was created
 	executions, err := client.RequestExecution.Query().All(ctx)
@@ -525,7 +515,6 @@ func TestChatCompletionOrchestrator_Process_StreamingError(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 
 	// Setup
-	project := createTestProject(t, ctx, client)
 	ch := createTestChannel(t, ctx, client)
 	channelService, requestService, systemService, usageLogService := setupTestServices(t, client)
 
@@ -572,7 +561,6 @@ func TestChatCompletionOrchestrator_Process_StreamingError(t *testing.T) {
 
 	// Build streaming request
 	httpRequest := buildTestRequest("gpt-4", "Hi!", true)
-	ctx = contexts.WithProjectID(ctx, project.ID)
 
 	// Execute - the stream should be established successfully
 	result, err := orchestrator.Process(ctx, httpRequest)
@@ -622,7 +610,6 @@ func TestChatCompletionOrchestrator_Process_StreamingSuccess_NotMarkedAsError(t 
 	ctx = ent.NewContext(ctx, client)
 
 	// Setup
-	project := createTestProject(t, ctx, client)
 	ch := createTestChannel(t, ctx, client)
 	channelService, requestService, systemService, usageLogService := setupTestServices(t, client)
 
@@ -669,7 +656,6 @@ func TestChatCompletionOrchestrator_Process_StreamingSuccess_NotMarkedAsError(t 
 	}
 
 	httpRequest := buildTestRequest("gpt-4", "Hi!", true)
-	ctx = contexts.WithProjectID(ctx, project.ID)
 
 	result, err := orchestrator.Process(ctx, httpRequest)
 	require.NoError(t, err)
@@ -765,7 +751,6 @@ func TestChatCompletionOrchestrator_Process_QueueRejectionDoesNotConsumeRPM(t *t
 
 	ctx = ent.NewContext(ctx, client)
 
-	project := createTestProject(t, ctx, client)
 	ch := createTestChannel(t, ctx, client)
 	channelService, requestService, systemService, usageLogService := setupTestServices(t, client)
 
@@ -834,7 +819,6 @@ func TestChatCompletionOrchestrator_Process_QueueRejectionDoesNotConsumeRPM(t *t
 	}
 
 	httpRequest := buildTestRequest("gpt-4", "rpm test", false)
-	ctx = contexts.WithProjectID(ctx, project.ID)
 
 	_, err = orchestrator.Process(ctx, httpRequest)
 	require.Error(t, err)
@@ -856,7 +840,6 @@ func TestChatCompletionOrchestrator_Process_RPMAdmissionBlocksBeforeUpstream(t *
 
 	ctx = ent.NewContext(ctx, client)
 
-	project := createTestProject(t, ctx, client)
 	ch := createTestChannel(t, ctx, client)
 	channelService, requestService, systemService, usageLogService := setupTestServices(t, client)
 
@@ -909,8 +892,6 @@ func TestChatCompletionOrchestrator_Process_RPMAdmissionBlocksBeforeUpstream(t *
 		},
 	}
 
-	ctx = contexts.WithProjectID(ctx, project.ID)
-
 	firstRequest := buildTestRequest("gpt-4", "rpm test", false)
 	result, err := orchestrator.Process(ctx, firstRequest)
 	require.NoError(t, err)
@@ -941,7 +922,6 @@ func TestChatCompletionOrchestrator_Process_ChannelLimiter(t *testing.T) {
 
 	ctx = ent.NewContext(ctx, client)
 
-	project := createTestProject(t, ctx, client)
 	ch := createTestChannel(t, ctx, client)
 	channelService, requestService, systemService, usageLogService := setupTestServices(t, client)
 
@@ -999,7 +979,6 @@ func TestChatCompletionOrchestrator_Process_ChannelLimiter(t *testing.T) {
 	}
 
 	httpRequest := buildTestRequest("gpt-4", "Connection test", false)
-	ctx = contexts.WithProjectID(ctx, project.ID)
 
 	result, err := orchestrator.Process(ctx, httpRequest)
 	require.NoError(t, err)

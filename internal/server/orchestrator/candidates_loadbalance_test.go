@@ -65,24 +65,16 @@ func TestLoadBalancedSelector_Select_MultipleChannels_LoadBalancing(t *testing.T
 func TestDefaultChannelSelector_Select_WithTraceContext(t *testing.T) {
 	ctx, client := setupTest(t)
 
-	// Create project
-	project, err := client.Project.Create().
-		SetName("test-project").
-		Save(ctx)
-	require.NoError(t, err)
-
 	channels := createTestChannels(t, ctx, client)
 
 	// Create trace
 	trace, err := client.Trace.Create().
-		SetProjectID(project.ID).
 		SetTraceID("test-trace-123").
 		Save(ctx)
 	require.NoError(t, err)
 
 	// Create a request with channel 2 in this trace.
 	stickyRequest, err := client.Request.Create().
-		SetProjectID(project.ID).
 		SetTraceID(trace.ID).
 		SetChannelID(channels[1].ID). // Medium weight channel
 		SetModelID("gpt-4").
@@ -144,12 +136,12 @@ func TestDefaultChannelSelector_Select_WithChannelFailures(t *testing.T) {
 	// Record failures for the high weight channel to test error awareness
 	for range 3 {
 		perf := &biz.PerformanceRecord{
-			ChannelID:        channels[0].ID,
-			StartTime:        time.Now().Add(-time.Minute),
-			EndTime:          time.Now(),
-			Success:          false,
-			RequestCompleted: true,
-			ResponseStatusCode:  500,
+			ChannelID:          channels[0].ID,
+			StartTime:          time.Now().Add(-time.Minute),
+			EndTime:            time.Now(),
+			Success:            false,
+			RequestCompleted:   true,
+			ResponseStatusCode: 500,
 		}
 		channelService.RecordPerformance(ctx, perf)
 	}

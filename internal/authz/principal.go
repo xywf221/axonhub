@@ -45,7 +45,6 @@ type Principal struct {
 	Type      PrincipalType
 	UserID    *int
 	APIKeyID  *int
-	ProjectID *int
 }
 
 // IsSystem checks if it is a system principal.
@@ -125,10 +124,6 @@ func principalEqual(a, b Principal) bool {
 		return false
 	}
 
-	if !intPtrEqual(a.ProjectID, b.ProjectID) {
-		return false
-	}
-
 	return true
 }
 
@@ -170,10 +165,9 @@ func NewUserContext(ctx context.Context, userID int) context.Context {
 }
 
 // NewAPIKeyContext creates context with APIKey principal.
-func NewAPIKeyContext(ctx context.Context, apiKeyID, projectID int) context.Context {
+func NewAPIKeyContext(ctx context.Context, apiKeyID int) context.Context {
 	return context.WithValue(ctx, principalKey{}, Principal{
-		Type:      PrincipalTypeAPIKey,
-		APIKeyID:  &apiKeyID,
-		ProjectID: &projectID,
+		Type:     PrincipalTypeAPIKey,
+		APIKeyID: &apiKeyID,
 	})
 }

@@ -25,7 +25,6 @@ func newUpstreamModelPersistenceTest(t *testing.T) (context.Context, *ent.Client
 	client := enttest.NewEntClient(t, "sqlite3", "file:ent?mode=memory&_fk=0")
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
 	ctx := ent.NewContext(authz.WithTestBypass(context.Background()), client)
-	project := createTestProject(t, ctx, client)
 	channel := createTestChannel(t, ctx, client)
 	_, requestService, systemService, usageLogService := setupTestServices(t, client)
 	require.NoError(t, systemService.SetStoragePolicy(ctx, &biz.StoragePolicy{
@@ -35,7 +34,6 @@ func newUpstreamModelPersistenceTest(t *testing.T) (context.Context, *ent.Client
 	}))
 
 	req, err := client.Request.Create().
-		SetProjectID(project.ID).
 		SetChannelID(channel.ID).
 		SetModelID("client-alias").
 		SetStatus(request.StatusPending).
@@ -56,7 +54,6 @@ func createUpstreamModelTestExecution(t *testing.T, ctx context.Context, client 
 	t.Helper()
 	execution, err := client.RequestExecution.Create().
 		SetRequestID(req.ID).
-		SetProjectID(req.ProjectID).
 		SetChannelID(req.ChannelID).
 		SetModelID(model).
 		SetRequestBody([]byte(`{}`)).

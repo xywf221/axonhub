@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/looplj/axonhub/internal/contexts"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/objects"
 	"github.com/looplj/axonhub/llm"
@@ -17,7 +16,7 @@ import (
 	decisions "github.com/looplj/axonhub/llm/transformer/openai/decisions"
 )
 
-func TestInjectPrompts_NoProjectID(t *testing.T) {
+func TestInjectPrompts_NoPromptProvider(t *testing.T) {
 	ctx := context.Background()
 
 	state := &PersistenceState{
@@ -42,7 +41,7 @@ func TestInjectPrompts_NoProjectID(t *testing.T) {
 }
 
 func TestInjectPrompts_WithMatchingPrompts(t *testing.T) {
-	ctx := contexts.WithProjectID(context.Background(), 1)
+	ctx := context.Background()
 
 	prompts := []*ent.Prompt{
 		{
@@ -80,7 +79,7 @@ func TestInjectPrompts_WithMatchingPrompts(t *testing.T) {
 }
 
 func TestInjectPrompts_DecisionsMutatesRawInput(t *testing.T) {
-	ctx := contexts.WithProjectID(context.Background(), 1)
+	ctx := context.Background()
 	inbound := &PersistentInboundTransformer{
 		wrapped: decisions.NewInboundTransformer(),
 		state: &PersistenceState{PromptProvider: &stubPromptProvider{prompts: []*ent.Prompt{{
@@ -107,7 +106,7 @@ func TestInjectPrompts_DecisionsMutatesRawInput(t *testing.T) {
 }
 
 func TestInjectPrompts_WithModelCondition(t *testing.T) {
-	ctx := contexts.WithProjectID(context.Background(), 1)
+	ctx := context.Background()
 
 	prompts := []*ent.Prompt{
 		{
@@ -195,7 +194,7 @@ func TestInjectPrompts_WithModelCondition(t *testing.T) {
 }
 
 func TestInjectPrompts_PrependAndAppend(t *testing.T) {
-	ctx := contexts.WithProjectID(context.Background(), 1)
+	ctx := context.Background()
 
 	prompts := []*ent.Prompt{
 		{

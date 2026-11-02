@@ -30,15 +30,14 @@ import (
 
 func newTask5Execution(t *testing.T, ctx context.Context, client *ent.Client, format string) (*ent.Request, *ent.RequestExecution, *PersistenceState) {
 	t.Helper()
-	project := createTestProject(t, ctx, client)
 	channel := createTestChannel(t, ctx, client)
 	requestRow, err := client.Request.Create().
-		SetProjectID(project.ID).SetChannelID(channel.ID).SetModelID("gpt-5").
+		SetChannelID(channel.ID).SetModelID("gpt-5").
 		SetStatus(request.StatusProcessing).SetFormat(format).SetStream(true).
 		SetRequestBody([]byte(`{"stream":true}`)).Save(ctx)
 	require.NoError(t, err)
 	execution, err := client.RequestExecution.Create().
-		SetRequestID(requestRow.ID).SetProjectID(project.ID).SetChannelID(channel.ID).
+		SetRequestID(requestRow.ID).SetChannelID(channel.ID).
 		SetModelID("gpt-5").SetFormat(format).SetStatus(requestexecution.StatusProcessing).
 		SetRequestBody([]byte(`{"stream":true}`)).SetStream(true).Save(ctx)
 	require.NoError(t, err)
@@ -192,7 +191,6 @@ func TestStreamDeliveryAccounting_UnsuccessfulResponsesPersistUsageMatrix(t *tes
 				require.NoError(t, err)
 				require.Len(t, rows, 1)
 				require.Equal(t, requestRow.ID, rows[0].RequestID)
-				require.Equal(t, execution.ProjectID, rows[0].ProjectID)
 				require.Equal(t, execution.ChannelID, rows[0].ChannelID)
 				require.Equal(t, execution.ModelID, rows[0].ModelID)
 				require.Equal(t, usage.input, rows[0].PromptTokens)
@@ -434,8 +432,7 @@ func TestStreamDeliveryAccounting_AttributionAndQuota(t *testing.T) {
 	client := enttest.NewEntClient(t, "sqlite3", "file:ent?mode=memory&_fk=0")
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
 	ctx := authz.WithTestBypass(ent.NewContext(t.Context(), client))
-	_, requestService, systemService, usageService := setupTestServices(t, client)
-	quota := biz.NewQuotaService(client, systemService)
+	_, requestService, _, usageService := setupTestServices(t, client)
 	hooks := 0
 	usageService.OnUsageLogCreated = func() { hooks++ }
 	for i, counts := range []struct {
@@ -445,15 +442,13 @@ func TestStreamDeliveryAccounting_AttributionAndQuota(t *testing.T) {
 		{input: 12, output: 34, cached: 2, reasoning: 3, cost: 0.00000078},
 		{},
 	} {
-		project, err := client.Project.Create().SetName(fmt.Sprintf("task5-project-%d", i)).Save(ctx)
-		require.NoError(t, err)
-		apiKey, err := client.APIKey.Create().SetProjectID(project.ID).SetKey(fmt.Sprintf("task5-attribution-key-%d", i)).SetName("task5 attribution").Save(ctx)
+		apiKey, err := client.APIKey.Create().SetKey(fmt.Sprintf("task5-attribution-key-%d", i)).SetName("task5 attribution").Save(ctx)
 		require.NoError(t, err)
 		channelRow, err := client.Channel.Create().SetType(channel.TypeOpenai).SetName(fmt.Sprintf("task5-channel-%d", i)).SetBaseURL("https://example.test").SetCredentials(objects.ChannelCredentials{APIKey: fmt.Sprintf("provider-key-%d", i)}).SetSupportedModels([]string{"gpt-5"}).SetDefaultTestModel("gpt-5").SetStatus(channel.StatusEnabled).Save(ctx)
 		require.NoError(t, err)
-		requestRow, err := client.Request.Create().SetAPIKeyID(apiKey.ID).SetProjectID(project.ID).SetChannelID(channelRow.ID).SetModelID("client-model").SetSource(request.SourceTest).SetStatus(request.StatusProcessing).SetFormat(llm.APIFormatOpenAIChatCompletion.String()).SetStream(true).SetRequestBody([]byte(`{"stream":true}`)).Save(ctx)
+		requestRow, err := client.Request.Create().SetAPIKeyID(apiKey.ID).SetChannelID(channelRow.ID).SetModelID("client-model").SetSource(request.SourceTest).SetStatus(request.StatusProcessing).SetFormat(llm.APIFormatOpenAIChatCompletion.String()).SetStream(true).SetRequestBody([]byte(`{"stream":true}`)).Save(ctx)
 		require.NoError(t, err)
-		execution, err := client.RequestExecution.Create().SetRequestID(requestRow.ID).SetProjectID(project.ID).SetChannelID(channelRow.ID).SetModelID("gpt-5").SetFormat(requestRow.Format).SetStatus(requestexecution.StatusProcessing).SetRequestBody([]byte(`{"stream":true}`)).SetStream(true).Save(ctx)
+		execution, err := client.RequestExecution.Create().SetRequestID(requestRow.ID).SetChannelID(channelRow.ID).SetModelID("gpt-5").SetFormat(requestRow.Format).SetStatus(requestexecution.StatusProcessing).SetRequestBody([]byte(`{"stream":true}`)).SetStream(true).Save(ctx)
 		require.NoError(t, err)
 		configureTask5Price(t, ctx, client, channelRow.ID)
 		built, err := usageService.ChannelService.GetChannel(ctx, channelRow.ID)
@@ -475,12 +470,11 @@ func TestStreamDeliveryAccounting_AttributionAndQuota(t *testing.T) {
 		require.NoError(t, stream.Close())
 		require.NoError(t, stream.Close())
 
-		// Then: attribution, pricing, quota aggregation, and hook remain distinct.
+		// Then: attribution, pricing, and hook remain distinct.
 		row, err := client.UsageLog.Query().Where(usagelog.RequestIDEQ(requestRow.ID)).Only(ctx)
 		require.NoError(t, err)
 		require.Equal(t, requestRow.ID, row.RequestID)
 		require.Equal(t, apiKey.ID, row.APIKeyID)
-		require.Equal(t, project.ID, row.ProjectID)
 		require.Equal(t, channelRow.ID, row.ChannelID)
 		require.Equal(t, "gpt-5", row.ModelID)
 		require.Equal(t, requestRow.Format, row.Format)
@@ -496,23 +490,16 @@ func TestStreamDeliveryAccounting_AttributionAndQuota(t *testing.T) {
 		saved := mustExecution(t, ctx, client, execution.ID)
 		require.Equal(t, requestexecution.StatusCompleted, saved.Status)
 		require.Equal(t, requestRow.ID, saved.RequestID)
-		require.Equal(t, project.ID, saved.ProjectID)
 		require.Equal(t, channelRow.ID, saved.ChannelID)
 		require.Equal(t, "gpt-5", saved.ModelID)
 		require.Equal(t, "provider-wire-model", saved.UpstreamModelID)
 		require.Equal(t, requestRow.Format, saved.Format)
-		result, err := quota.GetQuota(ctx, apiKey.ID, &objects.APIKeyQuota{Period: objects.APIKeyQuotaPeriod{Type: objects.APIKeyQuotaPeriodTypeAllTime}})
-		require.NoError(t, err)
-		require.Equal(t, int64(1), result.Usage.RequestCount)
-		require.Equal(t, counts.input+counts.output, result.Usage.TotalTokens)
-		require.InDelta(t, counts.cost, result.Usage.TotalCost.InexactFloat64(), 1e-15)
 		require.Equal(t, i+1, hooks)
 	}
 	rows, err := client.UsageLog.Query().All(ctx)
 	require.NoError(t, err)
 	require.Len(t, rows, 2)
 	require.NotEqual(t, rows[0].RequestID, rows[1].RequestID)
-	require.NotEqual(t, rows[0].ProjectID, rows[1].ProjectID)
 	require.NotEqual(t, rows[0].APIKeyID, rows[1].APIKeyID)
 	require.NotEqual(t, rows[0].ChannelID, rows[1].ChannelID)
 }

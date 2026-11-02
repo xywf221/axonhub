@@ -5,7 +5,6 @@ schema:
   - axonhub.graphql
   - ent.graphql
   - dashboard.graphql
-  - scopes.graphql
   - me.graphql
   - system.graphql
   - filter.graphql
@@ -245,24 +244,6 @@ models:
   UpdateRetryPolicyInput:
     model:
       - github.com/looplj/axonhub/internal/server/biz.RetryPolicy
-  WebhookNotifierConfig:
-    model:
-      - github.com/looplj/axonhub/internal/server/biz.WebhookNotifierConfig
-  WebhookNotifierConfigInput:
-    model:
-      - github.com/looplj/axonhub/internal/server/biz.WebhookNotifierConfig
-  WebhookTarget:
-    model:
-      - github.com/looplj/axonhub/internal/server/biz.WebhookTarget
-  WebhookTargetInput:
-    model:
-      - github.com/looplj/axonhub/internal/server/biz.WebhookTarget
-  WebhookSubscription:
-    model:
-      - github.com/looplj/axonhub/internal/server/biz.WebhookSubscription
-  WebhookSubscriptionInput:
-    model:
-      - github.com/looplj/axonhub/internal/server/biz.WebhookSubscription
   AutoDisableChannel:
     model:
       - github.com/looplj/axonhub/internal/server/biz.AutoDisableChannel
@@ -287,54 +268,9 @@ models:
   APIKeyProfile:
     model:
       - github.com/looplj/axonhub/internal/objects.APIKeyProfile
-  UpdateProjectProfilesInput:
-    model:
-      - github.com/looplj/axonhub/internal/objects.ProjectProfiles
-  ProjectProfileInput:
-    model:
-      - github.com/looplj/axonhub/internal/objects.ProjectProfile
-  ProjectProfiles:
-    model:
-      - github.com/looplj/axonhub/internal/objects.ProjectProfiles
-  ProjectProfile:
-    model:
-      - github.com/looplj/axonhub/internal/objects.ProjectProfile
   ChannelTagsMatchMode:
     model:
       - github.com/looplj/axonhub/internal/objects.ChannelTagsMatchMode
-  APIKeyQuotaInput:
-    model:
-      - github.com/looplj/axonhub/internal/objects.APIKeyQuota
-  APIKeyQuota:
-    model:
-      - github.com/looplj/axonhub/internal/objects.APIKeyQuota
-  APIKeyQuotaPeriodInput:
-    model:
-      - github.com/looplj/axonhub/internal/objects.APIKeyQuotaPeriod
-  APIKeyQuotaPeriod:
-    model:
-      - github.com/looplj/axonhub/internal/objects.APIKeyQuotaPeriod
-  APIKeyQuotaPeriodType:
-    model:
-      - github.com/looplj/axonhub/internal/objects.APIKeyQuotaPeriodType
-  APIKeyQuotaPastDurationInput:
-    model:
-      - github.com/looplj/axonhub/internal/objects.APIKeyQuotaPastDuration
-  APIKeyQuotaPastDuration:
-    model:
-      - github.com/looplj/axonhub/internal/objects.APIKeyQuotaPastDuration
-  APIKeyQuotaPastDurationUnit:
-    model:
-      - github.com/looplj/axonhub/internal/objects.APIKeyQuotaPastDurationUnit
-  APIKeyQuotaCalendarDurationInput:
-    model:
-      - github.com/looplj/axonhub/internal/objects.APIKeyQuotaCalendarDuration
-  APIKeyQuotaCalendarDuration:
-    model:
-      - github.com/looplj/axonhub/internal/objects.APIKeyQuotaCalendarDuration
-  APIKeyQuotaCalendarDurationUnit:
-    model:
-      - github.com/looplj/axonhub/internal/objects.APIKeyQuotaCalendarDurationUnit
   BackupOptionsInput:
     model:
       - github.com/looplj/axonhub/internal/server/backup.BackupOptions
@@ -362,12 +298,6 @@ models:
   UserInfo:
     model:
       - github.com/looplj/axonhub/internal/objects.UserInfo
-  RoleInfo:
-    model:
-      - github.com/looplj/axonhub/internal/objects.RoleInfo
-  UserProjectInfo:
-    model:
-      - github.com/looplj/axonhub/internal/objects.UserProjectInfo
   DataStorageSettings:
     model:
       - github.com/looplj/axonhub/internal/objects.DataStorageSettings

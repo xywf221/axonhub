@@ -54,17 +54,14 @@ func TestAnalyticsPerformanceStatsPostgresQualifiesUsageLogFilters(t *testing.T)
 
 	ctx := authz.WithTestBypass(t.Context())
 	filter := &AnalyticsFilter{
-		ProjectIDs: []*objects.GUID{{ID: 1}},
 		ChannelIDs: []*objects.GUID{{ID: 2}},
 		ModelIDs:   []string{"test-model"},
 	}
 	_, err := resolver.queryDimensionPerformanceStats(ctx, filter, []int{3}, false, nil, "apiKey")
 	require.ErrorIs(t, err, errCaptureAnalyticsPerformanceQuery)
-	require.Contains(t, driver.query, `"usage_logs"."project_id" IN`)
 	require.Contains(t, driver.query, `"usage_logs"."channel_id" IN`)
 	require.Contains(t, driver.query, `"usage_logs"."model_id" IN`)
 	require.Contains(t, driver.query, `"usage_logs"."api_key_id" IN`)
-	require.NotContains(t, driver.query, ` AND "project_id" IN`)
 	require.NotContains(t, driver.query, ` AND "channel_id" IN`)
 	require.NotContains(t, driver.query, ` AND "model_id" IN`)
 	require.NotContains(t, driver.query, ` AND "api_key_id" IN`)

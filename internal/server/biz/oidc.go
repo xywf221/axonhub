@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -29,7 +28,6 @@ import (
 	"github.com/looplj/axonhub/internal/contexts"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/oidcidentity"
-	"github.com/looplj/axonhub/internal/ent/role"
 	"github.com/looplj/axonhub/internal/ent/user"
 	"github.com/looplj/axonhub/internal/log"
 	"github.com/looplj/axonhub/internal/pkg/xcache"
@@ -74,21 +72,9 @@ type OIDCProvider struct {
 	JWKSURL     string `conf:"jwks_url" yaml:"jwks_url" json:"jwks_url"`
 	RedirectURL string `conf:"redirect_url" yaml:"redirect_url" json:"redirect_url"`
 	// Behavior
-	OIDCLoginOnly      bool              `conf:"oidc_login_only" yaml:"oidc_login_only" json:"oidc_login_only"`
-	GroupClaims        []string          `conf:"group_claims" yaml:"group_claims" json:"group_claims"`
-	GroupParser        GroupParserConfig `conf:"group_parser" yaml:"group_parser" json:"group_parser"`
-	RoleMappingRules   []RoleMappingRule `conf:"role_mappings" yaml:"role_mappings" json:"role_mappings"`
-	DefaultRoles       []string          `conf:"default_roles" yaml:"default_roles" json:"default_roles"`
-	DefaultScopes      []string          `conf:"default_scopes" yaml:"default_scopes" json:"default_scopes"`
-	SyncRoleStrategy   string            `conf:"sync_role_strategy" yaml:"sync_role_strategy" json:"sync_role_strategy"`       // "always", "create_only", "merge", "manual_first"
-	RolePrecedenceMode string            `conf:"role_precedence_mode" yaml:"role_precedence_mode" json:"role_precedence_mode"` // "merge", "highest"
-}
-
-type RoleMappingRule struct {
-	MatchGroup string `conf:"match_group" yaml:"match_group" json:"match_group"`
-	IsRegex    bool   `conf:"is_regex" yaml:"is_regex" json:"is_regex"`
-	DBRole     string `conf:"db_role" yaml:"db_role" json:"db_role"`
-	Priority   int    `conf:"priority" yaml:"priority" json:"priority"`
+	OIDCLoginOnly bool              `conf:"oidc_login_only" yaml:"oidc_login_only" json:"oidc_login_only"`
+	GroupClaims   []string          `conf:"group_claims" yaml:"group_claims" json:"group_claims"`
+	GroupParser   GroupParserConfig `conf:"group_parser" yaml:"group_parser" json:"group_parser"`
 }
 
 type GroupParserConfig struct {
@@ -1032,11 +1018,6 @@ func (s *OIDCService) resolveUser(ctx context.Context, p *oidcProvider, subject,
 			userCreate.SetAvatar(picture)
 		}
 
-		// Apply role mappings to new user
-		if err := s.applyRoleMappings(ctx, userCreate.Mutation(), groups, p.config, true); err != nil {
-			return fmt.Errorf("failed to apply role mappings: %w", err)
-		}
-
 		createdUser, err = userCreate.Save(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to create user: %w", err)
@@ -1087,153 +1068,7 @@ func (s *OIDCService) syncUserInfo(ctx context.Context, u *ent.User, name, given
 		update.SetAvatar(picture)
 	}
 
-	// Sync roles/scopes
-	if cfg.SyncRoleStrategy != "create_only" {
-		if err := s.applyRoleMappings(ctx, update.Mutation(), groups, cfg, false); err != nil {
-			return nil, fmt.Errorf("failed to apply role mappings: %w", err)
-		}
-	}
-
 	return update.Save(ctx)
-}
-
-func (s *OIDCService) applyRoleMappings(ctx context.Context, m ent.Mutation, groups []string, cfg OIDCProvider, isCreate bool) error {
-	um, ok := m.(*ent.UserMutation)
-	if !ok {
-		return fmt.Errorf("expected UserMutation")
-	}
-
-	var (
-		isOwner bool
-		scopes  []string
-	)
-
-	matchedRules := make([]RoleMappingRule, 0)
-	matchedAnyGroup := false
-
-	// Flatten matching groups
-	for _, group := range groups {
-		for _, rule := range cfg.RoleMappingRules {
-			matchGroup := rule.MatchGroup
-			if !cfg.GroupParser.CaseSensitive {
-				matchGroup = strings.ToLower(matchGroup)
-			}
-
-			matched := false
-			if rule.IsRegex {
-				matched, _ = regexp.MatchString(matchGroup, group)
-			} else {
-				matched, _ = filepath.Match(matchGroup, group)
-				if !matched && matchGroup == group {
-					// Fallback to strict string match if glob syntax fails
-					matched = true
-				}
-			}
-
-			if matched {
-				matchedAnyGroup = true
-
-				matchedRules = append(matchedRules, rule)
-			}
-		}
-	}
-
-	// Calculate roles and scopes
-	if !matchedAnyGroup {
-		// Apply defaults
-		scopes = append(scopes, cfg.DefaultScopes...)
-		for _, dr := range cfg.DefaultRoles {
-			matchedRules = append(matchedRules, RoleMappingRule{DBRole: dr, Priority: 0})
-		}
-	} else {
-		// Precedence logic on matched rules
-		if cfg.RolePrecedenceMode == "highest" && len(matchedRules) > 0 {
-			sort.Slice(matchedRules, func(i, j int) bool {
-				return matchedRules[i].Priority > matchedRules[j].Priority
-			})
-			matchedRules = []RoleMappingRule{matchedRules[0]}
-		}
-	}
-
-	var dbRolesToCompile []string
-	// Calculate roles and scopes
-	for _, rule := range matchedRules {
-		db_role := strings.TrimSpace(rule.DBRole)
-		if db_role == "system:owner" {
-			isOwner = true
-		} else if db_role, ok := strings.CutPrefix(db_role, "scope:"); ok {
-			scopes = append(scopes, db_role)
-		} else {
-			dbRolesToCompile = append(dbRolesToCompile, db_role)
-		}
-	}
-
-	if isOwner {
-		um.SetIsOwner(true)
-	} else if len(cfg.RoleMappingRules) > 0 || len(cfg.DefaultRoles) > 0 {
-		// Only clear owner flag if role mappings are explicitly configured
-		um.SetIsOwner(false)
-	}
-
-	if len(scopes) > 0 {
-		um.SetScopes(scopes)
-	} else if len(cfg.RoleMappingRules) > 0 || len(cfg.DefaultScopes) > 0 {
-		// Only clear scopes if role mappings or default scopes are explicitly configured
-		um.ClearScopes()
-	}
-
-	// Roles logic depending on strategy
-	if len(dbRolesToCompile) > 0 {
-		client := s.entFromContext(ctx)
-
-		roleEntities, err := client.Role.Query().Where(role.NameIn(dbRolesToCompile...)).All(ctx)
-		if err == nil && len(roleEntities) > 0 {
-			var roleIDs []int
-			for _, r := range roleEntities {
-				roleIDs = append(roleIDs, r.ID)
-			}
-
-			// Apply strategy logic depending on isCreate or SyncRoleStrategy
-			strategy := cfg.SyncRoleStrategy
-			if strategy == "" {
-				strategy = "always"
-			}
-
-			if isCreate {
-				um.AddRoleIDs(roleIDs...)
-			} else {
-				switch strategy {
-				case "always":
-					um.ClearRoles()
-					um.AddRoleIDs(roleIDs...)
-				case "merge":
-					um.AddRoleIDs(roleIDs...)
-				case "manual_first":
-					// Manual first approach: we check if user has existing project-based roles or something, but realistically we would need to inspect existing manually set roles.
-					// Since we can't easily differentiate manual vs provider here without complex schema, we will treat it as a skip if they have any roles.
-					userID, exists := um.ID()
-					if exists {
-						existingRolesCount, _ := client.Role.Query().Where(role.HasUsersWith(user.IDEQ(userID))).Count(ctx)
-						if existingRolesCount == 0 {
-							um.AddRoleIDs(roleIDs...)
-						}
-					}
-				}
-			}
-		}
-	} else {
-		// No DB roles to map, if strategy is always, clear existing roles
-		strategy := cfg.SyncRoleStrategy
-		if strategy == "" {
-			strategy = "always"
-		}
-
-		if !isCreate && strategy == "always" && (len(cfg.RoleMappingRules) > 0 || len(cfg.DefaultRoles) > 0) {
-			um.ClearRoles()
-		}
-	}
-
-	return nil
 }
 
 func (s *OIDCService) createIdentity(ctx context.Context, userID int, issuer, subject, email, idpName string) error {

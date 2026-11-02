@@ -123,7 +123,6 @@ const requestExecutionsQueryWithChannelAPIKeyIndex = `
               }
               channelAPIKeyIndex
               modelID
-              projectID
               dataStorageID
               requestHeaders
               requestBody

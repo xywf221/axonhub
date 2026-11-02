@@ -15,7 +15,6 @@ import (
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/apikey"
 	"github.com/looplj/axonhub/internal/ent/channel"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/request"
 	"github.com/looplj/axonhub/internal/ent/trace"
 	"github.com/looplj/axonhub/internal/ent/user"
@@ -575,91 +574,6 @@ func (r *mutationResolver) DeleteUser(ctx context.Context, id objects.GUID) (boo
 	return true, nil
 }
 
-// CreateRole is the resolver for the createRole field.
-func (r *mutationResolver) CreateRole(ctx context.Context, input ent.CreateRoleInput) (*ent.Role, error) {
-	return r.roleService.CreateRole(ctx, input)
-}
-
-// UpdateRole is the resolver for the updateRole field.
-func (r *mutationResolver) UpdateRole(ctx context.Context, id objects.GUID, input ent.UpdateRoleInput) (*ent.Role, error) {
-	return r.roleService.UpdateRole(ctx, id.ID, input)
-}
-
-// DeleteRole is the resolver for the deleteRole field.
-func (r *mutationResolver) DeleteRole(ctx context.Context, id objects.GUID) (bool, error) {
-	err := r.roleService.DeleteRole(ctx, id.ID)
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
-
-// BulkDeleteRoles is the resolver for the bulkDeleteRoles field.
-func (r *mutationResolver) BulkDeleteRoles(ctx context.Context, ids []*objects.GUID) (bool, error) {
-	roleIDs := objects.IntGuids(ids)
-
-	err := r.roleService.BulkDeleteRoles(ctx, roleIDs)
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
-
-// CreateProject is the resolver for the createProject field.
-func (r *mutationResolver) CreateProject(ctx context.Context, input ent.CreateProjectInput) (*ent.Project, error) {
-	return r.projectService.CreateProject(ctx, input)
-}
-
-// UpdateProject is the resolver for the updateProject field.
-func (r *mutationResolver) UpdateProject(ctx context.Context, id objects.GUID, input ent.UpdateProjectInput) (*ent.Project, error) {
-	return r.projectService.UpdateProject(ctx, id.ID, input)
-}
-
-// UpdateProjectStatus is the resolver for the updateProjectStatus field.
-func (r *mutationResolver) UpdateProjectStatus(ctx context.Context, id objects.GUID, status project.Status) (*ent.Project, error) {
-	return r.projectService.UpdateProjectStatus(ctx, id.ID, status)
-}
-
-// UpdateProjectProfiles is the resolver for the updateProjectProfiles field.
-func (r *mutationResolver) UpdateProjectProfiles(ctx context.Context, id objects.GUID, input objects.ProjectProfiles) (*ent.Project, error) {
-	return r.projectService.UpdateProjectProfiles(ctx, id.ID, input)
-}
-
-// DeleteProject is the resolver for the deleteProject field.
-func (r *mutationResolver) DeleteProject(ctx context.Context, id objects.GUID) (bool, error) {
-	if err := r.projectService.DeleteProject(ctx, id.ID); err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
-
-// AddUserToProject is the resolver for the addUserToProject field.
-func (r *mutationResolver) AddUserToProject(ctx context.Context, input AddUserToProjectInput) (*ent.UserProject, error) {
-	roleIDs := objects.IntGuids(input.RoleIDs)
-	return r.userService.AddUserToProject(ctx, input.UserID.ID, input.ProjectID.ID, input.IsOwner, input.Scopes, roleIDs)
-}
-
-// RemoveUserFromProject is the resolver for the removeUserFromProject field.
-func (r *mutationResolver) RemoveUserFromProject(ctx context.Context, input RemoveUserFromProjectInput) (bool, error) {
-	err := r.userService.RemoveUserFromProject(ctx, input.UserID.ID, input.ProjectID.ID)
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
-
-// UpdateProjectUser is the resolver for the updateProjectUser field.
-func (r *mutationResolver) UpdateProjectUser(ctx context.Context, input UpdateProjectUserInput) (*ent.UserProject, error) {
-	addRoleIDs := objects.IntGuids(input.AddRoleIDs)
-	removeRoleIDs := objects.IntGuids(input.RemoveRoleIDs)
-
-	return r.userService.UpdateProjectUser(ctx, input.UserID.ID, input.ProjectID.ID, input.IsOwner, input.Scopes, addRoleIDs, removeRoleIDs)
-}
-
 // CreateDataStorage is the resolver for the createDataStorage field.
 func (r *mutationResolver) CreateDataStorage(ctx context.Context, input ent.CreateDataStorageInput) (*ent.DataStorage, error) {
 	return r.dataStorageService.CreateDataStorage(ctx, &input)
@@ -856,56 +770,33 @@ func (r *queryResolver) AllChannelSummarys(ctx context.Context, includeArchived 
 		statusFilter = append(statusFilter, channel.StatusArchived)
 	}
 
-	projectID, ok := contexts.GetProjectID(ctx)
-	canReadChannels := authz.HasScope(ctx, scopes.ScopeReadChannels)
-	if !ok || projectID == 0 {
-		if !canReadChannels {
+	if !authz.HasScope(ctx, scopes.ScopeReadChannels) {
+		if !authz.HasScope(ctx, scopes.ScopeWriteRequests) && !authz.HasScope(ctx, scopes.ScopeWriteAPIKeys) {
 			return nil, authz.RequireScope(ctx, scopes.ScopeReadChannels)
 		}
-		channels, err := r.client.Channel.Query().
-			Where(channel.StatusIn(statusFilter...)).
-			Order(ent.Desc(channel.FieldOrderingWeight)).
-			All(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to query channels: %w", err)
-		}
-		return channels, nil
-	}
 
-	var (
-		channels []*ent.Channel
-		err      error
-	)
-	if canReadChannels {
-		channels, err = r.client.Channel.Query().
-			Where(channel.StatusIn(statusFilter...)).
-			Order(ent.Desc(channel.FieldOrderingWeight)).
-			All(ctx)
-	} else {
-		if !authz.HasScope(ctx, scopes.ScopeWriteRequests) && !authz.HasScope(ctx, scopes.ScopeWriteAPIKeys) {
-			return nil, authz.RequireScope(ctx, scopes.ScopeWriteRequests)
-		}
-		channels, err = authz.RunWithSystemBypass(ctx, "project-available-channels", func(ctx context.Context) ([]*ent.Channel, error) {
+		channels, err := authz.RunWithSystemBypass(ctx, "available-channels", func(ctx context.Context) ([]*ent.Channel, error) {
 			return r.client.Channel.Query().
 				Where(channel.StatusEQ(channel.StatusEnabled)).
 				Order(ent.Desc(channel.FieldOrderingWeight)).
 				All(ctx)
 		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to query available channels: %w", err)
+		}
+
+		return channels, nil
 	}
+
+	channels, err := r.client.Channel.Query().
+		Where(channel.StatusIn(statusFilter...)).
+		Order(ent.Desc(channel.FieldOrderingWeight)).
+		All(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query project channels: %w", err)
+		return nil, fmt.Errorf("failed to query channels: %w", err)
 	}
 
-	proj, err := authz.RunWithSystemBypass(ctx, "project-available-channels-profile", func(ctx context.Context) (*ent.Project, error) {
-		return r.client.Project.Get(ctx, projectID)
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get project: %w", err)
-	}
-
-	projectProfile := proj.GetActiveProfile()
-
-	return filterChannelsByProjectProfile(channels, projectProfile), nil
+	return channels, nil
 }
 
 // AllChannelTags is the resolver for the allChannelTags field.
@@ -918,16 +809,6 @@ func (r *queryResolver) AllChannelTags(ctx context.Context) ([]string, error) {
 		All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query channels: %w", err)
-	}
-
-	projectID, ok := contexts.GetProjectID(ctx)
-	if ok && projectID != 0 {
-		proj, err := r.client.Project.Get(ctx, projectID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get project: %w", err)
-		}
-
-		channels = filterChannelsByProjectProfile(channels, proj.GetActiveProfile())
 	}
 
 	tags := lo.Reduce(channels, func(acc []string, ch *ent.Channel, _ int) []string {
@@ -975,38 +856,6 @@ func (r *queryResolver) QueryChannels(ctx context.Context, input biz.QueryChanne
 		input.OrderBy.Field = ent.DefaultChannelOrder.Field
 	}
 	return r.channelService.QueryChannels(ctx, input)
-}
-
-// APIKeyQuotaUsages is the resolver for the apiKeyQuotaUsages field.
-func (r *queryResolver) APIKeyQuotaUsages(ctx context.Context, apiKeyID objects.GUID) ([]*APIKeyProfileQuotaUsage, error) {
-	apiKey, err := r.client.APIKey.Get(ctx, apiKeyID.ID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get api key: %w", err)
-	}
-
-	usages, err := r.quotaService.ProfileQuotaUsages(ctx, apiKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get api key quota usage: %w", err)
-	}
-
-	result := make([]*APIKeyProfileQuotaUsage, 0, len(usages))
-	for _, u := range usages {
-		result = append(result, &APIKeyProfileQuotaUsage{
-			ProfileName: u.ProfileName,
-			Quota:       u.Quota,
-			Window: &APIKeyQuotaWindow{
-				Start: u.Window.Start,
-				End:   u.Window.End,
-			},
-			Usage: &APIKeyQuotaUsage{
-				RequestCount: int(u.Usage.RequestCount),
-				TotalTokens:  int(u.Usage.TotalTokens),
-				TotalCost:    u.Usage.TotalCost,
-			},
-		})
-	}
-
-	return result, nil
 }
 
 // ID is the resolver for the id field.

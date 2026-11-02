@@ -12,13 +12,11 @@ export const defaultSelection: PlaygroundSelection = {
   model: '',
 };
 
-const storageKey = (projectId: string) => `axonhub_playground_selection_${projectId}`;
+const storageKey = 'axonhub_playground_selection';
 
-export function readSelection(projectId: string | null): PlaygroundSelection {
-  if (!projectId) return { ...defaultSelection };
-
+export function readSelection(): PlaygroundSelection {
   try {
-    const stored = localStorage.getItem(storageKey(projectId));
+    const stored = localStorage.getItem(storageKey);
     if (!stored) return { ...defaultSelection };
     const value: unknown = JSON.parse(stored);
     if (
@@ -43,10 +41,9 @@ export function readSelection(projectId: string | null): PlaygroundSelection {
   }
 }
 
-export function writeSelection(projectId: string | null, selection: PlaygroundSelection): void {
-  if (!projectId) return;
+export function writeSelection(selection: PlaygroundSelection): void {
   try {
-    localStorage.setItem(storageKey(projectId), JSON.stringify(selection));
+    localStorage.setItem(storageKey, JSON.stringify(selection));
   } catch {
     // Storage can be disabled or full; the in-memory selection still works.
   }

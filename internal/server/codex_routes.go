@@ -9,7 +9,6 @@ import (
 
 func registerCodexRoutes(server *Server, handlers Handlers, services Services) {
 	common := []gin.HandlerFunc{
-		middleware.WithIPBlocklist(services.SystemService),
 		handlers.CodexCompatibility.Enabled,
 		middleware.WithStrictAPIKeyConfig(services.AuthService, nil),
 		middleware.WithSource(request.SourceAPI),

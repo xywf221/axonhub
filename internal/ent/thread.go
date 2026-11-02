@@ -9,7 +9,6 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/thread"
 )
 
@@ -22,8 +21,6 @@ type Thread struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// Project ID that this thread belongs to
-	ProjectID int `json:"project_id,omitempty"`
 	// Unique thread identifier for this thread
 	ThreadID string `json:"thread_id,omitempty"`
 	// Record status: active (default), archived (hidden), retained (protected from GC)
@@ -36,34 +33,21 @@ type Thread struct {
 
 // ThreadEdges holds the relations/edges for other nodes in the graph.
 type ThreadEdges struct {
-	// Project holds the value of the project edge.
-	Project *Project `json:"project,omitempty"`
 	// Traces holds the value of the traces edge.
 	Traces []*Trace `json:"traces,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [1]bool
 	// totalCount holds the count of the edges above.
-	totalCount [2]map[string]int
+	totalCount [1]map[string]int
 
 	namedTraces map[string][]*Trace
-}
-
-// ProjectOrErr returns the Project value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e ThreadEdges) ProjectOrErr() (*Project, error) {
-	if e.Project != nil {
-		return e.Project, nil
-	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: project.Label}
-	}
-	return nil, &NotLoadedError{edge: "project"}
 }
 
 // TracesOrErr returns the Traces value or an error if the edge
 // was not loaded in eager-loading.
 func (e ThreadEdges) TracesOrErr() ([]*Trace, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[0] {
 		return e.Traces, nil
 	}
 	return nil, &NotLoadedError{edge: "traces"}
@@ -74,7 +58,7 @@ func (*Thread) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case thread.FieldID, thread.FieldProjectID:
+		case thread.FieldID:
 			values[i] = new(sql.NullInt64)
 		case thread.FieldThreadID, thread.FieldStatus:
 			values[i] = new(sql.NullString)
@@ -113,12 +97,6 @@ func (_m *Thread) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
 			}
-		case thread.FieldProjectID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field project_id", values[i])
-			} else if value.Valid {
-				_m.ProjectID = int(value.Int64)
-			}
 		case thread.FieldThreadID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field thread_id", values[i])
@@ -142,11 +120,6 @@ func (_m *Thread) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *Thread) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
-}
-
-// QueryProject queries the "project" edge of the Thread entity.
-func (_m *Thread) QueryProject() *ProjectQuery {
-	return NewThreadClient(_m.config).QueryProject(_m)
 }
 
 // QueryTraces queries the "traces" edge of the Thread entity.
@@ -182,9 +155,6 @@ func (_m *Thread) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
 	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
-	builder.WriteString(", ")
-	builder.WriteString("project_id=")
-	builder.WriteString(fmt.Sprintf("%v", _m.ProjectID))
 	builder.WriteString(", ")
 	builder.WriteString("thread_id=")
 	builder.WriteString(_m.ThreadID)

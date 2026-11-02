@@ -91,20 +91,3 @@ query GetAPIKey($id: ID, $key: String, $name: String) {
     }
   }
 }
-
-# Provide exactly one of $apiKeyId, $key, or $name. Requires the read_api_keys
-# scope and only returns usage for keys inside the service account's own project.
-query APIKeyQuotaUsages($apiKeyId: ID, $key: String, $name: String) {
-  apiKeyQuotaUsages(apiKeyId: $apiKeyId, key: $key, name: $name) {
-    profileName
-    window {
-      start
-      end
-    }
-    usage {
-      requestCount
-      totalTokens
-      totalCost
-    }
-  }
-}

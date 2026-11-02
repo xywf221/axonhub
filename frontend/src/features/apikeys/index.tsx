@@ -3,7 +3,7 @@ import type { SortingState } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 import { useDebounce } from '@/hooks/use-debounce';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
-import { usePermissions } from '@/hooks/usePermissions';
+import { useAuthStore } from '@/stores/authStore';
 import { type DateTimeRangeValue } from '@/utils/date-range';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Main } from '@/components/layout/main';
@@ -51,7 +51,7 @@ function loadSorting(): SortingState {
 
 function ApiKeysContent() {
   const { t } = useTranslation();
-  const { user, apiKeyPermissions, userPermissions } = usePermissions();
+  const user = useAuthStore((state) => state.auth.user);
   const { startCursor, endCursor, cursorHistory, pageSize, setCursors, setPageSize, resetCursor, paginationArgs } =
     usePaginationSearch({
       defaultPageSize: 20,
@@ -209,11 +209,11 @@ function ApiKeysContent() {
     resetCursor();
   };
 
-  const canViewCreators = userPermissions.canRead;
+  const canViewCreators = true;
 
   const columns = React.useMemo(
-    () => createColumns(t, apiKeyPermissions.canWrite, canViewCreators),
-    [t, apiKeyPermissions.canWrite, canViewCreators]
+    () => createColumns(t, true, canViewCreators),
+    [t, canViewCreators]
   );
 
   return (
@@ -259,7 +259,7 @@ function ApiKeysContent() {
           onDateRangeChange={setDateRange}
           onSortingChange={handleSortingChange}
           onResetFilters={handleResetFilters}
-          canWrite={apiKeyPermissions.canWrite}
+          canWrite={true}
           canViewCreators={canViewCreators}
         />
       </div>

@@ -52,8 +52,8 @@ func (s *APIKeyProfileTemplateService) CreateTemplate(ctx context.Context, input
 
 	template, err := create.Save(ctx)
 	if err != nil {
-		// Name uniqueness is enforced by the (project_id, name, deleted_at) unique
-		// index; surface a friendly error instead of a raw constraint violation.
+		// Name uniqueness is enforced by the (name, deleted_at) unique index;
+		// surface a friendly error instead of a raw constraint violation.
 		if ent.IsConstraintError(err) {
 			return nil, xerrors.DuplicateNameError("Template", input.Name)
 		}
@@ -80,9 +80,8 @@ func (s *APIKeyProfileTemplateService) GetTemplate(ctx context.Context, id int) 
 //
 // Like APIKeyService.GetForRead, it goes through the context-bound ent client
 // so the APIKeyProfileTemplate privacy policy runs: an API key principal must
-// hold read_api_keys and is filtered to templates inside its own project, where
-// names are unique (DB index on project_id+name) — so a name identifies at most
-// one template and foreign templates surface as NotFound.
+// hold read_api_keys. Names are unique (DB index on name), so a name identifies
+// at most one template.
 func (s *APIKeyProfileTemplateService) GetForRead(ctx context.Context, id *int, name *string) (*ent.APIKeyProfileTemplate, error) {
 	if (id == nil) == (name == nil) {
 		return nil, fmt.Errorf("exactly one of template id or name must be provided")
@@ -106,12 +105,10 @@ func (s *APIKeyProfileTemplateService) GetForRead(ctx context.Context, id *int, 
 	return template, nil
 }
 
-func (s *APIKeyProfileTemplateService) ListTemplates(ctx context.Context, projectID int) ([]*ent.APIKeyProfileTemplate, error) {
+func (s *APIKeyProfileTemplateService) ListTemplates(ctx context.Context) ([]*ent.APIKeyProfileTemplate, error) {
 	client := s.entFromContext(ctx)
 
-	templates, err := client.APIKeyProfileTemplate.Query().
-		Where(apikeyprofiletemplate.ProjectIDEQ(projectID)).
-		All(ctx)
+	templates, err := client.APIKeyProfileTemplate.Query().All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list templates: %w", err)
 	}
@@ -154,8 +151,8 @@ func (s *APIKeyProfileTemplateService) UpdateTemplate(ctx context.Context, id in
 		var saveErr error
 		template, saveErr = update.Save(ctx)
 		if saveErr != nil {
-			// The unique index on (project_id, name, deleted_at) is the source of
-			// truth for name uniqueness; map it to a friendly error.
+			// The unique index on (name, deleted_at) is the source of truth for
+			// name uniqueness; map it to a friendly error.
 			if ent.IsConstraintError(saveErr) {
 				return xerrors.DuplicateNameError("Template", lo.FromPtr(input.Name))
 			}
@@ -222,10 +219,6 @@ func (s *APIKeyProfileTemplateService) LoadTemplate(ctx context.Context, templat
 			return fmt.Errorf("failed to get API key: %w", getErr)
 		}
 
-		if template.ProjectID != apiKey.ProjectID {
-			return fmt.Errorf("template and API key must belong to the same project")
-		}
-
 		if apiKey.Type == apikey.TypePersonal {
 			user, ok := contexts.GetUser(ctx)
 			if !ok {
@@ -278,13 +271,10 @@ func (s *APIKeyProfileTemplateService) LoadTemplate(ctx context.Context, templat
 
 // CountLinkedProfiles returns how many API key profiles currently follow a
 // template. API key profiles are embedded JSON, so the count is intentionally
-// computed from the project's keys instead of introducing a second source of
-// truth.
+// computed from the keys instead of introducing a second source of truth.
 func (s *APIKeyProfileTemplateService) CountLinkedProfiles(ctx context.Context, template *ent.APIKeyProfileTemplate) (int, error) {
 	client := s.entFromContext(ctx)
-	keys, err := client.APIKey.Query().
-		Where(apikey.ProjectIDEQ(template.ProjectID)).
-		All(ctx)
+	keys, err := client.APIKey.Query().All(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("failed to list API keys linked to template: %w", err)
 	}
@@ -307,9 +297,7 @@ func (s *APIKeyProfileTemplateService) CountLinkedProfiles(ctx context.Context, 
 
 func (s *APIKeyProfileTemplateService) syncLinkedProfiles(ctx context.Context, previousTemplate, template *ent.APIKeyProfileTemplate, publishedProfile *objects.APIKeyProfile) error {
 	client := s.entFromContext(ctx)
-	keys, err := client.APIKey.Query().
-		Where(apikey.ProjectIDEQ(template.ProjectID)).
-		All(ctx)
+	keys, err := client.APIKey.Query().All(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to list API keys linked to template: %w", err)
 	}
@@ -374,9 +362,7 @@ func isLegacyTemplateMatch(profile *objects.APIKeyProfile, template *ent.APIKeyP
 
 func (s *APIKeyProfileTemplateService) detachLinkedProfiles(ctx context.Context, template *ent.APIKeyProfileTemplate) error {
 	client := s.entFromContext(ctx)
-	keys, err := client.APIKey.Query().
-		Where(apikey.ProjectIDEQ(template.ProjectID)).
-		All(ctx)
+	keys, err := client.APIKey.Query().All(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to list API keys linked to template: %w", err)
 	}

@@ -28,7 +28,6 @@ type Handlers struct {
 	Playground         *api.PlaygroundHandlers
 	System             *api.SystemHandlers
 	Auth               *api.AuthHandlers
-	Invitation         *api.InvitationHandlers
 	Jina               *api.JinaHandlers
 	TypeSafe           *api.TypeSafeHandlers
 	Codex              *api.CodexHandlers
@@ -85,8 +84,6 @@ func SetupRoutes(server *Server, handlers Handlers, client *ent.Client, services
 		publicGroup.GET("/favicon", handlers.System.GetFavicon)
 		// Health check endpoint - no authentication required
 		publicGroup.GET("/health", handlers.System.Health)
-		publicGroup.GET("/auth/invitations/:token", handlers.Invitation.Get)
-		publicGroup.POST("/auth/invitations/:token/register", handlers.Invitation.Register)
 	}
 
 	unSecureAdminGroup := server.Group("/admin", middleware.WithTimeout(server.Config.RequestTimeout))
@@ -104,13 +101,12 @@ func SetupRoutes(server *Server, handlers Handlers, client *ent.Client, services
 		handlers.OIDC.RegisterRoutes(oauthGroup)
 	}
 
-	adminGroup := server.Group("/admin", middleware.WithJWTAuth(services.AuthService), middleware.WithProjectID())
+	adminGroup := server.Group("/admin", middleware.WithJWTAuth(services.AuthService))
 	// 管理员路由 - 使用 JWT 认证
 	{
 		adminGroup.GET("/playground", middleware.WithTimeout(server.Config.RequestTimeout), func(c *gin.Context) {
 			handlers.Graphql.Playground.ServeHTTP(c.Writer, c.Request)
 		})
-		adminGroup.POST("/invitations", handlers.Invitation.Create)
 
 		adminGroup.POST("/codex/oauth/start", handlers.Codex.StartOAuth)
 		adminGroup.POST("/codex/oauth/exchange", handlers.Codex.Exchange)
@@ -158,7 +154,6 @@ func SetupRoutes(server *Server, handlers Handlers, client *ent.Client, services
 	adminGraphqlGroup := server.Group(
 		"/admin",
 		middleware.WithAdminGraphqlAuth(services.AuthService),
-		middleware.WithProjectID(),
 	)
 	{
 		adminGraphqlGroup.POST("/graphql", middleware.WithTimeout(server.Config.RequestTimeout), func(c *gin.Context) {
@@ -168,7 +163,6 @@ func SetupRoutes(server *Server, handlers Handlers, client *ent.Client, services
 
 	openAPIGroup := server.Group(
 		"/openapi",
-		middleware.WithIPBlocklist(services.SystemService),
 		middleware.WithOpenAPIAuth(services.AuthService),
 		middleware.WithTimeout(server.Config.RequestTimeout),
 	)
@@ -180,13 +174,11 @@ func SetupRoutes(server *Server, handlers Handlers, client *ent.Client, services
 			handlers.OpenAPIGraphql.Playground.ServeHTTP(c.Writer, c.Request)
 		})
 
-		openAPIGroup.POST("/webhook/echo", handlers.System.WebhookEcho)
 	}
 
 	registerCodexRoutes(server, handlers, services)
 
 	apiMiddlewares := []gin.HandlerFunc{
-		middleware.WithIPBlocklist(services.SystemService),
 		middleware.WithAPIKeyConfig(services.AuthService, nil),
 		middleware.WithSource(request.SourceAPI),
 		middleware.WithResponseHeaders(services.RequestService),
@@ -268,7 +260,6 @@ func SetupRoutes(server *Server, handlers Handlers, client *ent.Client, services
 
 		geminiGroup := server.Group("/gemini/:gemini-api-version",
 			middleware.WithTimeout(server.Config.LLMRequestTimeout),
-			middleware.WithIPBlocklist(services.SystemService),
 			middleware.WithGeminiKeyAuth(services.AuthService),
 			middleware.WithSource(request.SourceAPI),
 			middleware.WithResponseHeaders(services.RequestService),
@@ -281,7 +272,6 @@ func SetupRoutes(server *Server, handlers Handlers, client *ent.Client, services
 		// Alias for Gemini API
 		geminiAliasGroup := server.Group("/v1beta",
 			middleware.WithTimeout(server.Config.LLMRequestTimeout),
-			middleware.WithIPBlocklist(services.SystemService),
 			middleware.WithGeminiKeyAuth(services.AuthService),
 			middleware.WithSource(request.SourceAPI),
 			middleware.WithResponseHeaders(services.RequestService),

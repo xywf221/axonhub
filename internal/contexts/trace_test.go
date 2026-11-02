@@ -73,7 +73,6 @@ func TestTraceWithMultipleValues(t *testing.T) {
 	ctx = WithUser(ctx, &ent.User{ID: 123, Email: "test@example.com"})
 	ctx = WithThread(ctx, &ent.Thread{ID: 1, ThreadID: "thread-123"})
 	ctx = WithTrace(ctx, &ent.Trace{ID: 2, TraceID: "trace-456"})
-	ctx = WithProjectID(ctx, 789)
 
 	// Test retrieving all values
 	apiKey, ok := GetAPIKey(ctx)
@@ -94,11 +93,6 @@ func TestTraceWithMultipleValues(t *testing.T) {
 	trace, ok := GetTrace(ctx)
 	if !ok || trace.ID != 2 {
 		t.Error("Trace should be stored and retrievable")
-	}
-
-	projectID, ok := GetProjectID(ctx)
-	if !ok || projectID != 789 {
-		t.Error("Project ID should be stored and retrievable")
 	}
 }
 

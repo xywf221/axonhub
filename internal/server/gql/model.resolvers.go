@@ -10,7 +10,6 @@ import (
 	"fmt"
 
 	"github.com/looplj/axonhub/internal/authz"
-	"github.com/looplj/axonhub/internal/contexts"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/model"
 	"github.com/looplj/axonhub/internal/objects"
@@ -137,12 +136,11 @@ func (r *queryResolver) QueryModels(ctx context.Context, input QueryModelsInput)
 			return list(ctx)
 		}
 
-		if _, ok := contexts.GetProjectID(ctx); !ok ||
-			(!authz.HasScope(ctx, scopes.ScopeWriteAPIKeys) && !authz.HasScope(ctx, scopes.ScopeWriteRequests)) {
+		if !authz.HasScope(ctx, scopes.ScopeWriteAPIKeys) && !authz.HasScope(ctx, scopes.ScopeWriteRequests) {
 			return nil, authz.RequireScope(ctx, scopes.ScopeReadChannels)
 		}
 
-		return authz.RunWithSystemBypass(ctx, "project-model-metadata", list)
+		return authz.RunWithSystemBypass(ctx, "model-metadata", list)
 	}
 
 	if settings.QueryAllChannelModels || lo.FromPtrOr(input.IncludeAllChannelModels, false) {

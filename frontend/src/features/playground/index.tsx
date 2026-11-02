@@ -6,11 +6,9 @@ import { ImagePlus, MessageSquare, RefreshCcw, Copy } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/authStore';
-import { useSelectedProjectId } from '@/stores/projectStore';
 import { ensureFreshAccessToken } from '@/lib/auth-session';
 import { copyTextToClipboard } from '@/lib/clipboard';
 import { cn } from '@/lib/utils';
-import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -92,18 +90,11 @@ function PlaygroundSubmit({ input, status, onStop }: { input: string; status: Ch
 
 export default function Playground() {
   const { t } = useTranslation();
-  const selectedProjectId = useSelectedProjectId();
   const [selectionState, setSelectionState] = useState(() => ({
-    projectId: selectedProjectId,
-    ...readSelection(selectedProjectId),
+    ...readSelection(),
     ready: false,
   }));
-  // Reset during render so a project switch never renders or saves the prior project's choice.
-  const selection =
-    selectionState.projectId === selectedProjectId
-      ? selectionState
-      : { projectId: selectedProjectId, ...readSelection(selectedProjectId), ready: false };
-  if (selectionState.projectId !== selectedProjectId) setSelectionState(selection);
+  const selection = selectionState;
   const { modelSource, selectedChannel, model } = selection;
   const setModel = (nextModel: string) => setSelectionState((current) => ({ ...current, model: nextModel }));
   const [temperature, setTemperature] = useState(0.6);
@@ -145,11 +136,10 @@ export default function Playground() {
   }, [modelSource]);
 
   const { accessToken } = useAuthStore((state) => state.auth);
-  const { user, hasSystemScope } = usePermissions();
-  const canUseModelGateway = hasSystemScope('read_channels');
+  const canUseModelGateway = true;
 
   // 获取 channels 数据
-  const { data: channelsData, isLoading: channelsLoading } = useAllChannelSummarys(selectedProjectId);
+  const { data: channelsData, isLoading: channelsLoading } = useAllChannelSummarys();
   const isModelGatewaySource = modelSource === 'model_gateway';
   const { data: modelsData, isLoading: modelsLoading } = useQueryModels(
     {
@@ -172,7 +162,6 @@ export default function Playground() {
       headers: () => {
         const headers: Record<string, string> = {
           Authorization: 'Bearer ' + accessToken,
-          'X-Project-ID': selectedProjectId || '',
         };
         if (modelSourceRef.current === 'channel' && selectedChannelRef.current) {
           headers['X-Channel-ID'] = selectedChannelRef.current;
@@ -333,7 +322,7 @@ export default function Playground() {
   }, [modelsData]);
 
   useEffect(() => {
-    if (!user || !channelsData || (modelSource === 'model_gateway' && canUseModelGateway && !modelsData)) return;
+    if (!channelsData || (modelSource === 'model_gateway' && canUseModelGateway && !modelsData)) return;
     const channels = channelOptions.map((option) => ({
       value: option.value,
       models:
@@ -341,7 +330,6 @@ export default function Playground() {
     }));
     const gatewayModels = modelPageModelOptions.map((option) => option.value);
     setSelectionState((current) => {
-      if (current.projectId !== selectedProjectId) return current;
       const resolved = resolveSelection(current, channels, gatewayModels, canUseModelGateway);
       if (
         current.ready &&
@@ -353,13 +341,13 @@ export default function Playground() {
       }
       return { ...current, ...resolved, ready: true };
     });
-  }, [canUseModelGateway, channelOptions, channelsData, modelPageModelOptions, modelSource, modelsData, selectedProjectId, user]);
+  }, [canUseModelGateway, channelOptions, channelsData, modelPageModelOptions, modelSource, modelsData]);
 
   useEffect(() => {
-    if (selection.ready && selection.projectId === selectedProjectId) {
-      writeSelection(selectedProjectId, { modelSource, selectedChannel, model });
+    if (selection.ready) {
+      writeSelection({ modelSource, selectedChannel, model });
     }
-  }, [model, modelSource, selectedChannel, selectedProjectId, selection.projectId, selection.ready]);
+  }, [model, modelSource, selectedChannel, selection.ready]);
 
   // 根据选中渠道过滤出模型列表（渠道已关闭时不展示其模型）
   const modelOptions = useMemo(() => {

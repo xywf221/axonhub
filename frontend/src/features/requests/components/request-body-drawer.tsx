@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import {
   ChevronLeft,
@@ -17,7 +16,6 @@ import { toast } from 'sonner';
 import { copyTextToClipboard } from '@/lib/clipboard';
 import { extractNumberID, cn } from '@/lib/utils';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
-import { useSelectedProjectId } from '@/stores/projectStore';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -25,7 +23,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { JsonViewer } from '@/components/json-tree-view';
-import { useRequestPermissions } from '../../../hooks/useRequestPermissions';
 import { useRequest, fetchAdjacentRequestPage } from '../data';
 import { Request, RequestConnection } from '../data/schema';
 import { CurlPreviewDialog } from './curl-preview-dialog';
@@ -46,7 +43,6 @@ interface RequestBodyDrawerProps {
   pageInfo?: RequestConnection['pageInfo'];
   /** Optional server-side filter currently applied to the table. */
   queryWhere?: Record<string, any>;
-  projectId?: string | null;
   onViewDetail?: (requestId: string) => void;
 }
 
@@ -60,15 +56,10 @@ export function RequestBodyDrawer({
   initialRequests,
   pageInfo: initialPageInfo,
   queryWhere,
-  projectId,
   onViewDetail,
 }: RequestBodyDrawerProps) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const { navigateWithSearch } = usePaginationSearch({ defaultPageSize: 20 });
-  const permissions = useRequestPermissions();
-  const selectedProjectId = useSelectedProjectId();
-  const effectiveProjectId = projectId !== undefined ? projectId : selectedProjectId;
 
   // ── internal navigation state ──────────────────────────────────────────────
   // The drawer manages its own growing list so it can cross page boundaries.
@@ -118,7 +109,6 @@ export function RequestBodyDrawer({
 
   // ── fetch detail for current request ──────────────────────────────────────
   const { data: request, isLoading, isFetching } = useRequest(currentRequestId ?? '', {
-    projectId: effectiveProjectId,
     enabled: open && canRenderBody && !!currentRequestId,
   });
 
@@ -202,8 +192,6 @@ export function RequestBodyDrawer({
         direction: 'older',
         pageSize: initialRequests.length || 20,
         where: queryWhere,
-        permissions,
-        projectId: effectiveProjectId,
       });
       setAllRequests((prev) => {
         const merged = [...prev, ...result.requests];
@@ -218,7 +206,7 @@ export function RequestBodyDrawer({
     } finally {
       setIsLoadingMore(false);
     }
-  }, [currentIndex, allRequests.length, navPageInfo, isLoadingMore, queryWhere, permissions, effectiveProjectId, initialRequests.length]);
+  }, [currentIndex, allRequests.length, navPageInfo, isLoadingMore, queryWhere, initialRequests.length]);
 
   const handleNext = useCallback(async () => {
     if (currentIndex > 0) {
@@ -234,8 +222,6 @@ export function RequestBodyDrawer({
         direction: 'newer',
         pageSize: initialRequests.length || 20,
         where: queryWhere,
-        permissions,
-        projectId: effectiveProjectId,
       });
       // Prepend newer items; adjust index for shift.
       setAllRequests((prev) => {
@@ -252,26 +238,21 @@ export function RequestBodyDrawer({
     } finally {
       setIsLoadingMore(false);
     }
-  }, [currentIndex, navPageInfo, isLoadingMore, queryWhere, permissions, effectiveProjectId, initialRequests.length]);
+  }, [currentIndex, navPageInfo, isLoadingMore, queryWhere, initialRequests.length]);
 
   const handleViewDetail = useCallback(() => {
     if (currentRequestId) {
       if (onViewDetail) {
         onViewDetail(currentRequestId);
-      } else if (effectiveProjectId) {
-        navigateWithSearch({
-          to: '/project/requests/$requestId',
-          params: { requestId: currentRequestId },
-        });
       } else {
-        navigate({
+        navigateWithSearch({
           to: '/requests/$requestId',
           params: { requestId: currentRequestId },
         });
       }
       onOpenChange(false);
     }
-  }, [currentRequestId, onViewDetail, effectiveProjectId, navigateWithSearch, navigate, onOpenChange]);
+  }, [currentRequestId, onViewDetail, navigateWithSearch, onOpenChange]);
 
   // ── render ─────────────────────────────────────────────────────────────────
   return (

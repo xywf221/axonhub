@@ -1,12 +1,9 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { format, type Locale } from 'date-fns';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { IconPlus, IconTrash, IconSettings, IconChevronDown, IconChevronUp, IconInfoCircle } from '@tabler/icons-react';
 import { useQueryModels } from '@/gql/models';
-import { zhCN, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
-import { useSelectedProjectId } from '@/stores/projectStore';
 import { extractNumberID } from '@/lib/utils';
 import { useDebounce } from '@/hooks/use-debounce';
 import { Badge } from '@/components/ui/badge';
@@ -16,61 +13,19 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { TagsAutocompleteInput } from '@/components/ui/tags-autocomplete-input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AutoComplete } from '@/components/auto-complete';
 import { useAllChannelSummarys } from '@/features/channels/data/channels';
 import { useApiKeysContext } from '../context/apikeys-context';
-import { useApiKeyQuotaUsages } from '../data/apikeys';
 import {
   normalizeApiKeyProfileRoutingPolicy,
   updateApiKeyProfilesInputSchemaFactory,
   type ApiKeyProfile,
-  type ApiKeyProfileQuotaUsage,
   type UpdateApiKeyProfilesInput,
 } from '../data/schema';
 import { ApiKeyLoadTemplatePopover } from './apikeys-load-template-popover';
 import { ApiKeySaveTemplateDialog } from './apikeys-save-template-dialog';
-
-type ApiKeyQuotaPeriod = NonNullable<NonNullable<ApiKeyProfile['quota']>['period']>;
-
-function quotaPeriodLabel(period: ApiKeyQuotaPeriod | null | undefined, t: (key: string) => string) {
-  if (!period) return '-';
-
-  const unitLabel = (unit: string) => {
-    switch (unit) {
-      case 'minute':
-        return t('apikeys.profiles.quotaUnitMinute');
-      case 'hour':
-        return t('apikeys.profiles.quotaUnitHour');
-      case 'day':
-        return t('apikeys.profiles.quotaUnitDay');
-      case 'month':
-        return t('apikeys.profiles.quotaUnitMonth');
-      default:
-        return unit;
-    }
-  };
-
-  switch (period.type) {
-    case 'all_time':
-      return t('apikeys.profiles.quotaPeriodAllTime');
-    case 'past_duration': {
-      const value = period.pastDuration?.value;
-      const unit = period.pastDuration?.unit;
-      const suffix = value && unit ? ` (${value} ${unitLabel(unit)})` : '';
-      return `${t('apikeys.profiles.quotaPeriodPastDuration')}${suffix}`;
-    }
-    case 'calendar_duration': {
-      const unit = period.calendarDuration?.unit;
-      const suffix = unit ? ` (${unitLabel(unit)})` : '';
-      return `${t('apikeys.profiles.quotaPeriodCalendarDuration')}${suffix}`;
-    }
-    default:
-      return period.type;
-  }
-}
 
 interface ApiKeyProfilesDialogProps {
   open: boolean;
@@ -84,26 +39,13 @@ interface ApiKeyProfilesDialogProps {
 }
 
 export function ApiKeyProfilesDialog({ open, onOpenChange, onSubmit, loading = false, initialData }: ApiKeyProfilesDialogProps) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { selectedApiKey } = useApiKeysContext();
-  const selectedProjectId = useSelectedProjectId();
   const { data: availableModels, mutateAsync: fetchModels } = useQueryModels();
   const [templateLoadPending, setTemplateLoadPending] = useState(false);
   // 用于解决 Dialog 内 Popover 无法滚动的问题
   const [dialogContent, setDialogContent] = useState<HTMLDivElement | null>(null);
-  const locale = i18n.language === 'zh' ? zhCN : enUS;
   const apiKeyId = selectedApiKey?.id ?? '';
-  const quotaUsagesQuery = useApiKeyQuotaUsages(apiKeyId, {
-    enabled: open && !!apiKeyId,
-    refetchInterval: open ? 10000 : undefined,
-  });
-  const quotaUsageByProfileName = useMemo(() => {
-    const map = new Map<string, ApiKeyProfileQuotaUsage>();
-    quotaUsagesQuery.data?.forEach((u) => {
-      map.set(u.profileName, u);
-    });
-    return map;
-  }, [quotaUsagesQuery.data]);
 
   // Template save/load state
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
@@ -313,7 +255,6 @@ export function ApiKeyProfilesDialog({ open, onOpenChange, onSubmit, loading = f
                   <div className='flex items-center gap-2'>
                     <ApiKeyLoadTemplatePopover
                       apiKeyID={apiKeyId}
-                      projectID={selectedProjectId}
                       portalContainer={dialogContent}
                       onLoadComplete={(loadedProfiles) => {
                         const resetData = {
@@ -361,11 +302,8 @@ export function ApiKeyProfilesDialog({ open, onOpenChange, onSubmit, loading = f
                               canRemove={profileFields.length > 1}
                               availableModels={availableModels?.map((model) => model.id) || []}
                               t={t}
-                              locale={locale}
-                              quotaUsageByProfileName={quotaUsageByProfileName}
                               defaultExpanded={isActive}
                               portalContainer={dialogContent}
-                              selectedProjectId={selectedProjectId}
                               onSaveTemplate={(idx) => {
                                 setSaveTemplateProfileIndex(idx);
                                 setSaveTemplateOpen(true);
@@ -443,7 +381,6 @@ export function ApiKeyProfilesDialog({ open, onOpenChange, onSubmit, loading = f
               if (!open) setSaveTemplateProfileIndex(null);
             }}
             profileData={form.watch(`profiles.${saveTemplateProfileIndex}`)}
-            projectID={selectedProjectId}
           />
         )}
       </DialogContent>
@@ -458,13 +395,9 @@ interface ProfileCardProps {
   canRemove: boolean;
   availableModels: string[];
   t: (key: string) => string;
-  locale: Locale;
-  quotaUsageByProfileName: Map<string, ApiKeyProfileQuotaUsage>;
   defaultExpanded?: boolean;
   /** Popover Portal 容器元素，解决 Dialog 内无法滚动的问题 */
   portalContainer?: HTMLElement | null;
-  /** 当前选中的 project ID */
-  selectedProjectId?: string | null;
   onSaveTemplate: (profileIndex: number) => void;
 }
 
@@ -475,16 +408,13 @@ function ProfileCard({
   canRemove,
   availableModels,
   t,
-  locale,
-  quotaUsageByProfileName,
   defaultExpanded = false,
   portalContainer,
-  selectedProjectId,
   onSaveTemplate,
 }: ProfileCardProps) {
   const [localProfileName, setLocalProfileName] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(!defaultExpanded);
-  const { data: channelsData } = useAllChannelSummarys(selectedProjectId, { enabled: true });
+  const { data: channelsData } = useAllChannelSummarys({ enabled: true });
 
   const debouncedProfileName = useDebounce(localProfileName, 500);
 
@@ -515,10 +445,6 @@ function ProfileCard({
   const templateName = form.watch(`profiles.${profileIndex}.templateName`);
   const channelTagsMatchMode = form.watch(`profiles.${profileIndex}.channelTagsMatchMode`);
   const isExcludeMode = channelTagsMatchMode === 'none';
-  const quotaUsage = profileName ? quotaUsageByProfileName.get(profileName) : undefined;
-  const currentQuota = form.watch(`profiles.${profileIndex}.quota`);
-  const quotaUsagePeriod = (currentQuota?.period ?? quotaUsage?.quota?.period) as ApiKeyQuotaPeriod | null | undefined;
-  const quotaUsageEnd = quotaUsage?.window.end ?? (quotaUsagePeriod?.type !== 'calendar_duration' ? new Date() : null);
 
   // Initialize local state from form value
   useEffect(() => {
@@ -633,269 +559,6 @@ function ProfileCard({
       </CardHeader>
       {!isCollapsed && (
         <CardContent className='space-y-6'>
-          {/* Quota Section */}
-          <div className='space-y-4'>
-            <div className='flex items-center justify-between gap-3'>
-              <div>
-                <h4 className='text-sm font-medium'>{t('apikeys.profiles.quotaTitle')}</h4>
-                <p className='text-muted-foreground mt-1 text-xs'>{t('apikeys.profiles.quotaDescription')}</p>
-              </div>
-              <FormField
-                control={form.control}
-                name={`profiles.${profileIndex}.quota`}
-                render={({ field }) => (
-                  <FormItem className='flex items-center space-y-0 gap-x-2'>
-                    <FormLabel className='text-sm'>{t('apikeys.profiles.quotaEnabled')}</FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value != null}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            field.onChange({
-                              requests: null,
-                              totalTokens: null,
-                              cost: null,
-                              period: {
-                                type: 'all_time',
-                                pastDuration: null,
-                                calendarDuration: null,
-                              },
-                            });
-                          } else {
-                            field.onChange(null);
-                          }
-                        }}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {form.watch(`profiles.${profileIndex}.quota`) != null && (
-              <div className='space-y-4'>
-                <div className='grid gap-4 md:grid-cols-3'>
-                  <FormField
-                    control={form.control}
-                    name={`profiles.${profileIndex}.quota.requests`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('apikeys.profiles.quotaRequests')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            type='number'
-                            min={1}
-                            value={(field.value as unknown as number | null | undefined) ?? ''}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              field.onChange(v === '' ? null : Number(v));
-                            }}
-                            placeholder={t('apikeys.profiles.quotaRequestsPlaceholder')}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name={`profiles.${profileIndex}.quota.totalTokens`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('apikeys.profiles.quotaTotalTokens')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            type='number'
-                            min={1}
-                            value={(field.value as unknown as number | null | undefined) ?? ''}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              field.onChange(v === '' ? null : Number(v));
-                            }}
-                            placeholder={t('apikeys.profiles.quotaTotalTokensPlaceholder')}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name={`profiles.${profileIndex}.quota.cost`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('apikeys.profiles.quotaCost')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            inputMode='decimal'
-                            value={(field.value as unknown as number | null | undefined) ?? ''}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              field.onChange(v === '' ? null : Number(v));
-                            }}
-                            placeholder={t('apikeys.profiles.quotaCostPlaceholder')}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className='grid gap-4 md:grid-cols-3'>
-                  <FormField
-                    control={form.control}
-                    name={`profiles.${profileIndex}.quota.period.type`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('apikeys.profiles.quotaPeriodType')}</FormLabel>
-                        <FormControl>
-                          <Select
-                            value={field.value}
-                            onValueChange={(value) => {
-                              field.onChange(value);
-                              if (value === 'past_duration') {
-                                form.setValue(`profiles.${profileIndex}.quota.period.pastDuration`, { value: 1, unit: 'day' });
-                                form.setValue(`profiles.${profileIndex}.quota.period.calendarDuration`, null);
-                              } else if (value === 'calendar_duration') {
-                                form.setValue(`profiles.${profileIndex}.quota.period.calendarDuration`, { unit: 'day' });
-                                form.setValue(`profiles.${profileIndex}.quota.period.pastDuration`, null);
-                              } else {
-                                form.setValue(`profiles.${profileIndex}.quota.period.pastDuration`, null);
-                                form.setValue(`profiles.${profileIndex}.quota.period.calendarDuration`, null);
-                              }
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value='all_time'>{t('apikeys.profiles.quotaPeriodAllTime')}</SelectItem>
-                              <SelectItem value='past_duration'>{t('apikeys.profiles.quotaPeriodPastDuration')}</SelectItem>
-                              <SelectItem value='calendar_duration'>{t('apikeys.profiles.quotaPeriodCalendarDuration')}</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {form.watch(`profiles.${profileIndex}.quota.period.type`) === 'past_duration' && (
-                    <>
-                      <FormField
-                        control={form.control}
-                        name={`profiles.${profileIndex}.quota.period.pastDuration.value`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t('apikeys.profiles.quotaPastDurationValue')}</FormLabel>
-                            <FormControl>
-                              <Input
-                                type='number'
-                                min={1}
-                                value={(field.value as unknown as number | null | undefined) ?? ''}
-                                onChange={(e) => {
-                                  const v = e.target.value;
-                                  field.onChange(v === '' ? null : Number(v));
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`profiles.${profileIndex}.quota.period.pastDuration.unit`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t('apikeys.profiles.quotaPastDurationUnit')}</FormLabel>
-                            <FormControl>
-                              <Select value={field.value} onValueChange={field.onChange}>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value='minute'>{t('apikeys.profiles.quotaUnitMinute')}</SelectItem>
-                                  <SelectItem value='hour'>{t('apikeys.profiles.quotaUnitHour')}</SelectItem>
-                                  <SelectItem value='day'>{t('apikeys.profiles.quotaUnitDay')}</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </>
-                  )}
-
-                  {form.watch(`profiles.${profileIndex}.quota.period.type`) === 'calendar_duration' && (
-                    <FormField
-                      control={form.control}
-                      name={`profiles.${profileIndex}.quota.period.calendarDuration.unit`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('apikeys.profiles.quotaCalendarDurationUnit')}</FormLabel>
-                          <FormControl>
-                            <Select value={field.value} onValueChange={field.onChange}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value='day'>{t('apikeys.profiles.quotaUnitDay')}</SelectItem>
-                                <SelectItem value='month'>{t('apikeys.profiles.quotaUnitMonth')}</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                </div>
-
-                {quotaUsage && (
-                  <div className='space-y-2 rounded-md border p-3'>
-                    <div className='text-xs font-medium'>{t('apikeys.profiles.quotaUsageTitle')}</div>
-                    <div className='text-muted-foreground text-xs'>
-                      {t('apikeys.profiles.quotaPeriodType')}: {quotaPeriodLabel(quotaUsagePeriod, t)}
-                    </div>
-                    <div className='grid gap-3 md:grid-cols-3'>
-                      <div>
-                        <div className='text-muted-foreground text-xs'>{t('apikeys.profiles.quotaRequests')}</div>
-                        <div className='text-sm'>
-                          {quotaUsage.usage.requestCount}/{currentQuota?.requests ?? '∞'}
-                        </div>
-                      </div>
-                      <div>
-                        <div className='text-muted-foreground text-xs'>{t('apikeys.profiles.quotaTotalTokens')}</div>
-                        <div className='text-sm'>
-                          {quotaUsage.usage.totalTokens}/{currentQuota?.totalTokens ?? '∞'}
-                        </div>
-                      </div>
-                      <div>
-                        <div className='text-muted-foreground text-xs'>{t('apikeys.profiles.quotaCost')}</div>
-                        <div className='text-sm'>
-                          {(quotaUsage.usage.totalCost ?? 0).toLocaleString(undefined, { maximumFractionDigits: 6 })}/
-                          {currentQuota?.cost ?? '∞'}
-                        </div>
-                      </div>
-                    </div>
-                    <div className='text-muted-foreground grid gap-2 text-xs md:grid-cols-2'>
-                      <div>
-                        {t('common.filters.startTime')}{' '}
-                        {quotaUsage.window.start ? format(quotaUsage.window.start, 'PPpp', { locale }) : '-'}
-                      </div>
-                      <div>
-                        {t('common.filters.endTime')} {quotaUsageEnd ? format(quotaUsageEnd, 'PPpp', { locale }) : '-'}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
           {/* Load Balancer Strategy + Trace/Thread Affinity */}
           <div className='grid gap-4 border-t pt-6 sm:grid-cols-2'>
             <FormField

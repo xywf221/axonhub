@@ -12,7 +12,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/fx"
 
-	"github.com/looplj/axonhub/internal/contexts"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/request"
 	"github.com/looplj/axonhub/internal/log"
@@ -97,12 +96,6 @@ func NewRequestPreviewHandlers(params RequestPreviewHandlersParams) *RequestPrev
 func (h *RequestPreviewHandlers) PreviewRequest(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	projectID, ok := contexts.GetProjectID(ctx)
-	if !ok || projectID <= 0 {
-		JSONError(c, http.StatusBadRequest, errors.New("Project ID not found in context"))
-		return
-	}
-
 	var uri DownloadContentRequest
 	if err := c.ShouldBindUri(&uri); err != nil {
 		JSONError(c, http.StatusBadRequest, fmt.Errorf("Invalid request body: %w", err))
@@ -116,11 +109,6 @@ func (h *RequestPreviewHandlers) PreviewRequest(c *gin.Context) {
 			return
 		}
 		JSONError(c, http.StatusInternalServerError, errors.New("Failed to load request"))
-		return
-	}
-
-	if req.ProjectID != projectID {
-		JSONError(c, http.StatusNotFound, errors.New("Request not found"))
 		return
 	}
 

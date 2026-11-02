@@ -4,11 +4,9 @@ import { IconPlus } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useDebounce } from '@/hooks/use-debounce';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
-import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
 import { Main } from '@/components/layout/main';
 import { PageHeader } from '@/components/layout/page-header';
-import { PermissionGuard } from '@/components/permission-guard';
 import PromptProtectionRulesProvider, { usePromptProtectionRules } from './context/rules-context';
 import { createColumns } from './components/rules-columns';
 import { RulesDialogs } from './components/rules-dialogs';
@@ -17,7 +15,6 @@ import { useQueryPromptProtectionRules } from './data/rules';
 
 function RulesContent() {
   const { t } = useTranslation();
-  const { modelPermissions } = usePermissions();
   const { pageSize, setCursors, setPageSize, resetCursor, paginationArgs } = usePaginationSearch({
     defaultPageSize: 20,
     pageSizeStorageKey: 'prompt-protection-rules-table-page-size',
@@ -94,7 +91,7 @@ function RulesContent() {
     [resetCursor]
   );
 
-  const columns = useMemo(() => createColumns(t, modelPermissions.canWrite), [modelPermissions.canWrite, t]);
+  const columns = useMemo(() => createColumns(t, true), [t]);
 
   return (
     <div className='flex flex-1 flex-col overflow-hidden'>
@@ -112,7 +109,7 @@ function RulesContent() {
         onPreviousPage={handlePreviousPage}
         onPageSizeChange={handlePageSizeChange}
         onNameFilterChange={handleNameFilterChange}
-        canWrite={modelPermissions.canWrite}
+        canWrite={true}
       />
     </div>
   );
@@ -138,9 +135,7 @@ function CreateButton() {
 function ActionButtons() {
   return (
     <div className='flex min-w-0 max-w-full flex-wrap items-center gap-2'>
-      <PermissionGuard requiredScope='write_channels'>
-        <CreateButton />
-      </PermissionGuard>
+      <CreateButton />
     </div>
   );
 }

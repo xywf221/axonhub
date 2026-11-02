@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/looplj/axonhub/internal/ent/channel"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/request"
 	"github.com/looplj/axonhub/internal/ent/usagelog"
 	"github.com/looplj/axonhub/internal/objects"
@@ -70,20 +69,6 @@ func (_c *UsageLogCreate) SetAPIKeyID(v int) *UsageLogCreate {
 func (_c *UsageLogCreate) SetNillableAPIKeyID(v *int) *UsageLogCreate {
 	if v != nil {
 		_c.SetAPIKeyID(*v)
-	}
-	return _c
-}
-
-// SetProjectID sets the "project_id" field.
-func (_c *UsageLogCreate) SetProjectID(v int) *UsageLogCreate {
-	_c.mutation.SetProjectID(v)
-	return _c
-}
-
-// SetNillableProjectID sets the "project_id" field if the given value is not nil.
-func (_c *UsageLogCreate) SetNillableProjectID(v *int) *UsageLogCreate {
-	if v != nil {
-		_c.SetProjectID(*v)
 	}
 	return _c
 }
@@ -343,11 +328,6 @@ func (_c *UsageLogCreate) SetRequest(v *Request) *UsageLogCreate {
 	return _c.SetRequestID(v.ID)
 }
 
-// SetProject sets the "project" edge to the Project entity.
-func (_c *UsageLogCreate) SetProject(v *Project) *UsageLogCreate {
-	return _c.SetProjectID(v.ID)
-}
-
 // SetChannel sets the "channel" edge to the Channel entity.
 func (_c *UsageLogCreate) SetChannel(v *Channel) *UsageLogCreate {
 	return _c.SetChannelID(v.ID)
@@ -403,10 +383,6 @@ func (_c *UsageLogCreate) defaults() error {
 		}
 		v := usagelog.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
-	}
-	if _, ok := _c.mutation.ProjectID(); !ok {
-		v := usagelog.DefaultProjectID
-		_c.mutation.SetProjectID(v)
 	}
 	if _, ok := _c.mutation.PromptTokens(); !ok {
 		v := usagelog.DefaultPromptTokens
@@ -476,9 +452,6 @@ func (_c *UsageLogCreate) check() error {
 	if _, ok := _c.mutation.RequestID(); !ok {
 		return &ValidationError{Name: "request_id", err: errors.New(`ent: missing required field "UsageLog.request_id"`)}
 	}
-	if _, ok := _c.mutation.ProjectID(); !ok {
-		return &ValidationError{Name: "project_id", err: errors.New(`ent: missing required field "UsageLog.project_id"`)}
-	}
 	if _, ok := _c.mutation.ModelID(); !ok {
 		return &ValidationError{Name: "model_id", err: errors.New(`ent: missing required field "UsageLog.model_id"`)}
 	}
@@ -504,9 +477,6 @@ func (_c *UsageLogCreate) check() error {
 	}
 	if len(_c.mutation.RequestIDs()) == 0 {
 		return &ValidationError{Name: "request", err: errors.New(`ent: missing required edge "UsageLog.request"`)}
-	}
-	if len(_c.mutation.ProjectIDs()) == 0 {
-		return &ValidationError{Name: "project", err: errors.New(`ent: missing required edge "UsageLog.project"`)}
 	}
 	return nil
 }
@@ -634,23 +604,6 @@ func (_c *UsageLogCreate) createSpec() (*UsageLog, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.RequestID = nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.ProjectIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   usagelog.ProjectTable,
-			Columns: []string{usagelog.ProjectColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.ProjectID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.ChannelIDs(); len(nodes) > 0 {
@@ -1083,9 +1036,6 @@ func (u *UsageLogUpsertOne) UpdateNewValues() *UsageLogUpsertOne {
 		}
 		if _, exists := u.create.mutation.APIKeyID(); exists {
 			s.SetIgnore(usagelog.FieldAPIKeyID)
-		}
-		if _, exists := u.create.mutation.ProjectID(); exists {
-			s.SetIgnore(usagelog.FieldProjectID)
 		}
 		if _, exists := u.create.mutation.ChannelID(); exists {
 			s.SetIgnore(usagelog.FieldChannelID)
@@ -1713,9 +1663,6 @@ func (u *UsageLogUpsertBulk) UpdateNewValues() *UsageLogUpsertBulk {
 			}
 			if _, exists := b.mutation.APIKeyID(); exists {
 				s.SetIgnore(usagelog.FieldAPIKeyID)
-			}
-			if _, exists := b.mutation.ProjectID(); exists {
-				s.SetIgnore(usagelog.FieldProjectID)
 			}
 			if _, exists := b.mutation.ChannelID(); exists {
 				s.SetIgnore(usagelog.FieldChannelID)

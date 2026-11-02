@@ -24,22 +24,17 @@ func (Thread) Mixin() []ent.Mixin {
 
 func (Thread) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("project_id").
-			StorageKey("threads_by_project_id"),
 		index.Fields("thread_id").
 			StorageKey("threads_by_thread_id").
 			Unique(),
-		index.Fields("project_id", "status").
-			StorageKey("threads_by_project_id_status"),
+		index.Fields("status").
+			StorageKey("threads_by_status"),
 	}
 }
 
 // Fields of the Thread.
 func (Thread) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int("project_id").
-			Immutable().
-			Comment("Project ID that this thread belongs to"),
 		field.String("thread_id").
 			Unique().
 			Comment("Unique thread identifier for this thread"),
@@ -53,12 +48,6 @@ func (Thread) Fields() []ent.Field {
 // Edges of the Thread.
 func (Thread) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("project", Project.Type).
-			Ref("threads").
-			Field("project_id").
-			Immutable().
-			Required().
-			Unique(),
 		edge.To("traces", Trace.Type).
 			Annotations(
 				entgql.Skip(entgql.SkipMutationCreateInput, entgql.SkipMutationUpdateInput),
@@ -80,13 +69,11 @@ func (Thread) Policy() ent.Policy {
 	return scopes.Policy{
 		Query: scopes.QueryPolicy{
 			scopes.APIKeyScopeQueryRule(scopes.ScopeWriteRequests),
-			scopes.UserProjectScopeReadRule(scopes.ScopeReadRequests),
 			scopes.OwnerRule(),
 			scopes.UserReadScopeRule(scopes.ScopeReadRequests),
 		},
 		Mutation: scopes.MutationPolicy{
 			scopes.APIKeyScopeMutationRule(scopes.ScopeWriteRequests),
-			scopes.UserProjectScopeWriteRule(scopes.ScopeWriteRequests),
 			scopes.OwnerRule(),
 			scopes.UserWriteScopeRule(scopes.ScopeWriteRequests),
 		},

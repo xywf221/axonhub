@@ -18,7 +18,6 @@ import (
 	"github.com/looplj/axonhub/internal/ent/channel"
 	"github.com/looplj/axonhub/internal/ent/datastorage"
 	"github.com/looplj/axonhub/internal/ent/enttest"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/promptprotectionrule"
 	"github.com/looplj/axonhub/internal/ent/request"
 	"github.com/looplj/axonhub/internal/ent/requestexecution"
@@ -61,16 +60,13 @@ func TestOpenAIHandlers_CreateDecisions_usesOfflineUpstreamAndPreservesClientSha
 
 	owner, err := client.User.Create().SetEmail("decisions-offline@example.com").SetPassword("test-password").SetStatus(user.StatusActivated).Save(setupCtx)
 	require.NoError(t, err)
-	proj, err := client.Project.Create().SetName("decisions-offline-project").SetDescription("offline route test").SetStatus(project.StatusActive).Save(setupCtx)
-	require.NoError(t, err)
-	_, err = client.APIKey.Create().SetName("decisions-offline-key").SetKey(clientKey).SetUserID(owner.ID).SetProjectID(proj.ID).SetType(apikey.TypeUser).SetStatus(apikey.StatusEnabled).Save(setupCtx)
+	_, err = client.APIKey.Create().SetName("decisions-offline-key").SetKey(clientKey).SetUserID(owner.ID).SetType(apikey.TypeUser).SetStatus(apikey.StatusEnabled).Save(setupCtx)
 	require.NoError(t, err)
 	channelRow, err := client.Channel.Create().SetType(channel.TypeOpenai).SetName("decisions-offline-channel").SetBaseURL(upstream.URL).SetCredentials(objects.ChannelCredentials{APIKey: providerKey}).SetSupportedModels([]string{"gpt-6-luna"}).SetDefaultTestModel("gpt-6-luna").SetStatus(channel.StatusEnabled).Save(setupCtx)
 	require.NoError(t, err)
 
 	channelService, requestService, systemService, usageLogService := setupSpeechAPITestServices(t, client)
-	projectService := biz.NewProjectService(biz.ProjectServiceParams{CacheConfig: xcache.Config{Mode: xcache.ModeMemory}, Ent: client})
-	apiKeyService := biz.NewAPIKeyService(biz.APIKeyServiceParams{CacheConfig: xcache.Config{Mode: xcache.ModeMemory}, Ent: client, ProjectService: projectService, KeyPrefix: "ah"})
+	apiKeyService := biz.NewAPIKeyService(biz.APIKeyServiceParams{CacheConfig: xcache.Config{Mode: xcache.ModeMemory}, Ent: client, KeyPrefix: "ah"})
 	t.Cleanup(apiKeyService.Stop)
 	authService := biz.NewAuthService(biz.AuthServiceParams{APIKeyService: apiKeyService, Ent: client})
 	promptService := biz.NewPromptService(biz.PromptServiceParams{Ent: client})
@@ -78,7 +74,7 @@ func TestOpenAIHandlers_CreateDecisions_usesOfflineUpstreamAndPreservesClientSha
 	t.Cleanup(promptProtectionService.Stop)
 	outbound, err := decisions.NewOutboundTransformer(channelRow.BaseURL, providerKey)
 	require.NoError(t, err)
-	orchestratorInstance := orchestrator.NewChatCompletionOrchestrator(channelService, nil, requestService, httpclient.NewHttpClient(), decisions.NewInboundTransformer(), systemService, usageLogService, promptService, nil, promptProtectionService, biz.NewLiveStreamRegistry(), orchestrator.NewChannelLimiterManager(), nil).WithChannelSelector(&decisionsAPITestSelector{candidates: []*orchestrator.ChannelModelsCandidate{{Channel: &biz.Channel{Channel: channelRow, Outbound: outbound}, Models: []biz.ChannelModelEntry{{RequestModel: "gpt-6-luna", ActualModel: "gpt-6-luna"}}}}})
+	orchestratorInstance := orchestrator.NewChatCompletionOrchestrator(channelService, nil, requestService, httpclient.NewHttpClient(), decisions.NewInboundTransformer(), systemService, usageLogService, promptService, promptProtectionService, biz.NewLiveStreamRegistry(), orchestrator.NewChannelLimiterManager(), nil).WithChannelSelector(&decisionsAPITestSelector{candidates: []*orchestrator.ChannelModelsCandidate{{Channel: &biz.Channel{Channel: channelRow, Outbound: outbound}, Models: []biz.ChannelModelEntry{{RequestModel: "gpt-6-luna", ActualModel: "gpt-6-luna"}}}}})
 	handlers := &OpenAIHandlers{DecisionsHandlers: NewChatCompletionHandlers(orchestratorInstance)}
 	router := gin.New()
 	router.Use(middleware.WithEntClient(client), middleware.WithAPIKeyConfig(authService, nil))
@@ -99,7 +95,6 @@ type decisionsOfflineHarness struct {
 	client         *ent.Client
 	ctx            context.Context
 	apiKey         string
-	project        *ent.Project
 	requestService *biz.RequestService
 	router         *gin.Engine
 }
@@ -121,10 +116,8 @@ func newDecisionsOfflineHarness(t *testing.T, upstreamBody string, withTrace boo
 
 	owner, err := client.User.Create().SetEmail("decisions-offline-extension@example.com").SetPassword("test-password").SetStatus(user.StatusActivated).Save(ctx)
 	require.NoError(t, err)
-	projectRow, err := client.Project.Create().SetName("decisions-offline-extension-project").SetDescription("offline route extension test").SetStatus(project.StatusActive).Save(ctx)
-	require.NoError(t, err)
 	apiKey := "ah-test-decisions-route-extension-key"
-	_, err = client.APIKey.Create().SetName("decisions-offline-extension-key").SetKey(apiKey).SetUserID(owner.ID).SetProjectID(projectRow.ID).SetType(apikey.TypeUser).SetStatus(apikey.StatusEnabled).Save(ctx)
+	_, err = client.APIKey.Create().SetName("decisions-offline-extension-key").SetKey(apiKey).SetUserID(owner.ID).SetType(apikey.TypeUser).SetStatus(apikey.StatusEnabled).Save(ctx)
 	require.NoError(t, err)
 	channelRow, err := client.Channel.Create().SetType(channel.TypeOpenai).SetName("decisions-offline-extension-channel").SetBaseURL(upstream.URL).SetCredentials(objects.ChannelCredentials{APIKey: "provider-key"}).SetSupportedModels([]string{"gpt-6-luna"}).SetDefaultTestModel("gpt-6-luna").SetStatus(channel.StatusEnabled).Save(ctx)
 	require.NoError(t, err)
@@ -146,11 +139,10 @@ func newDecisionsOfflineHarness(t *testing.T, upstreamBody string, withTrace boo
 	promptService := biz.NewPromptService(biz.PromptServiceParams{Ent: client})
 	promptProtectionService := biz.NewPromptProtectionRuleService(biz.PromptProtectionRuleServiceParams{CacheConfig: xcache.Config{Mode: xcache.ModeMemory}, Ent: client})
 	t.Cleanup(promptProtectionService.Stop)
-	orchestratorInstance := orchestrator.NewChatCompletionOrchestrator(channelService, nil, requestService, httpclient.NewHttpClient(), decisions.NewInboundTransformer(), systemService, usageLogService, promptService, nil, promptProtectionService, biz.NewLiveStreamRegistry(), orchestrator.NewChannelLimiterManager(), nil).
+	orchestratorInstance := orchestrator.NewChatCompletionOrchestrator(channelService, nil, requestService, httpclient.NewHttpClient(), decisions.NewInboundTransformer(), systemService, usageLogService, promptService, promptProtectionService, biz.NewLiveStreamRegistry(), orchestrator.NewChannelLimiterManager(), nil).
 		WithChannelSelector(&decisionsAPITestSelector{candidates: []*orchestrator.ChannelModelsCandidate{{Channel: &biz.Channel{Channel: channelRow, Outbound: outbound}, Models: []biz.ChannelModelEntry{{RequestModel: "gpt-6-luna", ActualModel: "gpt-6-luna"}}}}})
 	handlers := &OpenAIHandlers{DecisionsHandlers: NewChatCompletionHandlers(orchestratorInstance)}
-	projectService := biz.NewProjectService(biz.ProjectServiceParams{CacheConfig: xcache.Config{Mode: xcache.ModeMemory}, Ent: client})
-	apiKeyService := biz.NewAPIKeyService(biz.APIKeyServiceParams{CacheConfig: xcache.Config{Mode: xcache.ModeMemory}, Ent: client, ProjectService: projectService, KeyPrefix: "ah"})
+	apiKeyService := biz.NewAPIKeyService(biz.APIKeyServiceParams{CacheConfig: xcache.Config{Mode: xcache.ModeMemory}, Ent: client, KeyPrefix: "ah"})
 	t.Cleanup(apiKeyService.Stop)
 	authService := biz.NewAuthService(biz.AuthServiceParams{APIKeyService: apiKeyService, Ent: client})
 	router := gin.New()
@@ -161,7 +153,7 @@ func newDecisionsOfflineHarness(t *testing.T, upstreamBody string, withTrace boo
 	}
 	router.POST("/v1/decisions", handlers.CreateDecisions)
 
-	return &decisionsOfflineHarness{client: client, ctx: ctx, apiKey: apiKey, project: projectRow, requestService: requestService, router: router}, &upstreamCalls
+	return &decisionsOfflineHarness{client: client, ctx: ctx, apiKey: apiKey, requestService: requestService, router: router}, &upstreamCalls
 }
 
 func TestOpenAIHandlers_CreateDecisions_rejectsConfiguredPromptProtectionBeforeUpstream(t *testing.T) {
@@ -188,7 +180,7 @@ func TestOpenAIHandlers_CreateDecisions_persistsFinalRequestAndExecutionUsage(t 
 
 	require.Equal(t, http.StatusOK, response.Code)
 	ctx := authz.WithTestBypass(ent.NewContext(context.Background(), harness.client))
-	requestRow, err := harness.client.Request.Query().Where(request.ProjectIDEQ(harness.project.ID)).Only(ctx)
+	requestRow, err := harness.client.Request.Query().Only(ctx)
 	require.NoError(t, err)
 	require.Equal(t, request.StatusCompleted, requestRow.Status)
 	require.JSONEq(t, `{"model":"provider-model","answers":[],"usage":{"input_tokens":120,"output_tokens":0}}`, string(requestRow.ResponseBody))

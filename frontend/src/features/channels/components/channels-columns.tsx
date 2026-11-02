@@ -28,7 +28,6 @@ import {
 import { Google } from '@lobehub/icons';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { usePermissions } from '@/hooks/usePermissions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -121,7 +120,6 @@ const clampWeight = (value: number) => formatWeight(Math.min(MAX_WEIGHT, Math.ma
 const StatusSwitchCell = memo(({ row }: { row: Row<Channel> }) => {
   const channel = row.original;
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { channelPermissions } = usePermissions();
 
   const isEnabled = channel.status === 'enabled';
   const isArchived = channel.status === 'archived';
@@ -131,10 +129,6 @@ const StatusSwitchCell = memo(({ row }: { row: Row<Channel> }) => {
       setDialogOpen(true);
     }
   }, [isArchived]);
-
-  if (!channelPermissions.canWrite) {
-    return <Badge variant='outline'>{channel.status}</Badge>;
-  }
 
   return (
     <div className='flex justify-center'>
@@ -151,11 +145,10 @@ const ActionCell = memo(({ row }: { row: Row<Channel> }) => {
   const { t } = useTranslation();
   const channel = row.original;
   const { setOpen, setCurrentRow } = useChannels();
-  const { channelPermissions } = usePermissions();
   const testChannel = useTestChannel();
   const isArchived = channel.status === 'archived';
   const hasError = channel.errorMessage != null;
-  const hasDisabledAPIKeys = channelPermissions.canWrite && (channel.disabledAPIKeys?.length ?? 0) > 0;
+  const hasDisabledAPIKeys = (channel.disabledAPIKeys?.length ?? 0) > 0;
 
   const handleDefaultTest = () => {
     testChannel.mutate({
@@ -279,28 +272,24 @@ const ActionCell = memo(({ row }: { row: Row<Channel> }) => {
               {t('channels.endpoints.title')}
             </DropdownMenuItem>
           )}
-          {channelPermissions.canWrite && (
-            <DropdownMenuItem
-              onClick={() => {
-                setCurrentRow(channel);
-                setOpen('keyManagement');
-              }}
-            >
-              <IconKey size={16} className='mr-2' />
-              {t('channels.actions.keyManagement')}
-            </DropdownMenuItem>
-          )}
-          {channelPermissions.canWrite && (
-            <DropdownMenuItem
-              onClick={() => {
-                setCurrentRow(channel);
-                setOpen('availability');
-              }}
-            >
-              <IconClockPlay size={16} className='mr-2' />
-              {t('channels.dialogs.availability.action')}
-            </DropdownMenuItem>
-          )}
+          <DropdownMenuItem
+            onClick={() => {
+              setCurrentRow(channel);
+              setOpen('keyManagement');
+            }}
+          >
+            <IconKey size={16} className='mr-2' />
+            {t('channels.actions.keyManagement')}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              setCurrentRow(channel);
+              setOpen('availability');
+            }}
+          >
+            <IconClockPlay size={16} className='mr-2' />
+            {t('channels.dialogs.availability.action')}
+          </DropdownMenuItem>
           {hasDisabledAPIKeys && (
             <DropdownMenuItem
               onClick={() => {
@@ -762,7 +751,6 @@ const OrderingWeightCell = memo(({ row }: { row: Row<Channel> }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [weight, setWeight] = useState<string>(initialWeight?.toString() || '1');
   const updateChannel = useUpdateChannel();
-  const { channelPermissions } = usePermissions();
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -806,10 +794,6 @@ const OrderingWeightCell = memo(({ row }: { row: Row<Channel> }) => {
     },
     [handleSave, initialWeight]
   );
-
-  if (!channelPermissions.canWrite) {
-    return <span className={cn('font-mono text-sm', initialWeight == null && 'text-muted-foreground')}>{initialWeight ?? '-'}</span>;
-  }
 
   if (isEditing) {
     return (

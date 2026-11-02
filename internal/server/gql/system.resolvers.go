@@ -102,16 +102,6 @@ func (r *mutationResolver) UpdateRetryPolicy(ctx context.Context, input biz.Retr
 	return true, nil
 }
 
-// UpdateWebhookNotifierConfig is the resolver for the updateWebhookNotifierConfig field.
-func (r *mutationResolver) UpdateWebhookNotifierConfig(ctx context.Context, input biz.WebhookNotifierConfig) (bool, error) {
-	err := r.systemService.SetWebhookNotifierConfig(ctx, &input)
-	if err != nil {
-		return false, fmt.Errorf("failed to update webhook notifier config: %w", err)
-	}
-
-	return true, nil
-}
-
 // UpdateSystemModelSettings is the resolver for the updateSystemModelSettings field.
 func (r *mutationResolver) UpdateSystemModelSettings(ctx context.Context, input biz.SystemModelSettings) (bool, error) {
 	// Older clients may update the model toggles without sending developer rules.
@@ -239,33 +229,6 @@ func (r *mutationResolver) UpdateProviderQuotaCollectionSettings(ctx context.Con
 
 	if err := r.systemService.UpdateProviderQuotaCollectionSettings(ctx, input.Enabled, providers); err != nil {
 		return false, fmt.Errorf("failed to update provider quota collection settings: %w", err)
-	}
-
-	return true, nil
-}
-
-// UpdateSecuritySettings is the resolver for the updateSecuritySettings field.
-func (r *mutationResolver) UpdateSecuritySettings(ctx context.Context, input UpdateSecuritySettingsInput) (bool, error) {
-	current, err := r.systemService.SecuritySettings(ctx)
-	if err != nil {
-		return false, fmt.Errorf("failed to read current security settings: %w", err)
-	}
-
-	newSettings := biz.SecuritySettings{
-		BlockedIPs:              current.BlockedIPs,
-		ShowRequestLogIPBanIcon: current.ShowRequestLogIPBanIcon,
-	}
-
-	if input.BlockedIPs != nil {
-		newSettings.BlockedIPs = input.BlockedIPs
-	}
-	if input.ShowRequestLogIPBanIcon != nil {
-		newSettings.ShowRequestLogIPBanIcon = *input.ShowRequestLogIPBanIcon
-	}
-
-	err = r.systemService.SetSecuritySettings(ctx, newSettings)
-	if err != nil {
-		return false, fmt.Errorf("failed to update security settings: %w", err)
 	}
 
 	return true, nil
@@ -612,11 +575,6 @@ func (r *queryResolver) RetryPolicy(ctx context.Context) (*biz.RetryPolicy, erro
 	return r.systemService.RetryPolicy(ctx)
 }
 
-// WebhookNotifierConfig is the resolver for the webhookNotifierConfig field.
-func (r *queryResolver) WebhookNotifierConfig(ctx context.Context) (*biz.WebhookNotifierConfig, error) {
-	return r.systemService.WebhookNotifierConfig(ctx)
-}
-
 // SystemModelSettings is the resolver for the systemModelSettings field.
 func (r *queryResolver) SystemModelSettings(ctx context.Context) (*biz.SystemModelSettings, error) {
 	settings, err := r.systemService.ModelSettings(ctx)
@@ -725,11 +683,6 @@ func (r *queryResolver) QuotaRoutingSettings(ctx context.Context) (*biz.QuotaRou
 // ProviderQuotaCollectionSettings is the resolver for the providerQuotaCollectionSettings field.
 func (r *queryResolver) ProviderQuotaCollectionSettings(ctx context.Context) (*biz.ProviderQuotaCollectionSettings, error) {
 	return r.systemService.ProviderQuotaCollectionSettings(ctx)
-}
-
-// SecuritySettings is the resolver for the securitySettings field.
-func (r *queryResolver) SecuritySettings(ctx context.Context) (*biz.SecuritySettings, error) {
-	return r.systemService.SecuritySettings(ctx)
 }
 
 // WebSearchSettings is the resolver for the webSearchSettings field.

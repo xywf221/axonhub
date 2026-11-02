@@ -3,7 +3,6 @@ import { DotsHorizontalIcon } from '@radix-ui/react-icons';
 import { Row } from '@tanstack/react-table';
 import { IconEdit, IconArchive, IconTrash, IconNote, IconArchiveOff } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -12,7 +11,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { PermissionGuard } from '@/components/permission-guard';
 import { useModels } from '../context/models-context';
 import { Model } from '../data/schema';
 
@@ -23,13 +21,8 @@ interface DataTableRowActionsProps {
 export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const { t } = useTranslation();
   const { setOpen, setCurrentRow } = useModels();
-  const { channelPermissions } = usePermissions();
   const model = row.original;
   const [menuOpen, setMenuOpen] = useState(false);
-
-  if (!channelPermissions.canWrite) {
-    return null;
-  }
 
   const openRowDialog = (dialog: Parameters<typeof setOpen>[0]) => {
     setMenuOpen(false);
@@ -59,41 +52,37 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end' className='w-[160px]'>
-          <PermissionGuard requiredScope='write_channels'>
-            <>
-              <DropdownMenuItem onClick={() => openRowDialog('edit')}>
-                <IconEdit size={16} className='mr-2' />
-                {t('common.actions.edit')}
-              </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => openRowDialog('edit')}>
+            <IconEdit size={16} className='mr-2' />
+            {t('common.actions.edit')}
+          </DropdownMenuItem>
 
-              <DropdownMenuItem onClick={() => openRowDialog('association')}>
-                <IconNote size={16} className='mr-2' />
-                {t('models.actions.manageAssociation')}
-              </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => openRowDialog('association')}>
+            <IconNote size={16} className='mr-2' />
+            {t('models.actions.manageAssociation')}
+          </DropdownMenuItem>
 
-              {channelPermissions.canRead && <DropdownMenuSeparator />}
+          <DropdownMenuSeparator />
 
-              {model.status !== 'archived' ? (
-                <DropdownMenuItem onClick={() => openRowDialog('archive')} className='text-orange-500!'>
-                  <IconArchive size={16} className='mr-2' />
-                  {t('common.buttons.archive')}
-                </DropdownMenuItem>
-              ) : (
-                <DropdownMenuItem onClick={() => openRowDialog('archive')} className='text-green-500!'>
-                  <IconArchiveOff size={16} className='mr-2' />
-                  {t('common.buttons.restore')}
-                </DropdownMenuItem>
-              )}
+          {model.status !== 'archived' ? (
+            <DropdownMenuItem onClick={() => openRowDialog('archive')} className='text-orange-500!'>
+              <IconArchive size={16} className='mr-2' />
+              {t('common.buttons.archive')}
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onClick={() => openRowDialog('archive')} className='text-green-500!'>
+              <IconArchiveOff size={16} className='mr-2' />
+              {t('common.buttons.restore')}
+            </DropdownMenuItem>
+          )}
 
-              <DropdownMenuItem
-                onClick={() => openRowDialog('delete')}
-                className='text-red-500!'
-              >
-                <IconTrash size={16} className='mr-2' />
-                {t('common.buttons.delete')}
-              </DropdownMenuItem>
-            </>
-          </PermissionGuard>
+          <DropdownMenuItem
+            onClick={() => openRowDialog('delete')}
+            className='text-red-500!'
+          >
+            <IconTrash size={16} className='mr-2' />
+            {t('common.buttons.delete')}
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

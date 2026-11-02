@@ -66,14 +66,13 @@ func (s *VideoService) GetTaskByExternalID(ctx context.Context, externalID strin
 	if client == nil {
 		return nil, fmt.Errorf("%w: ent client not found in context", ErrInternal)
 	}
-	projectID, err := videoTaskProjectID(ctx)
-	if err != nil {
-		return nil, err
+
+	q := client.Request.Query().Where(request.ExternalID(externalID))
+	if apiKey, ok := contexts.GetAPIKey(ctx); ok && apiKey != nil {
+		q = q.Where(request.APIKeyIDEQ(apiKey.ID))
 	}
 
-	task, err := client.Request.Query().
-		Where(request.ExternalID(externalID), request.ProjectID(projectID)).
-		Only(ctx)
+	task, err := q.Only(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -87,32 +86,18 @@ func (s *VideoService) DeleteTaskByExternalID(ctx context.Context, externalID st
 	if client == nil {
 		return fmt.Errorf("%w: ent client not found in context", ErrInternal)
 	}
-	projectID, err := videoTaskProjectID(ctx)
-	if err != nil {
-		return err
+
+	q := client.Request.Query().Where(request.ExternalID(externalID))
+	if apiKey, ok := contexts.GetAPIKey(ctx); ok && apiKey != nil {
+		q = q.Where(request.APIKeyIDEQ(apiKey.ID))
 	}
 
-	task, err := client.Request.Query().
-		Where(request.ExternalID(externalID), request.ProjectID(projectID)).
-		Only(ctx)
+	task, err := q.Only(ctx)
 	if err != nil {
 		return err
 	}
 
 	return s.DeleteTask(ctx, task.ID)
-}
-
-func videoTaskProjectID(ctx context.Context) (int, error) {
-	if apiKey, ok := contexts.GetAPIKey(ctx); ok && apiKey != nil {
-		return apiKey.ProjectID, nil
-	}
-
-	projectID, ok := contexts.GetProjectID(ctx)
-	if !ok {
-		return 0, fmt.Errorf("%w: project id not found in context", ErrInternal)
-	}
-
-	return projectID, nil
 }
 
 func (s *VideoService) DeleteTask(ctx context.Context, requestID int) error {

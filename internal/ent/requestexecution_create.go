@@ -54,20 +54,6 @@ func (_c *RequestExecutionCreate) SetNillableUpdatedAt(v *time.Time) *RequestExe
 	return _c
 }
 
-// SetProjectID sets the "project_id" field.
-func (_c *RequestExecutionCreate) SetProjectID(v int) *RequestExecutionCreate {
-	_c.mutation.SetProjectID(v)
-	return _c
-}
-
-// SetNillableProjectID sets the "project_id" field if the given value is not nil.
-func (_c *RequestExecutionCreate) SetNillableProjectID(v *int) *RequestExecutionCreate {
-	if v != nil {
-		_c.SetProjectID(*v)
-	}
-	return _c
-}
-
 // SetRequestID sets the "request_id" field.
 func (_c *RequestExecutionCreate) SetRequestID(v int) *RequestExecutionCreate {
 	_c.mutation.SetRequestID(v)
@@ -398,10 +384,6 @@ func (_c *RequestExecutionCreate) defaults() {
 		v := requestexecution.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := _c.mutation.ProjectID(); !ok {
-		v := requestexecution.DefaultProjectID
-		_c.mutation.SetProjectID(v)
-	}
 	if _, ok := _c.mutation.Format(); !ok {
 		v := requestexecution.DefaultFormat
 		_c.mutation.SetFormat(v)
@@ -418,9 +400,6 @@ func (_c *RequestExecutionCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *RequestExecutionCreate) check() error {
-	if _, ok := _c.mutation.ProjectID(); !ok {
-		return &ValidationError{Name: "project_id", err: errors.New(`ent: missing required field "RequestExecution.project_id"`)}
-	}
 	if _, ok := _c.mutation.RequestID(); !ok {
 		return &ValidationError{Name: "request_id", err: errors.New(`ent: missing required field "RequestExecution.request_id"`)}
 	}
@@ -494,10 +473,6 @@ func (_c *RequestExecutionCreate) createSpec() (*RequestExecution, *sqlgraph.Cre
 	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(requestexecution.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
-	}
-	if value, ok := _c.mutation.ProjectID(); ok {
-		_spec.SetField(requestexecution.FieldProjectID, field.TypeInt, value)
-		_node.ProjectID = value
 	}
 	if value, ok := _c.mutation.ChannelAPIKeyIndex(); ok {
 		_spec.SetField(requestexecution.FieldChannelAPIKeyIndex, field.TypeInt, value)
@@ -975,9 +950,6 @@ func (u *RequestExecutionUpsertOne) UpdateNewValues() *RequestExecutionUpsertOne
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(requestexecution.FieldCreatedAt)
-		}
-		if _, exists := u.create.mutation.ProjectID(); exists {
-			s.SetIgnore(requestexecution.FieldProjectID)
 		}
 		if _, exists := u.create.mutation.RequestID(); exists {
 			s.SetIgnore(requestexecution.FieldRequestID)
@@ -1540,9 +1512,6 @@ func (u *RequestExecutionUpsertBulk) UpdateNewValues() *RequestExecutionUpsertBu
 		for _, b := range u.create.builders {
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(requestexecution.FieldCreatedAt)
-			}
-			if _, exists := b.mutation.ProjectID(); exists {
-				s.SetIgnore(requestexecution.FieldProjectID)
 			}
 			if _, exists := b.mutation.RequestID(); exists {
 				s.SetIgnore(requestexecution.FieldRequestID)

@@ -112,16 +112,6 @@ func createBackupTestModel(t *testing.T, client *ent.Client, ctx context.Context
 	return m
 }
 
-func createBackupTestProject(t *testing.T, client *ent.Client, ctx context.Context, name, description string) *ent.Project {
-	proj, err := client.Project.Create().
-		SetName(name).
-		SetDescription(description).
-		Save(ctx)
-	require.NoError(t, err)
-
-	return proj
-}
-
 func createBackupTestChannelModelPrice(t *testing.T, client *ent.Client, ctx context.Context, channelID int, modelID string) *ent.ChannelModelPrice {
 	pricePerUnit := decimal.NewFromFloat(0.01)
 	price := objects.ModelPrice{
@@ -147,7 +137,7 @@ func createBackupTestChannelModelPrice(t *testing.T, client *ent.Client, ctx con
 	return cmp
 }
 
-func createBackupTestAPIKey(t *testing.T, client *ent.Client, ctx context.Context, user *ent.User, project *ent.Project, name, key string) *ent.APIKey {
+func createBackupTestAPIKey(t *testing.T, client *ent.Client, ctx context.Context, user *ent.User, name, key string) *ent.APIKey {
 	profiles := &objects.APIKeyProfiles{
 		ActiveProfile: "default",
 		Profiles: []objects.APIKeyProfile{
@@ -166,16 +156,14 @@ func createBackupTestAPIKey(t *testing.T, client *ent.Client, ctx context.Contex
 		SetScopes([]string{"chat"}).
 		SetProfiles(profiles).
 		SetUserID(user.ID).
-		SetProjectID(project.ID).
 		Save(ctx)
 	require.NoError(t, err)
 
 	return ak
 }
 
-func createBackupTestUsage(t *testing.T, client *ent.Client, ctx context.Context, project *ent.Project, ch *ent.Channel, ak *ent.APIKey) (*ent.Request, *ent.UsageLog) {
+func createBackupTestUsage(t *testing.T, client *ent.Client, ctx context.Context, ch *ent.Channel, ak *ent.APIKey) (*ent.Request, *ent.UsageLog) {
 	req, err := client.Request.Create().
-		SetProjectID(project.ID).
 		SetAPIKeyID(ak.ID).
 		SetChannelID(ch.ID).
 		SetSource(request.SourceAPI).
@@ -192,7 +180,6 @@ func createBackupTestUsage(t *testing.T, client *ent.Client, ctx context.Context
 	usage, err := client.UsageLog.Create().
 		SetRequestID(req.ID).
 		SetAPIKeyID(ak.ID).
-		SetProjectID(project.ID).
 		SetChannelID(ch.ID).
 		SetModelID("gpt-4").
 		SetPromptTokens(100).
@@ -355,10 +342,9 @@ func TestBackupService_Backup_WithUsageStats(t *testing.T) {
 	defer client.Close()
 
 	user, _ := client.User.Query().First(ctx)
-	proj := createBackupTestProject(t, client, ctx, "Project1", "Test Project")
 	ch := createBackupTestChannel(t, client, ctx, "Channel 1", channel.TypeOpenai)
-	ak := createBackupTestAPIKey(t, client, ctx, user, proj, "API Key 1", "sk-test-key-1")
-	req, usage := createBackupTestUsage(t, client, ctx, proj, ch, ak)
+	ak := createBackupTestAPIKey(t, client, ctx, user, "API Key 1", "sk-test-key-1")
+	req, usage := createBackupTestUsage(t, client, ctx, ch, ak)
 
 	data, err := service.Backup(ctx, BackupOptions{
 		IncludeUsageStats: true,
@@ -375,7 +361,6 @@ func TestBackupService_Backup_WithUsageStats(t *testing.T) {
 	require.Len(t, backupData.UsageRequests, 0)
 	require.Len(t, backupData.UsageLogs, 1)
 	require.Equal(t, req.ID, backupData.UsageLogs[0].RequestID)
-	require.Equal(t, "Project1", backupData.UsageLogs[0].ProjectName)
 	require.Equal(t, "Channel 1", backupData.UsageLogs[0].ChannelName)
 	require.Empty(t, backupData.UsageLogs[0].APIKeyKey)
 	require.Equal(t, usage.RequestID, backupData.UsageLogs[0].RequestID)
@@ -398,10 +383,9 @@ func TestBackupService_Backup_WithRequestLogs(t *testing.T) {
 	defer client.Close()
 
 	user, _ := client.User.Query().First(ctx)
-	proj := createBackupTestProject(t, client, ctx, "Project1", "Test Project")
 	ch := createBackupTestChannel(t, client, ctx, "Channel 1", channel.TypeOpenai)
-	ak := createBackupTestAPIKey(t, client, ctx, user, proj, "API Key 1", "sk-test-key-1")
-	req, _ := createBackupTestUsage(t, client, ctx, proj, ch, ak)
+	ak := createBackupTestAPIKey(t, client, ctx, user, "API Key 1", "sk-test-key-1")
+	req, _ := createBackupTestUsage(t, client, ctx, ch, ak)
 
 	data, err := service.Backup(ctx, BackupOptions{
 		IncludeRequestLogs: true,
@@ -420,7 +404,6 @@ func TestBackupService_Backup_WithRequestLogs(t *testing.T) {
 	require.Len(t, backupData.UsageRequests, 1)
 	require.Len(t, backupData.UsageLogs, 0)
 	require.Equal(t, req.ID, backupData.UsageRequests[0].ID)
-	require.Equal(t, "Project1", backupData.UsageRequests[0].ProjectName)
 	require.Equal(t, "Channel 1", backupData.UsageRequests[0].ChannelName)
 	require.Empty(t, backupData.UsageRequests[0].APIKeyKey)
 

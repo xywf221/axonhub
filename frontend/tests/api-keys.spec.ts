@@ -3,7 +3,7 @@ import { gotoAndEnsureAuth, waitForGraphQLOperation } from './auth.utils'
 
 test.describe('Admin API Keys Management', () => {
   test.beforeEach(async ({ page }) => {
-    await gotoAndEnsureAuth(page, '/project/api-keys')
+    await gotoAndEnsureAuth(page, '/api-keys')
   })
 
   test('can create, disable, enable an API key', async ({ page }) => {

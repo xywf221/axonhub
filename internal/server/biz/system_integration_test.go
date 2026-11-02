@@ -52,25 +52,8 @@ func TestSystemService_Initialize(t *testing.T) {
 	require.Equal(t, "owner@example.com", owner.Email)
 	require.True(t, owner.IsOwner)
 
-	// Verify default project is created
-	project, err := client.Project.Query().Where().First(ctx)
-	require.NoError(t, err)
-	require.Equal(t, "Default", project.Name)
-
-	// Verify owner is assigned to the project
-	userProject, err := client.UserProject.Query().Where().First(ctx)
-	require.NoError(t, err)
-	require.Equal(t, owner.ID, userProject.UserID)
-	require.Equal(t, project.ID, userProject.ProjectID)
-	require.True(t, userProject.IsOwner)
-
-	// Verify default roles are created (admin, developer, viewer)
-	roles, err := client.Role.Query().All(ctx)
-	require.NoError(t, err)
-	require.Len(t, roles, 3)
-
 	// Test idempotency - calling Initialize again should not error
-	// but should not change the existing secret key or create duplicate projects
+	// but should not change the existing secret key
 	originalKey := secretKey
 	err = service.Initialize(ctx, &biz.InitializeSystemParams{
 		OwnerEmail:     "owner@example.com",
@@ -85,11 +68,6 @@ func TestSystemService_Initialize(t *testing.T) {
 	secretKey2, err := service.SecretKey(ctx)
 	require.NoError(t, err)
 	require.Equal(t, originalKey, secretKey2)
-
-	// Should still have only one project
-	projectCount, err := client.Project.Query().Count(ctx)
-	require.NoError(t, err)
-	require.Equal(t, 1, projectCount)
 
 	version, err := service.Version(ctx)
 	require.NoError(t, err)

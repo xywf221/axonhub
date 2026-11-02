@@ -12,18 +12,13 @@ const transpiled = ts.transpileModule(readFileSync(join(dataDir, 'codex-compatib
 }).outputText;
 const codex = await import(`data:text/javascript;base64,${Buffer.from(transpiled).toString('base64')}`);
 
-const scopesOf =
-  (...granted) =>
-  (scope) =>
-    granted.includes(scope);
-
 const saved = { enabled: false, channelID: null };
 const channels = [
   { id: 3, name: 'official-oauth', status: 'enabled' },
   { id: 4, name: 'relay-api-key', status: 'disabled' },
   { id: 5, name: 'old-relay', status: 'archived' },
 ];
-const fullAccess = () => codex.codexAccess(scopesOf('read_settings', 'write_settings', 'read_channels'));
+const fullAccess = () => codex.codexAccess();
 
 function controls(overrides = {}) {
   return codex.codexFormControls({
@@ -43,33 +38,16 @@ function run(actions, from = codex.idleCodexTest) {
 const okResult = { success: true, modelCount: 7, upstreamStatus: null, error: null };
 const notFoundResult = { success: false, modelCount: 0, upstreamStatus: 404, error: 'Codex catalog upstream HTTP 404' };
 
-// --- access: settings write/read and channel read are independent scopes ------------------------------
+// --- access: every authenticated user can manage Codex compatibility ---------------------------------
 
-test('settings read alone can view the tab but neither list channels nor edit', () => {
-  assert.deepEqual(codex.codexAccess(scopesOf('read_settings')), { canListChannels: false, canEdit: false });
-});
-
-test('settings without read permission render permission state instead of load failure', () => {
-  assert.equal(codex.codexSettingsViewState({ canReadSettings: false, isLoading: false, hasData: false }), 'permission');
-  assert.equal(codex.codexSettingsViewState({ canReadSettings: true, isLoading: true, hasData: false }), 'loading');
-  assert.equal(codex.codexSettingsViewState({ canReadSettings: true, isLoading: false, hasData: false }), 'loadFailed');
-  assert.equal(codex.codexSettingsViewState({ canReadSettings: true, isLoading: false, hasData: true }), 'ready');
-});
-
-test('settings write without channel read cannot list, test, or save a channel reference', () => {
-  assert.deepEqual(codex.codexAccess(scopesOf('read_settings', 'write_settings')), { canListChannels: false, canEdit: false });
-});
-
-test('channel read without settings write can list channels but not edit', () => {
-  assert.deepEqual(codex.codexAccess(scopesOf('read_settings', 'read_channels')), { canListChannels: true, canEdit: false });
-});
-
-test('a non-owner holding exactly the three required scopes can list and edit', () => {
+test('every authenticated user can list channels and edit', () => {
   assert.deepEqual(fullAccess(), { canListChannels: true, canEdit: true });
 });
 
-test('write and channel scopes without settings read cannot do anything', () => {
-  assert.deepEqual(codex.codexAccess(scopesOf('write_settings', 'read_channels')), { canListChannels: false, canEdit: false });
+test('settings view state distinguishes loading, load failure and ready', () => {
+  assert.equal(codex.codexSettingsViewState({ isLoading: true, hasData: false }), 'loading');
+  assert.equal(codex.codexSettingsViewState({ isLoading: false, hasData: false }), 'loadFailed');
+  assert.equal(codex.codexSettingsViewState({ isLoading: false, hasData: true }), 'ready');
 });
 
 // --- option order --------------------------------------------------------------------------------------
@@ -149,16 +127,9 @@ test('testing works with the global switch off and for any channel status', () =
   }
 });
 
-test('testing needs a selected channel, edit access, and no test already running', () => {
+test('testing needs a selected channel and no test already running', () => {
   assert.equal(controls({ form: { enabled: false, channelID: null } }).canTest, false);
-  assert.equal(controls({ access: codex.codexAccess(scopesOf('read_settings', 'read_channels')) }).canTest, false);
-  assert.equal(controls({ access: codex.codexAccess(scopesOf('read_settings', 'write_settings')) }).canTest, false);
   assert.equal(controls({ test: { phase: 'running', seq: 1, channelID: 4 } }).canTest, false);
-});
-
-test('saving without edit access is impossible even for a valid edited form', () => {
-  assert.equal(controls({ access: codex.codexAccess(scopesOf('read_settings', 'read_channels')) }).canSave, false);
-  assert.equal(controls({ access: codex.codexAccess(scopesOf('read_settings', 'write_settings')) }).canSave, false);
 });
 
 test('a cleared missing reference can be saved as disabled but not as enabled', () => {

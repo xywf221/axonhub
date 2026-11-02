@@ -327,7 +327,7 @@ function RequestsContent() {
   const handleViewDetail = useCallback(
     (requestId: string) => {
       navigate({
-        to: '/project/requests/$requestId',
+        to: '/requests/$requestId',
         params: { requestId },
         search: currentSearch,
       });

@@ -48,41 +48,7 @@ oidc:
 | `sync_user_info` | 从 IdP Claims 更新用户资料（名称、头像）。 |
 | `button_color` | 登录页按钮的十六进制颜色代码。 |
 | `icon_url` | 登录页显示的图标 URL 或本地路径（支持 base64）。 |
-| `default_roles` | 分配给新 JIT 用户的默认角色列表（例如 `["Viewer"]`）。 |
 | `oidc_login_only` | 如果为 true，将强制该提供商的用户仅能通过 SSO 登录。 |
-
-## 高级配置
-
-### 角色映射 (Role Mapping)
-
-您可以根据 OIDC 返回的组（Groups）或声明（Claims）自动为用户分配 AxonHub 角色或特定的权限作用域（Scopes）。
-
-```yaml
-oidc:
-  providers:
-    - id: "logto"
-      # ... 基础配置
-      group_claims: ["groups", "roles"] # 查找组信息的 Claim 键名
-      role_mappings:
-        - match_group: "admin-group"    # OIDC 端的组名
-          db_role: "system:owner"       # 映射到的 AxonHub 角色 (系统所有者)
-          priority: 100
-        - match_group: "viewer-*"       # 支持通配符匹配
-          db_role: "Viewer"
-          priority: 10
-        - match_group: "api-users"
-          db_role: "scope:chat:create"  # 直接映射具体的权限作用域
-          priority: 5
-```
-
-| 映射选项 | 描述 |
-|---|---|
-| `group_claims` | OIDC 令牌中包含组信息的字段名列表（默认：`["groups", "roles"]`）。 |
-| `role_mappings` | 映射规则列表。 |
-| `match_group` | 要匹配的组名，支持通配符 `*`。 |
-| `is_regex` | 是否将 `match_group` 视为正则表达式。 |
-| `db_role` | 目标角色名（如 `Viewer`）或以 `scope:` 开头的作用域（如 `scope:chat:create`）。 |
-| `priority` | 优先级，当命中多条规则且 `role_precedence_mode` 为 `highest` 时起作用。 |
 
 ## 设置示例
 

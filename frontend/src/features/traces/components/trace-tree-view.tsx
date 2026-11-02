@@ -177,7 +177,7 @@ function SegmentRow({
 
   const handleViewRequest = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const url = `/project/requests/${encodeURIComponent(buildGUID('Request', String(segment.id)))}`;
+    const url = `/requests/${encodeURIComponent(buildGUID('Request', String(segment.id)))}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 

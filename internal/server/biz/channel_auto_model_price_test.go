@@ -608,8 +608,7 @@ func TestChannelService_AutoPricingSupportsWriteOnlyChannelMutations(t *testing.
 
 	writeCtx := authz.NewUserContext(ent.NewContext(context.Background(), client), 42)
 	writeCtx = contexts.WithUser(writeCtx, &ent.User{
-		ID:     42,
-		Scopes: []string{"write_channels"},
+		ID: 42,
 	})
 
 	updated, err := svc.UpdateChannel(writeCtx, channelToUpdate.ID, &ent.UpdateChannelInput{

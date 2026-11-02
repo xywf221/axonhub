@@ -12,7 +12,6 @@ import (
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/channel"
 	"github.com/looplj/axonhub/internal/ent/enttest"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/request"
 	"github.com/looplj/axonhub/internal/objects"
 	"github.com/looplj/axonhub/internal/pkg/xcache"
@@ -48,20 +47,12 @@ func newRequestStickyTestService(
 func createRequestStickyScope(t *testing.T, ctx context.Context, client *ent.Client) (*ent.Thread, *ent.Trace, *ent.Channel) {
 	t.Helper()
 
-	projectEntity, err := client.Project.Create().
-		SetName("request-sticky-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	threadEntity, err := client.Thread.Create().
-		SetProjectID(projectEntity.ID).
 		SetThreadID("request-sticky-thread").
 		Save(ctx)
 	require.NoError(t, err)
 
 	traceEntity, err := client.Trace.Create().
-		SetProjectID(projectEntity.ID).
 		SetThreadID(threadEntity.ID).
 		SetTraceID("request-sticky-trace").
 		Save(ctx)
@@ -93,7 +84,6 @@ func createStickyRequest(
 	t.Helper()
 
 	req, err := client.Request.Create().
-		SetProjectID(1).
 		SetTraceID(traceID).
 		SetChannelID(channelID).
 		SetModelID("gpt-4").

@@ -41,7 +41,7 @@ async function expectPaginationReachable(page: Page, pagination: Locator, table:
 
 test.describe('Responsive Page Header', () => {
   test('short description stays readable without a disclosure', async ({ page }) => {
-    await openPage(page, '/projects', { width: 768, height: 800 })
+    await openPage(page, '/users', { width: 768, height: 800 })
     const description = page.locator(DESCRIPTION)
     await expect(description).toBeVisible()
     expect(await description.evaluate((el) => el.scrollHeight <= el.clientHeight + 1)).toBe(true)

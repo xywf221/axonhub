@@ -13,7 +13,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/looplj/axonhub/internal/contexts"
 	"github.com/looplj/axonhub/internal/ent/channel"
 	"github.com/looplj/axonhub/internal/objects"
 	"github.com/looplj/axonhub/internal/server/biz"
@@ -46,7 +45,6 @@ func TestChannelTestRequestFormats(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, client := setupTest(t)
-			ctx = contexts.WithProjectID(ctx, createTestProject(t, ctx, client).ID)
 			var mu sync.Mutex
 			var keys []string
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -170,7 +168,6 @@ func TestChannelTestRequestFormats(t *testing.T) {
 
 func TestChannelTestRejectsSystemOneStreamPolicy(t *testing.T) {
 	ctx, client := setupTest(t)
-	ctx = contexts.WithProjectID(ctx, createTestProject(t, ctx, client).ID)
 	var calls atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls.Add(1)

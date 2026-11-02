@@ -4,11 +4,9 @@ import { IconPlus } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useDebounce } from '@/hooks/use-debounce';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
-import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
 import { Main } from '@/components/layout/main';
 import { PageHeader } from '@/components/layout/page-header';
-import { PermissionGuard } from '@/components/permission-guard';
 import { createColumns } from './components/prompts-columns';
 import { PromptsDialogs } from './components/prompts-dialogs';
 import { PromptsTable } from './components/prompts-table';
@@ -17,7 +15,6 @@ import { useQueryPrompts } from './data/prompts';
 
 function PromptsContent() {
   const { t } = useTranslation();
-  const { hasScope } = usePermissions();
   const { pageSize, setCursors, setPageSize, resetCursor, paginationArgs } = usePaginationSearch({
     defaultPageSize: 20,
     pageSizeStorageKey: 'prompts-table-page-size',
@@ -101,7 +98,7 @@ function PromptsContent() {
     [setNameFilter]
   );
 
-  const canWrite = hasScope('write_prompts');
+  const canWrite = true;
   const columns = useMemo(() => createColumns(t, canWrite), [t, canWrite]);
 
   return (
@@ -141,9 +138,7 @@ function CreateButton() {
 function ActionButtons() {
   return (
     <div className='flex min-w-0 max-w-full flex-wrap items-center gap-2'>
-      <PermissionGuard requiredScope='write_prompts'>
-        <CreateButton />
-      </PermissionGuard>
+      <CreateButton />
     </div>
   );
 }

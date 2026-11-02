@@ -14,26 +14,7 @@ import (
 	"github.com/looplj/axonhub/internal/objects"
 	"github.com/looplj/axonhub/internal/server/biz"
 	"github.com/looplj/axonhub/llm/httpclient"
-	"github.com/shopspring/decimal"
 )
-
-type APIKeyProfileQuotaUsage struct {
-	ProfileName string               `json:"profileName"`
-	Quota       *objects.APIKeyQuota `json:"quota"`
-	Window      *APIKeyQuotaWindow   `json:"window"`
-	Usage       *APIKeyQuotaUsage    `json:"usage"`
-}
-
-type APIKeyQuotaUsage struct {
-	RequestCount int             `json:"requestCount"`
-	TotalTokens  int             `json:"totalTokens"`
-	TotalCost    decimal.Decimal `json:"totalCost"`
-}
-
-type APIKeyQuotaWindow struct {
-	Start *time.Time `json:"start,omitempty"`
-	End   *time.Time `json:"end,omitempty"`
-}
 
 type APIKeyTokenUsageStats struct {
 	APIKeyID        objects.GUID            `json:"apiKeyId"`
@@ -48,14 +29,6 @@ type APIKeyTokenUsageStatsInput struct {
 	APIKeyIds    []*objects.GUID `json:"apiKeyIds,omitempty"`
 	CreatedAtGTE *time.Time      `json:"createdAtGTE,omitempty"`
 	CreatedAtLTE *time.Time      `json:"createdAtLTE,omitempty"`
-}
-
-type AddUserToProjectInput struct {
-	ProjectID objects.GUID    `json:"projectId"`
-	UserID    objects.GUID    `json:"userId"`
-	IsOwner   *bool           `json:"isOwner,omitempty"`
-	Scopes    []string        `json:"scopes,omitempty"`
-	RoleIDs   []*objects.GUID `json:"roleIDs,omitempty"`
 }
 
 // Daily aggregated statistics for the combined trend chart
@@ -93,8 +66,6 @@ type AnalyticsFilter struct {
 	StartTime *string `json:"startTime,omitempty"`
 	// End date (inclusive, YYYY-MM-DD, parsed in system timezone)
 	EndTime *string `json:"endTime,omitempty"`
-	// Filter by project IDs
-	ProjectIDs []*objects.GUID `json:"projectIDs,omitempty"`
 	// Filter by channel IDs
 	ChannelIDs []*objects.GUID `json:"channelIDs,omitempty"`
 	// Filter by model IDs (model identifier strings)
@@ -434,11 +405,6 @@ type QueryModelsInput struct {
 	IncludeAllChannelModels *bool            `json:"includeAllChannelModels,omitempty"`
 }
 
-type RemoveUserFromProjectInput struct {
-	ProjectID objects.GUID `json:"projectId"`
-	UserID    objects.GUID `json:"userId"`
-}
-
 type RequestStats struct {
 	RequestsToday     int `json:"requestsToday"`
 	RequestsThisWeek  int `json:"requestsThisWeek"`
@@ -465,12 +431,6 @@ type RequestStatsByModel struct {
 type RestorePayload struct {
 	Success bool    `json:"success"`
 	Message *string `json:"message,omitempty"`
-}
-
-type ScopeInfo struct {
-	Scope       string   `json:"scope"`
-	Description string   `json:"description"`
-	Levels      []string `json:"levels"`
 }
 
 type SignInInput struct {
@@ -574,13 +534,6 @@ type TokenStatsByModel struct {
 	TotalTokens     int    `json:"totalTokens"`
 }
 
-type TopRequestsProjects struct {
-	ProjectID          objects.GUID `json:"projectId"`
-	ProjectName        string       `json:"projectName"`
-	ProjectDescription string       `json:"projectDescription"`
-	RequestCount       int          `json:"requestCount"`
-}
-
 type TriggerBackupPayload struct {
 	Success bool    `json:"success"`
 	Message *string `json:"message,omitempty"`
@@ -635,15 +588,6 @@ type UpdatePassThroughSettingsInput struct {
 	Enabled bool `json:"enabled"`
 }
 
-type UpdateProjectUserInput struct {
-	ProjectID     objects.GUID    `json:"projectId"`
-	UserID        objects.GUID    `json:"userId"`
-	IsOwner       *bool           `json:"isOwner,omitempty"`
-	Scopes        []string        `json:"scopes,omitempty"`
-	AddRoleIDs    []*objects.GUID `json:"addRoleIDs,omitempty"`
-	RemoveRoleIDs []*objects.GUID `json:"removeRoleIDs,omitempty"`
-}
-
 type UpdateProviderQuotaCollectionSettingsInput struct {
 	Enabled   *bool                                   `json:"enabled,omitempty"`
 	Providers []*ProviderQuotaCollectionProviderInput `json:"providers,omitempty"`
@@ -651,11 +595,6 @@ type UpdateProviderQuotaCollectionSettingsInput struct {
 
 type UpdateQuotaRoutingSettingsInput struct {
 	DefaultMode *objects.QuotaRoutingMode `json:"defaultMode,omitempty"`
-}
-
-type UpdateSecuritySettingsInput struct {
-	BlockedIPs              []string `json:"blockedIPs,omitempty"`
-	ShowRequestLogIPBanIcon *bool    `json:"showRequestLogIPBanIcon,omitempty"`
 }
 
 type UpdateUsageCostInjectionSettingsInput struct {

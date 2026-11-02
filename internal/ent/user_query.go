@@ -5,7 +5,6 @@ package ent
 import (
 	"context"
 	"database/sql/driver"
-	"errors"
 	"fmt"
 	"math"
 
@@ -17,11 +16,7 @@ import (
 	"github.com/looplj/axonhub/internal/ent/channeloverridetemplate"
 	"github.com/looplj/axonhub/internal/ent/oidcidentity"
 	"github.com/looplj/axonhub/internal/ent/predicate"
-	"github.com/looplj/axonhub/internal/ent/project"
-	"github.com/looplj/axonhub/internal/ent/role"
 	"github.com/looplj/axonhub/internal/ent/user"
-	"github.com/looplj/axonhub/internal/ent/userproject"
-	"github.com/looplj/axonhub/internal/ent/userrole"
 )
 
 // UserQuery is the builder for querying User entities.
@@ -31,22 +26,14 @@ type UserQuery struct {
 	order                             []user.OrderOption
 	inters                            []Interceptor
 	predicates                        []predicate.User
-	withProjects                      *ProjectQuery
 	withAPIKeys                       *APIKeyQuery
-	withRoles                         *RoleQuery
 	withChannelOverrideTemplates      *ChannelOverrideTemplateQuery
 	withOidcIdentities                *OIDCIdentityQuery
-	withProjectUsers                  *UserProjectQuery
-	withUserRoles                     *UserRoleQuery
 	loadTotal                         []func(context.Context, []*User) error
 	modifiers                         []func(*sql.Selector)
-	withNamedProjects                 map[string]*ProjectQuery
 	withNamedAPIKeys                  map[string]*APIKeyQuery
-	withNamedRoles                    map[string]*RoleQuery
 	withNamedChannelOverrideTemplates map[string]*ChannelOverrideTemplateQuery
 	withNamedOidcIdentities           map[string]*OIDCIdentityQuery
-	withNamedProjectUsers             map[string]*UserProjectQuery
-	withNamedUserRoles                map[string]*UserRoleQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -83,28 +70,6 @@ func (_q *UserQuery) Order(o ...user.OrderOption) *UserQuery {
 	return _q
 }
 
-// QueryProjects chains the current query on the "projects" edge.
-func (_q *UserQuery) QueryProjects() *ProjectQuery {
-	query := (&ProjectClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(user.Table, user.FieldID, selector),
-			sqlgraph.To(project.Table, project.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, user.ProjectsTable, user.ProjectsPrimaryKey...),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
 // QueryAPIKeys chains the current query on the "api_keys" edge.
 func (_q *UserQuery) QueryAPIKeys() *APIKeyQuery {
 	query := (&APIKeyClient{config: _q.config}).Query()
@@ -120,28 +85,6 @@ func (_q *UserQuery) QueryAPIKeys() *APIKeyQuery {
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(apikey.Table, apikey.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.APIKeysTable, user.APIKeysColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryRoles chains the current query on the "roles" edge.
-func (_q *UserQuery) QueryRoles() *RoleQuery {
-	query := (&RoleClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(user.Table, user.FieldID, selector),
-			sqlgraph.To(role.Table, role.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, user.RolesTable, user.RolesPrimaryKey...),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -186,50 +129,6 @@ func (_q *UserQuery) QueryOidcIdentities() *OIDCIdentityQuery {
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(oidcidentity.Table, oidcidentity.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, true, user.OidcIdentitiesTable, user.OidcIdentitiesColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryProjectUsers chains the current query on the "project_users" edge.
-func (_q *UserQuery) QueryProjectUsers() *UserProjectQuery {
-	query := (&UserProjectClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(user.Table, user.FieldID, selector),
-			sqlgraph.To(userproject.Table, userproject.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, true, user.ProjectUsersTable, user.ProjectUsersColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryUserRoles chains the current query on the "user_roles" edge.
-func (_q *UserQuery) QueryUserRoles() *UserRoleQuery {
-	query := (&UserRoleClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(user.Table, user.FieldID, selector),
-			sqlgraph.To(userrole.Table, userrole.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, true, user.UserRolesTable, user.UserRolesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -429,29 +328,14 @@ func (_q *UserQuery) Clone() *UserQuery {
 		order:                        append([]user.OrderOption{}, _q.order...),
 		inters:                       append([]Interceptor{}, _q.inters...),
 		predicates:                   append([]predicate.User{}, _q.predicates...),
-		withProjects:                 _q.withProjects.Clone(),
 		withAPIKeys:                  _q.withAPIKeys.Clone(),
-		withRoles:                    _q.withRoles.Clone(),
 		withChannelOverrideTemplates: _q.withChannelOverrideTemplates.Clone(),
 		withOidcIdentities:           _q.withOidcIdentities.Clone(),
-		withProjectUsers:             _q.withProjectUsers.Clone(),
-		withUserRoles:                _q.withUserRoles.Clone(),
 		// clone intermediate query.
 		sql:       _q.sql.Clone(),
 		path:      _q.path,
 		modifiers: append([]func(*sql.Selector){}, _q.modifiers...),
 	}
-}
-
-// WithProjects tells the query-builder to eager-load the nodes that are connected to
-// the "projects" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *UserQuery) WithProjects(opts ...func(*ProjectQuery)) *UserQuery {
-	query := (&ProjectClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withProjects = query
-	return _q
 }
 
 // WithAPIKeys tells the query-builder to eager-load the nodes that are connected to
@@ -462,17 +346,6 @@ func (_q *UserQuery) WithAPIKeys(opts ...func(*APIKeyQuery)) *UserQuery {
 		opt(query)
 	}
 	_q.withAPIKeys = query
-	return _q
-}
-
-// WithRoles tells the query-builder to eager-load the nodes that are connected to
-// the "roles" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *UserQuery) WithRoles(opts ...func(*RoleQuery)) *UserQuery {
-	query := (&RoleClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withRoles = query
 	return _q
 }
 
@@ -495,28 +368,6 @@ func (_q *UserQuery) WithOidcIdentities(opts ...func(*OIDCIdentityQuery)) *UserQ
 		opt(query)
 	}
 	_q.withOidcIdentities = query
-	return _q
-}
-
-// WithProjectUsers tells the query-builder to eager-load the nodes that are connected to
-// the "project_users" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *UserQuery) WithProjectUsers(opts ...func(*UserProjectQuery)) *UserQuery {
-	query := (&UserProjectClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withProjectUsers = query
-	return _q
-}
-
-// WithUserRoles tells the query-builder to eager-load the nodes that are connected to
-// the "user_roles" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *UserQuery) WithUserRoles(opts ...func(*UserRoleQuery)) *UserQuery {
-	query := (&UserRoleClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withUserRoles = query
 	return _q
 }
 
@@ -591,12 +442,6 @@ func (_q *UserQuery) prepareQuery(ctx context.Context) error {
 		}
 		_q.sql = prev
 	}
-	if user.Policy == nil {
-		return errors.New("ent: uninitialized user.Policy (forgotten import ent/runtime?)")
-	}
-	if err := user.Policy.EvalQuery(ctx, _q); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -604,14 +449,10 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = _q.querySpec()
-		loadedTypes = [7]bool{
-			_q.withProjects != nil,
+		loadedTypes = [3]bool{
 			_q.withAPIKeys != nil,
-			_q.withRoles != nil,
 			_q.withChannelOverrideTemplates != nil,
 			_q.withOidcIdentities != nil,
-			_q.withProjectUsers != nil,
-			_q.withUserRoles != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -635,24 +476,10 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withProjects; query != nil {
-		if err := _q.loadProjects(ctx, query, nodes,
-			func(n *User) { n.Edges.Projects = []*Project{} },
-			func(n *User, e *Project) { n.Edges.Projects = append(n.Edges.Projects, e) }); err != nil {
-			return nil, err
-		}
-	}
 	if query := _q.withAPIKeys; query != nil {
 		if err := _q.loadAPIKeys(ctx, query, nodes,
 			func(n *User) { n.Edges.APIKeys = []*APIKey{} },
 			func(n *User, e *APIKey) { n.Edges.APIKeys = append(n.Edges.APIKeys, e) }); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withRoles; query != nil {
-		if err := _q.loadRoles(ctx, query, nodes,
-			func(n *User) { n.Edges.Roles = []*Role{} },
-			func(n *User, e *Role) { n.Edges.Roles = append(n.Edges.Roles, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -672,38 +499,10 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 			return nil, err
 		}
 	}
-	if query := _q.withProjectUsers; query != nil {
-		if err := _q.loadProjectUsers(ctx, query, nodes,
-			func(n *User) { n.Edges.ProjectUsers = []*UserProject{} },
-			func(n *User, e *UserProject) { n.Edges.ProjectUsers = append(n.Edges.ProjectUsers, e) }); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withUserRoles; query != nil {
-		if err := _q.loadUserRoles(ctx, query, nodes,
-			func(n *User) { n.Edges.UserRoles = []*UserRole{} },
-			func(n *User, e *UserRole) { n.Edges.UserRoles = append(n.Edges.UserRoles, e) }); err != nil {
-			return nil, err
-		}
-	}
-	for name, query := range _q.withNamedProjects {
-		if err := _q.loadProjects(ctx, query, nodes,
-			func(n *User) { n.appendNamedProjects(name) },
-			func(n *User, e *Project) { n.appendNamedProjects(name, e) }); err != nil {
-			return nil, err
-		}
-	}
 	for name, query := range _q.withNamedAPIKeys {
 		if err := _q.loadAPIKeys(ctx, query, nodes,
 			func(n *User) { n.appendNamedAPIKeys(name) },
 			func(n *User, e *APIKey) { n.appendNamedAPIKeys(name, e) }); err != nil {
-			return nil, err
-		}
-	}
-	for name, query := range _q.withNamedRoles {
-		if err := _q.loadRoles(ctx, query, nodes,
-			func(n *User) { n.appendNamedRoles(name) },
-			func(n *User, e *Role) { n.appendNamedRoles(name, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -721,20 +520,6 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 			return nil, err
 		}
 	}
-	for name, query := range _q.withNamedProjectUsers {
-		if err := _q.loadProjectUsers(ctx, query, nodes,
-			func(n *User) { n.appendNamedProjectUsers(name) },
-			func(n *User, e *UserProject) { n.appendNamedProjectUsers(name, e) }); err != nil {
-			return nil, err
-		}
-	}
-	for name, query := range _q.withNamedUserRoles {
-		if err := _q.loadUserRoles(ctx, query, nodes,
-			func(n *User) { n.appendNamedUserRoles(name) },
-			func(n *User, e *UserRole) { n.appendNamedUserRoles(name, e) }); err != nil {
-			return nil, err
-		}
-	}
 	for i := range _q.loadTotal {
 		if err := _q.loadTotal[i](ctx, nodes); err != nil {
 			return nil, err
@@ -743,67 +528,6 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	return nodes, nil
 }
 
-func (_q *UserQuery) loadProjects(ctx context.Context, query *ProjectQuery, nodes []*User, init func(*User), assign func(*User, *Project)) error {
-	edgeIDs := make([]driver.Value, len(nodes))
-	byID := make(map[int]*User)
-	nids := make(map[int]map[*User]struct{})
-	for i, node := range nodes {
-		edgeIDs[i] = node.ID
-		byID[node.ID] = node
-		if init != nil {
-			init(node)
-		}
-	}
-	query.Where(func(s *sql.Selector) {
-		joinT := sql.Table(user.ProjectsTable)
-		s.Join(joinT).On(s.C(project.FieldID), joinT.C(user.ProjectsPrimaryKey[0]))
-		s.Where(sql.InValues(joinT.C(user.ProjectsPrimaryKey[1]), edgeIDs...))
-		columns := s.SelectedColumns()
-		s.Select(joinT.C(user.ProjectsPrimaryKey[1]))
-		s.AppendSelect(columns...)
-		s.SetDistinct(false)
-	})
-	if err := query.prepareQuery(ctx); err != nil {
-		return err
-	}
-	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
-		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
-			assign := spec.Assign
-			values := spec.ScanValues
-			spec.ScanValues = func(columns []string) ([]any, error) {
-				values, err := values(columns[1:])
-				if err != nil {
-					return nil, err
-				}
-				return append([]any{new(sql.NullInt64)}, values...), nil
-			}
-			spec.Assign = func(columns []string, values []any) error {
-				outValue := int(values[0].(*sql.NullInt64).Int64)
-				inValue := int(values[1].(*sql.NullInt64).Int64)
-				if nids[inValue] == nil {
-					nids[inValue] = map[*User]struct{}{byID[outValue]: {}}
-					return assign(columns[1:], values[1:])
-				}
-				nids[inValue][byID[outValue]] = struct{}{}
-				return nil
-			}
-		})
-	})
-	neighbors, err := withInterceptors[[]*Project](ctx, query, qr, query.inters)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected "projects" node returned %v`, n.ID)
-		}
-		for kn := range nodes {
-			assign(kn, n)
-		}
-	}
-	return nil
-}
 func (_q *UserQuery) loadAPIKeys(ctx context.Context, query *APIKeyQuery, nodes []*User, init func(*User), assign func(*User, *APIKey)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[int]*User)
@@ -831,67 +555,6 @@ func (_q *UserQuery) loadAPIKeys(ctx context.Context, query *APIKeyQuery, nodes 
 			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
-	}
-	return nil
-}
-func (_q *UserQuery) loadRoles(ctx context.Context, query *RoleQuery, nodes []*User, init func(*User), assign func(*User, *Role)) error {
-	edgeIDs := make([]driver.Value, len(nodes))
-	byID := make(map[int]*User)
-	nids := make(map[int]map[*User]struct{})
-	for i, node := range nodes {
-		edgeIDs[i] = node.ID
-		byID[node.ID] = node
-		if init != nil {
-			init(node)
-		}
-	}
-	query.Where(func(s *sql.Selector) {
-		joinT := sql.Table(user.RolesTable)
-		s.Join(joinT).On(s.C(role.FieldID), joinT.C(user.RolesPrimaryKey[1]))
-		s.Where(sql.InValues(joinT.C(user.RolesPrimaryKey[0]), edgeIDs...))
-		columns := s.SelectedColumns()
-		s.Select(joinT.C(user.RolesPrimaryKey[0]))
-		s.AppendSelect(columns...)
-		s.SetDistinct(false)
-	})
-	if err := query.prepareQuery(ctx); err != nil {
-		return err
-	}
-	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
-		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
-			assign := spec.Assign
-			values := spec.ScanValues
-			spec.ScanValues = func(columns []string) ([]any, error) {
-				values, err := values(columns[1:])
-				if err != nil {
-					return nil, err
-				}
-				return append([]any{new(sql.NullInt64)}, values...), nil
-			}
-			spec.Assign = func(columns []string, values []any) error {
-				outValue := int(values[0].(*sql.NullInt64).Int64)
-				inValue := int(values[1].(*sql.NullInt64).Int64)
-				if nids[inValue] == nil {
-					nids[inValue] = map[*User]struct{}{byID[outValue]: {}}
-					return assign(columns[1:], values[1:])
-				}
-				nids[inValue][byID[outValue]] = struct{}{}
-				return nil
-			}
-		})
-	})
-	neighbors, err := withInterceptors[[]*Role](ctx, query, qr, query.inters)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected "roles" node returned %v`, n.ID)
-		}
-		for kn := range nodes {
-			assign(kn, n)
-		}
 	}
 	return nil
 }
@@ -940,66 +603,6 @@ func (_q *UserQuery) loadOidcIdentities(ctx context.Context, query *OIDCIdentity
 	}
 	query.Where(predicate.OIDCIdentity(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(user.OidcIdentitiesColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.UserID
-		node, ok := nodeids[fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
-		}
-		assign(node, n)
-	}
-	return nil
-}
-func (_q *UserQuery) loadProjectUsers(ctx context.Context, query *UserProjectQuery, nodes []*User, init func(*User), assign func(*User, *UserProject)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*User)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
-	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(userproject.FieldUserID)
-	}
-	query.Where(predicate.UserProject(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(user.ProjectUsersColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.UserID
-		node, ok := nodeids[fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
-		}
-		assign(node, n)
-	}
-	return nil
-}
-func (_q *UserQuery) loadUserRoles(ctx context.Context, query *UserRoleQuery, nodes []*User, init func(*User), assign func(*User, *UserRole)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*User)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
-	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(userrole.FieldUserID)
-	}
-	query.Where(predicate.UserRole(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(user.UserRolesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -1109,20 +712,6 @@ func (_q *UserQuery) Modify(modifiers ...func(s *sql.Selector)) *UserSelect {
 	return _q.Select()
 }
 
-// WithNamedProjects tells the query-builder to eager-load the nodes that are connected to the "projects"
-// edge with the given name. The optional arguments are used to configure the query builder of the edge.
-func (_q *UserQuery) WithNamedProjects(name string, opts ...func(*ProjectQuery)) *UserQuery {
-	query := (&ProjectClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	if _q.withNamedProjects == nil {
-		_q.withNamedProjects = make(map[string]*ProjectQuery)
-	}
-	_q.withNamedProjects[name] = query
-	return _q
-}
-
 // WithNamedAPIKeys tells the query-builder to eager-load the nodes that are connected to the "api_keys"
 // edge with the given name. The optional arguments are used to configure the query builder of the edge.
 func (_q *UserQuery) WithNamedAPIKeys(name string, opts ...func(*APIKeyQuery)) *UserQuery {
@@ -1134,20 +723,6 @@ func (_q *UserQuery) WithNamedAPIKeys(name string, opts ...func(*APIKeyQuery)) *
 		_q.withNamedAPIKeys = make(map[string]*APIKeyQuery)
 	}
 	_q.withNamedAPIKeys[name] = query
-	return _q
-}
-
-// WithNamedRoles tells the query-builder to eager-load the nodes that are connected to the "roles"
-// edge with the given name. The optional arguments are used to configure the query builder of the edge.
-func (_q *UserQuery) WithNamedRoles(name string, opts ...func(*RoleQuery)) *UserQuery {
-	query := (&RoleClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	if _q.withNamedRoles == nil {
-		_q.withNamedRoles = make(map[string]*RoleQuery)
-	}
-	_q.withNamedRoles[name] = query
 	return _q
 }
 
@@ -1176,34 +751,6 @@ func (_q *UserQuery) WithNamedOidcIdentities(name string, opts ...func(*OIDCIden
 		_q.withNamedOidcIdentities = make(map[string]*OIDCIdentityQuery)
 	}
 	_q.withNamedOidcIdentities[name] = query
-	return _q
-}
-
-// WithNamedProjectUsers tells the query-builder to eager-load the nodes that are connected to the "project_users"
-// edge with the given name. The optional arguments are used to configure the query builder of the edge.
-func (_q *UserQuery) WithNamedProjectUsers(name string, opts ...func(*UserProjectQuery)) *UserQuery {
-	query := (&UserProjectClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	if _q.withNamedProjectUsers == nil {
-		_q.withNamedProjectUsers = make(map[string]*UserProjectQuery)
-	}
-	_q.withNamedProjectUsers[name] = query
-	return _q
-}
-
-// WithNamedUserRoles tells the query-builder to eager-load the nodes that are connected to the "user_roles"
-// edge with the given name. The optional arguments are used to configure the query builder of the edge.
-func (_q *UserQuery) WithNamedUserRoles(name string, opts ...func(*UserRoleQuery)) *UserQuery {
-	query := (&UserRoleClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	if _q.withNamedUserRoles == nil {
-		_q.withNamedUserRoles = make(map[string]*UserRoleQuery)
-	}
-	_q.withNamedUserRoles[name] = query
 	return _q
 }
 

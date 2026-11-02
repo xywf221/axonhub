@@ -4,7 +4,6 @@ import { USERS_QUERY, CREATE_USER_MUTATION, UPDATE_USER_MUTATION, UPDATE_USER_ST
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useErrorHandler } from '@/hooks/use-error-handler';
-import { useSelectedProjectId } from '@/stores/projectStore';
 import { User, UserConnection, CreateUserInput, UpdateUserInput, userConnectionSchema, userSchema } from './schema';
 
 // Query hooks
@@ -21,7 +20,6 @@ export function useUsers(
 ) {
   const { t } = useTranslation();
   const { handleError } = useErrorHandler();
-  const selectedProjectId = useSelectedProjectId();
 
   const queryVariables = {
     ...variables,
@@ -29,11 +27,10 @@ export function useUsers(
   };
 
   return useQuery({
-    queryKey: ['users', queryVariables, selectedProjectId],
+    queryKey: ['users', queryVariables],
     queryFn: async () => {
       try {
-        const headers = selectedProjectId ? { 'X-Project-ID': selectedProjectId } : undefined;
-        const data = await graphqlRequest<{ users: UserConnection }>(USERS_QUERY, queryVariables, headers);
+        const data = await graphqlRequest<{ users: UserConnection }>(USERS_QUERY, queryVariables);
         return userConnectionSchema.parse(data?.users);
       } catch (error) {
         handleError(error, t('common.errors.loadFailed'));
@@ -47,14 +44,12 @@ export function useUsers(
 export function useUser(id: string) {
   const { t } = useTranslation();
   const { handleError } = useErrorHandler();
-  const selectedProjectId = useSelectedProjectId();
 
   return useQuery({
-    queryKey: ['user', id, selectedProjectId],
+    queryKey: ['user', id],
     queryFn: async () => {
       try {
-        const headers = selectedProjectId ? { 'X-Project-ID': selectedProjectId } : undefined;
-        const data = await graphqlRequest<{ users: UserConnection }>(USERS_QUERY, { where: { id } }, headers);
+        const data = await graphqlRequest<{ users: UserConnection }>(USERS_QUERY, { where: { id } });
         const user = data.users.edges[0]?.node;
         if (!user) {
           throw new Error(t('users.messages.userNotFound'));

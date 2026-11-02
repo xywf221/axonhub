@@ -103,12 +103,11 @@ func TestPersistRequestMiddleware_UsageExtraction_EmbeddingResponse(t *testing.T
 
 	state := &PersistenceState{
 		Request: &ent.Request{
-			ID:        1,
-			ProjectID: 1,
-			APIKeyID:  1,
-			Source:    "test",
-			Format:    "openai",
-			ModelID:   "text-embedding-3-small",
+			ID:       1,
+			APIKeyID: 1,
+			Source:   "test",
+			Format:   "openai",
+			ModelID:  "text-embedding-3-small",
 		},
 		RequestExec: &ent.RequestExecution{
 			ID:        1,
@@ -174,12 +173,11 @@ func TestPersistRequestMiddleware_UsageExtraction_ChatResponse(t *testing.T) {
 
 	state := &PersistenceState{
 		Request: &ent.Request{
-			ID:        1,
-			ProjectID: 1,
-			APIKeyID:  1,
-			Source:    "test",
-			Format:    "openai",
-			ModelID:   "gpt-4",
+			ID:       1,
+			APIKeyID: 1,
+			Source:   "test",
+			Format:   "openai",
+			ModelID:  "gpt-4",
 		},
 		RequestExec: &ent.RequestExecution{
 			ID:        1,
@@ -247,12 +245,11 @@ func TestPersistRequestMiddleware_UsageExtraction_NilUsage(t *testing.T) {
 
 	state := &PersistenceState{
 		Request: &ent.Request{
-			ID:        1,
-			ProjectID: 1,
-			APIKeyID:  1,
-			Source:    "test",
-			Format:    "openai",
-			ModelID:   "gpt-4",
+			ID:       1,
+			APIKeyID: 1,
+			Source:   "test",
+			Format:   "openai",
+			ModelID:  "gpt-4",
 		},
 		RequestExec: &ent.RequestExecution{
 			ID:        1,
@@ -312,12 +309,11 @@ func TestPersistRequestMiddleware_UsageExtraction_EmbeddingWithNilUsage(t *testi
 
 	state := &PersistenceState{
 		Request: &ent.Request{
-			ID:        1,
-			ProjectID: 1,
-			APIKeyID:  1,
-			Source:    "test",
-			Format:    "openai",
-			ModelID:   "text-embedding-3-small",
+			ID:       1,
+			APIKeyID: 1,
+			Source:   "test",
+			Format:   "openai",
+			ModelID:  "text-embedding-3-small",
 		},
 		RequestExec: &ent.RequestExecution{
 			ID:        1,

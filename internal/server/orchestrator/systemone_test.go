@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/looplj/axonhub/internal/authz"
-	"github.com/looplj/axonhub/internal/contexts"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/channel"
 	"github.com/looplj/axonhub/internal/ent/enttest"
@@ -56,9 +55,6 @@ func TestChatCompletionOrchestrator_Process_SystemOne_Success(t *testing.T) {
 	defer client.Close()
 
 	ctx = ent.NewContext(ctx, client)
-
-	project := createTestProject(t, ctx, client)
-	ctx = contexts.WithProjectID(ctx, project.ID)
 
 	ch, err := client.Channel.Create().
 		SetType(channel.TypeTypesafe).

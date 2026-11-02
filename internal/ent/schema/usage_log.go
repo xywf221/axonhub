@@ -31,8 +31,6 @@ func (UsageLog) Indexes() []ent.Index {
 			StorageKey("usage_logs_by_created_at"),
 		index.Fields("model_id", "created_at").
 			StorageKey("usage_logs_by_model_id_created_at"),
-		index.Fields("project_id", "created_at").
-			StorageKey("usage_logs_by_project_id_created_at"),
 		index.Fields("channel_id", "created_at").
 			StorageKey("usage_logs_by_channel_id_created_at"),
 		index.Fields("api_key_id", "created_at").
@@ -44,7 +42,6 @@ func (UsageLog) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int("request_id").Immutable().Comment("Related request ID"),
 		field.Int("api_key_id").Optional().Immutable(),
-		field.Int("project_id").Immutable().Default(1).Comment("Project ID, default to 1 for backward compatibility"),
 		field.Int("channel_id").Immutable().Optional().Comment("Channel ID used for the request"), // Optional for deleted channel, this field is not null.
 		field.String("model_id").Immutable().Comment("Model identifier used for the request"),
 
@@ -93,12 +90,6 @@ func (UsageLog) Edges() []ent.Edge {
 			Required().
 			Immutable().
 			Unique(),
-		edge.From("project", Project.Type).
-			Ref("usage_logs").
-			Field("project_id").
-			Immutable().
-			Required().
-			Unique(),
 		edge.From("channel", Channel.Type).
 			Ref("usage_logs").
 			Field("channel_id").
@@ -122,15 +113,13 @@ func (UsageLog) Annotations() []schema.Annotation {
 func (UsageLog) Policy() ent.Policy {
 	return scopes.Policy{
 		Query: scopes.QueryPolicy{
-			scopes.UserProjectScopeReadRequestsRule(scopes.ScopeReadRequests),
-			scopes.OwnerRule(), // owner users can access all usage logs
-			scopes.UserReadScopeRule(scopes.ScopeReadRequests), // requires requests read permission
+			scopes.OwnerRule(),
+			scopes.UserReadScopeRule(scopes.ScopeReadRequests),
 		},
 		Mutation: scopes.MutationPolicy{
 			scopes.APIKeyScopeMutationRule(scopes.ScopeWriteRequests),
-			scopes.UserProjectScopeWriteRule(scopes.ScopeWriteRequests),
-			scopes.OwnerRule(), // owner users can modify all usage logs
-			scopes.UserWriteScopeRule(scopes.ScopeWriteRequests), // requires requests write permission
+			scopes.OwnerRule(),
+			scopes.UserWriteScopeRule(scopes.ScopeWriteRequests),
 		},
 	}
 }

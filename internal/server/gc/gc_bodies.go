@@ -119,7 +119,6 @@ func (w *Worker) stripRequestPayloads(ctx context.Context, kind bodyPayloadKind,
 		query := w.Ent.Request.Query().
 			Select(
 				request.FieldID,
-				request.FieldProjectID,
 				request.FieldDataStorageID,
 			).
 			Where(
@@ -190,7 +189,6 @@ func (w *Worker) stripExecutionPayloads(ctx context.Context, kind bodyPayloadKin
 		query := w.Ent.RequestExecution.Query().
 			Select(
 				requestexecution.FieldID,
-				requestexecution.FieldProjectID,
 				requestexecution.FieldRequestID,
 				requestexecution.FieldDataStorageID,
 			).
@@ -314,11 +312,11 @@ func (w *Worker) deleteRequestExternalPayload(ctx context.Context, req *ent.Requ
 
 	switch kind {
 	case bodyPayloadRequest:
-		keys = []string{biz.GenerateRequestBodyKey(req.ProjectID, req.ID)}
+		keys = []string{biz.GenerateRequestBodyKey(req.ID)}
 	case bodyPayloadResponse:
-		keys = []string{biz.GenerateResponseBodyKey(req.ProjectID, req.ID)}
+		keys = []string{biz.GenerateResponseBodyKey(req.ID)}
 	case bodyPayloadChunks:
-		keys = []string{biz.GenerateResponseChunksKey(req.ProjectID, req.ID)}
+		keys = []string{biz.GenerateResponseChunksKey(req.ID)}
 	}
 
 	for _, key := range keys {
@@ -348,11 +346,11 @@ func (w *Worker) deleteExecutionExternalPayload(ctx context.Context, exec *ent.R
 
 	switch kind {
 	case bodyPayloadRequest:
-		keys = []string{biz.GenerateExecutionRequestBodyKey(exec.ProjectID, exec.RequestID, exec.ID)}
+		keys = []string{biz.GenerateExecutionRequestBodyKey(exec.RequestID, exec.ID)}
 	case bodyPayloadResponse:
-		keys = []string{biz.GenerateExecutionResponseBodyKey(exec.ProjectID, exec.RequestID, exec.ID)}
+		keys = []string{biz.GenerateExecutionResponseBodyKey(exec.RequestID, exec.ID)}
 	case bodyPayloadChunks:
-		keys = []string{biz.GenerateExecutionResponseChunksKey(exec.ProjectID, exec.RequestID, exec.ID)}
+		keys = []string{biz.GenerateExecutionResponseChunksKey(exec.RequestID, exec.ID)}
 	}
 
 	for _, key := range keys {

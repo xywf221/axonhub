@@ -1,22 +1,16 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { graphqlRequest } from '@/gql/graphql';
-import { ROLES_QUERY } from '@/gql/roles';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { useAuthStore } from '@/stores/authStore';
-import { filterGrantableRoles, canEditUserPermissions } from '@/lib/permission-utils';
 import { passwordConfirmationSchema } from '@/lib/validation';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { ScopesSelect } from '@/components/scopes-select';
 import { User, CreateUserInput, UpdateUserInput } from '../data/schema';
 import { useCreateUser, useUpdateUser } from '../data/users';
 
@@ -30,8 +24,6 @@ const createFormSchema = (t: (key: string) => string) =>
       password: z.string().optional(),
       confirmPassword: z.string().optional(),
       isOwner: z.boolean().optional(),
-      roleIDs: z.array(z.string()).optional(),
-      scopes: z.array(z.string()).optional(),
     })
     .superRefine((data, ctx) => {
       // 只在创建用户且提供了密码时验证
@@ -54,13 +46,6 @@ const createFormSchema = (t: (key: string) => string) =>
       }
     });
 
-interface Role {
-  id: string;
-  name: string;
-  description?: string;
-  scopes?: string[];
-}
-
 interface Props {
   currentRow?: User;
   open: boolean;
@@ -69,12 +54,7 @@ interface Props {
 
 export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
   const { t } = useTranslation();
-  const currentUser = useAuthStore((state) => state.auth.user);
   const isEdit = !!currentRow;
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [canEdit, setCanEdit] = useState(true);
-  const [dialogContent, setDialogContent] = useState<HTMLDivElement | null>(null);
 
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
@@ -94,8 +74,6 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
           password: '',
           confirmPassword: '',
           isOwner: currentRow.isOwner,
-          roleIDs: currentRow.roles?.edges?.map((edge) => edge.node.id) || [],
-          scopes: currentRow.scopes || [],
         }
       : {
           firstName: '',
@@ -104,78 +82,18 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
           password: '',
           confirmPassword: '',
           isOwner: false,
-          roleIDs: [],
-          scopes: [],
         },
   });
-
-  const loadRolesAndScopes = useCallback(async () => {
-    setLoading(true);
-    try {
-      const rolesData = await graphqlRequest(ROLES_QUERY, { first: 100, where: { level: 'system' } });
-
-      const rolesResponse = rolesData as {
-        roles: {
-          edges: Array<{
-            node: {
-              id: string;
-              name: string;
-              description?: string;
-              scopes?: string[];
-            };
-          }>;
-        };
-      };
-
-      const allRoles = rolesResponse.roles.edges.map((edge) => edge.node);
-
-      const grantableRoles = filterGrantableRoles(currentUser, allRoles);
-      setRoles(grantableRoles);
-
-      if (isEdit && currentRow) {
-        const targetScopes = currentRow.scopes || [];
-        const canEditTarget = canEditUserPermissions(currentUser, targetScopes, currentRow.isOwner || false);
-        setCanEdit(canEditTarget);
-      }
-    } catch (error) {
-      toast.error(t('common.errors.userLoadFailed'));
-    } finally {
-      setLoading(false);
-    }
-  }, [t, setRoles, currentUser, isEdit, currentRow]);
-
-  // Load roles and scopes when dialog opens
-  useEffect(() => {
-    if (open) {
-      loadRolesAndScopes();
-    }
-  }, [open, loadRolesAndScopes, currentUser, isEdit, currentRow]);
 
   const onSubmit = async (values: UserForm) => {
     try {
       if (isEdit && currentRow) {
-        // For updates, we need to calculate role changes
-        const currentRoleIDs = currentRow.roles?.edges?.map((edge) => edge.node.id) || [];
-        const newRoleIDs = values.roleIDs || [];
-
-        const addRoleIDs = newRoleIDs.filter((id) => !currentRoleIDs.includes(id));
-        const removeRoleIDs = currentRoleIDs.filter((id) => !newRoleIDs.includes(id));
-
         const updateInput: UpdateUserInput = {
           firstName: values.firstName,
           lastName: values.lastName,
           email: values.email,
           isOwner: values.isOwner,
-          scopes: values.scopes,
         };
-
-        // Only add role fields if there are changes
-        if (addRoleIDs.length > 0) {
-          updateInput.addRoleIDs = addRoleIDs;
-        }
-        if (removeRoleIDs.length > 0) {
-          updateInput.removeRoleIDs = removeRoleIDs;
-        }
 
         await updateUser.mutateAsync({
           id: currentRow.id,
@@ -190,8 +108,6 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
           password: values.password || '',
           // 注意：不包含 confirmPassword
           isOwner: values.isOwner,
-          scopes: values.scopes,
-          roleIDs: values.roleIDs,
         };
 
         await createUser.mutateAsync(createInput);
@@ -204,12 +120,6 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
     }
   };
 
-  const handleRoleToggle = (roleId: string) => {
-    const currentRoles = form.getValues('roleIDs') || [];
-    const newRoles = currentRoles.includes(roleId) ? currentRoles.filter((id: string) => id !== roleId) : [...currentRoles, roleId];
-    form.setValue('roleIDs', newRoles);
-  };
-
   return (
     <Dialog
       open={open}
@@ -220,7 +130,7 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
         onOpenChange(state);
       }}
     >
-      <DialogContent className='sm:max-w-2xl' ref={setDialogContent}>
+      <DialogContent className='sm:max-w-2xl'>
         <DialogHeader className='text-left'>
           <DialogTitle>{isEdit ? t('users.dialogs.edit.title') : t('users.dialogs.add.title')}</DialogTitle>
           <DialogDescription>{isEdit ? t('users.dialogs.edit.description') : t('users.dialogs.add.description')}</DialogDescription>
@@ -329,55 +239,11 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
                   </FormItem>
                 )}
               />
-
-              {/* Roles Section */}
-              <div className='space-y-3 pt-2'>
-                <FormLabel>{t('users.form.roles')}</FormLabel>
-                {loading ? (
-                  <div>{t('users.form.loadingRoles')}</div>
-                ) : (
-                  <div className='grid grid-cols-2 gap-2'>
-                    {roles.map((role) => (
-                      <div key={role.id} className='flex items-center space-x-2'>
-                        <Checkbox
-                          id={`role-${role.id}`}
-                          checked={(form.watch('roleIDs') || []).includes(role.id)}
-                          onCheckedChange={() => handleRoleToggle(role.id)}
-                        />
-                        <label
-                          htmlFor={`role-${role.id}`}
-                          className='text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
-                        >
-                          {role.name}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Scopes Section */}
-              <FormField
-                control={form.control}
-                name='scopes'
-                render={({ field }) => (
-                  <FormItem className='pt-2'>
-                    <FormLabel>{t('users.form.scopes')}</FormLabel>
-                    <FormControl>
-                      <ScopesSelect level='system' value={field.value || []} onChange={field.onChange} portalContainer={dialogContent} />
-                    </FormControl>
-                    <div className='min-h-[1.25rem]'>
-                      <FormMessage />
-                    </div>
-                  </FormItem>
-                )}
-              />
             </form>
           </Form>
         </div>
 
         <DialogFooter>
-          {isEdit && !canEdit && <p className='text-destructive mr-auto text-sm'>{t('users.errors.insufficientPermissions')}</p>}
           <Button
             type='button'
             variant='outline'
@@ -385,7 +251,7 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
           >
             {t('common.buttons.cancel')}
           </Button>
-          <Button type='submit' form='user-form' disabled={createUser.isPending || updateUser.isPending || (isEdit && !canEdit)}>
+          <Button type='submit' form='user-form' disabled={createUser.isPending || updateUser.isPending}>
             {createUser.isPending || updateUser.isPending ? t('common.buttons.saving') : t('common.buttons.save')}
           </Button>
         </DialogFooter>

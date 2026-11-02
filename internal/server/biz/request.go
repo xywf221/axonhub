@@ -124,17 +124,17 @@ func (s *RequestService) rollbackExternalPayload(ctx context.Context, ds *ent.Da
 }
 
 // GenerateRequestBodyKey generates the storage key for request body.
-func GenerateRequestBodyKey(projectID, requestID int) string {
-	return fmt.Sprintf("/%d/requests/%d/request_body.json", projectID, requestID)
+func GenerateRequestBodyKey(requestID int) string {
+	return fmt.Sprintf("/requests/%d/request_body.json", requestID)
 }
 
 // GenerateResponseBodyKey generates the storage key for response body.
-func GenerateResponseBodyKey(projectID, requestID int) string {
-	return fmt.Sprintf("/%d/requests/%d/response_body.json", projectID, requestID)
+func GenerateResponseBodyKey(requestID int) string {
+	return fmt.Sprintf("/requests/%d/response_body.json", requestID)
 }
 
 // GenerateAudioKey generates the storage key for a generated audio file (TTS).
-func GenerateAudioKey(projectID, requestID int, filename string) string {
+func GenerateAudioKey(requestID int, filename string) string {
 	name := strings.TrimSpace(filename)
 	if name == "" {
 		name = "audio.mp3"
@@ -142,41 +142,41 @@ func GenerateAudioKey(projectID, requestID int, filename string) string {
 
 	name = filepath.Base(name)
 
-	return fmt.Sprintf("/%d/requests/%d/audio/%s", projectID, requestID, name)
+	return fmt.Sprintf("/requests/%d/audio/%s", requestID, name)
 }
 
 // GenerateResponseChunksKey generates the storage key for response chunks.
-func GenerateResponseChunksKey(projectID, requestID int) string {
-	return fmt.Sprintf("/%d/requests/%d/response_chunks.json", projectID, requestID)
+func GenerateResponseChunksKey(requestID int) string {
+	return fmt.Sprintf("/requests/%d/response_chunks.json", requestID)
 }
 
 // GenerateRequestDirKey generates the storage key for request.
-func GenerateRequestDirKey(projectID, requestID int) string {
-	return fmt.Sprintf("/%d/requests/%d", projectID, requestID)
+func GenerateRequestDirKey(requestID int) string {
+	return fmt.Sprintf("/requests/%d", requestID)
 }
 
-func GenerateRequestExecutionsDirKey(projectID, requestID int) string {
-	return fmt.Sprintf("/%d/requests/%d/executions", projectID, requestID)
+func GenerateRequestExecutionsDirKey(requestID int) string {
+	return fmt.Sprintf("/requests/%d/executions", requestID)
 }
 
 // GenerateExecutionRequestBodyKey generates the storage key for execution request body.
-func GenerateExecutionRequestBodyKey(projectID, requestID, executionID int) string {
-	return fmt.Sprintf("/%d/requests/%d/executions/%d/request_body.json", projectID, requestID, executionID)
+func GenerateExecutionRequestBodyKey(requestID, executionID int) string {
+	return fmt.Sprintf("/requests/%d/executions/%d/request_body.json", requestID, executionID)
 }
 
 // GenerateExecutionResponseBodyKey generates the storage key for execution response body.
-func GenerateExecutionResponseBodyKey(projectID, requestID, executionID int) string {
-	return fmt.Sprintf("/%d/requests/%d/executions/%d/response_body.json", projectID, requestID, executionID)
+func GenerateExecutionResponseBodyKey(requestID, executionID int) string {
+	return fmt.Sprintf("/requests/%d/executions/%d/response_body.json", requestID, executionID)
 }
 
 // GenerateExecutionResponseChunksKey generates the storage key for execution response chunks.
-func GenerateExecutionResponseChunksKey(projectID, requestID, executionID int) string {
-	return fmt.Sprintf("/%d/requests/%d/executions/%d/response_chunks.json", projectID, requestID, executionID)
+func GenerateExecutionResponseChunksKey(requestID, executionID int) string {
+	return fmt.Sprintf("/requests/%d/executions/%d/response_chunks.json", requestID, executionID)
 }
 
 // GenerateExecutionRequestDirKey generates the storage key for execution request.
-func GenerateExecutionRequestDirKey(projectID, requestID, executionID int) string {
-	return fmt.Sprintf("/%d/requests/%d/executions/%d", projectID, requestID, executionID)
+func GenerateExecutionRequestDirKey(requestID, executionID int) string {
+	return fmt.Sprintf("/requests/%d/executions/%d", requestID, executionID)
 }
 
 // CreateRequest creates a new request record.
@@ -186,12 +186,6 @@ func (s *RequestService) CreateRequest(
 	httpRequest *httpclient.Request,
 	format llm.APIFormat,
 ) (*ent.Request, error) {
-	// Get project ID from context.
-	// If project ID is not found, use zero.
-	// It will be not prsent in the admin pages,
-	// e.g: test channel.
-	projectID, _ := contexts.GetProjectID(ctx)
-
 	// Decide whether to store the original request body
 	storeRequestBody := true
 	if policy, err := s.SystemService.StoragePolicy(ctx); err == nil {
@@ -236,7 +230,6 @@ func (s *RequestService) CreateRequest(
 
 	client := s.entFromContext(ctx)
 	mut := client.Request.Create().
-		SetProjectID(projectID).
 		SetModelID(llmRequest.Model).
 		SetFormat(string(format)).
 		SetSource(contexts.GetSourceOrDefault(ctx, request.SourceAPI)).
@@ -302,7 +295,7 @@ func (s *RequestService) CreateRequest(
 
 	// Save request body to external storage if needed
 	if useExternalStorage {
-		key := GenerateRequestBodyKey(projectID, req.ID)
+		key := GenerateRequestBodyKey(req.ID)
 
 		err := s.DataStorageService.SaveData(ctx, dataStorage, key, requestBodyBytes)
 		if err != nil {
@@ -388,7 +381,6 @@ func (s *RequestService) CreateRequestExecution(
 	mut := client.RequestExecution.Create().
 		SetFormat(string(format)).
 		SetRequestID(request.ID).
-		SetProjectID(request.ProjectID).
 		SetChannelID(channel.ID).
 		SetModelID(modelID).
 		SetRequestBody(requestBodyForDB).
@@ -450,7 +442,7 @@ func (s *RequestService) CreateRequestExecution(
 
 	// Save request body to external storage if needed
 	if useExternalStorage {
-		key := GenerateExecutionRequestBodyKey(request.ProjectID, request.ID, execution.ID)
+		key := GenerateExecutionRequestBodyKey(request.ID, execution.ID)
 
 		err := s.DataStorageService.SaveData(ctx, dataStorage, key, requestBodyBytes)
 		if err != nil {
@@ -590,7 +582,7 @@ func (s *RequestService) UpdateRequestFinalized(
 		// Check if we should use external storage
 		if s.shouldUseExternalStorage(ctx, dataStorage) {
 			// Save to external storage
-			key := GenerateResponseBodyKey(req.ProjectID, requestID)
+			key := GenerateResponseBodyKey(requestID)
 
 			err := s.DataStorageService.SaveData(ctx, dataStorage, key, responseBodyBytes)
 			if err != nil {
@@ -684,7 +676,7 @@ func (s *RequestService) UpdateRequestCompletedWithAudio(
 		}
 
 		if s.shouldUseExternalStorage(ctx, dataStorage) {
-			key := GenerateResponseBodyKey(req.ProjectID, requestID)
+			key := GenerateResponseBodyKey(requestID)
 			if err := s.DataStorageService.SaveData(ctx, dataStorage, key, responseBodyBytes); err != nil {
 				log.Error(ctx, "Failed to save response body to external storage", log.Cause(err))
 			} else {
@@ -698,7 +690,7 @@ func (s *RequestService) UpdateRequestCompletedWithAudio(
 
 	// Persist the binary audio to external storage when one is configured.
 	if len(audio) > 0 && s.shouldUseExternalStorage(ctx, dataStorage) {
-		key := GenerateAudioKey(req.ProjectID, requestID, filename)
+		key := GenerateAudioKey(requestID, filename)
 		if err := s.DataStorageService.SaveData(ctx, dataStorage, key, audio); err != nil {
 			log.Error(ctx, "Failed to save audio to external storage", log.Cause(err))
 		} else {
@@ -787,7 +779,7 @@ func (s *RequestService) UpdateRequestStatusExternalIDAndResponseBody(
 		// Check if we should use external storage
 		if s.shouldUseExternalStorage(ctx, dataStorage) {
 			// Save to external storage
-			key := GenerateResponseBodyKey(req.ProjectID, requestID)
+			key := GenerateResponseBodyKey(requestID)
 
 			err := s.DataStorageService.SaveData(ctx, dataStorage, key, responseBodyBytes)
 			if err != nil {
@@ -887,7 +879,7 @@ func (s *RequestService) UpdateRequestExecutionFinalized(
 		// Check if we should use external storage
 		if s.shouldUseExternalStorage(ctx, dataStorage) {
 			// Save to external storage
-			key := GenerateExecutionResponseBodyKey(execution.ProjectID, execution.RequestID, executionID)
+			key := GenerateExecutionResponseBodyKey(execution.RequestID, executionID)
 
 			err := s.DataStorageService.SaveData(ctx, dataStorage, key, responseBodyBytes)
 			if err != nil {
@@ -1129,7 +1121,7 @@ func (s *RequestService) SaveRequestExecutionChunks(
 
 	// Check if we should use external storage
 	if s.shouldUseExternalStorage(ctx, dataStorage) {
-		key := GenerateExecutionResponseChunksKey(execution.ProjectID, execution.RequestID, executionID)
+		key := GenerateExecutionResponseChunksKey(execution.RequestID, executionID)
 
 		allChunksBytes, err := json.Marshal(chunkBytes)
 		if err != nil {
@@ -1225,7 +1217,7 @@ func (s *RequestService) SaveRequestChunks(
 
 	// Check if we should use external storage
 	if s.shouldUseExternalStorage(ctx, dataStorage) {
-		key := GenerateResponseChunksKey(req.ProjectID, requestID)
+		key := GenerateResponseChunksKey(requestID)
 
 		allChunksBytes, err := json.Marshal(chunkBytes)
 		if err != nil {
@@ -1386,7 +1378,7 @@ func (s *RequestService) LoadRequestBody(ctx context.Context, req *ent.Request) 
 		return req.RequestBody, nil
 	}
 
-	key := GenerateRequestBodyKey(req.ProjectID, req.ID)
+	key := GenerateRequestBodyKey(req.ID)
 
 	data, err := s.DataStorageService.LoadData(ctx, dataStorage, key)
 	if err != nil {
@@ -1421,7 +1413,7 @@ func (s *RequestService) LoadResponseBody(ctx context.Context, req *ent.Request)
 		return sanitizeLoadedResponseBody(req.ResponseBody), nil
 	}
 
-	key := GenerateResponseBodyKey(req.ProjectID, req.ID)
+	key := GenerateResponseBodyKey(req.ID)
 
 	data, err := s.DataStorageService.LoadData(ctx, dataStorage, key)
 	if err != nil {
@@ -1437,8 +1429,8 @@ func (s *RequestService) LoadResponseBody(ctx context.Context, req *ent.Request)
 
 // LoadCompletedResponsesSession loads the original request and final response
 // for a Responses API continuation. The lookup is explicitly scoped to the
-// authenticated API key and project because provider response IDs are supplied
-// by the client.
+// authenticated API key because provider response IDs are supplied by the
+// client.
 func (s *RequestService) LoadCompletedResponsesSession(
 	ctx context.Context,
 	responseID string,
@@ -1446,10 +1438,6 @@ func (s *RequestService) LoadCompletedResponsesSession(
 	responseID = strings.TrimSpace(responseID)
 	apiKey, ok := contexts.GetAPIKey(ctx)
 	if responseID == "" || !ok || apiKey == nil {
-		return nil, nil, false, nil
-	}
-	projectID, hasProject := contexts.GetProjectID(ctx)
-	if !hasProject {
 		return nil, nil, false, nil
 	}
 
@@ -1462,7 +1450,6 @@ func (s *RequestService) LoadCompletedResponsesSession(
 		),
 		request.StatusEQ(request.StatusCompleted),
 	)
-	query = query.Where(request.ProjectIDEQ(projectID))
 
 	req, err := query.Order(ent.Desc(request.FieldCreatedAt)).First(ctx)
 	if err != nil {
@@ -1542,7 +1529,7 @@ func (s *RequestService) LoadResponseChunks(ctx context.Context, req *ent.Reques
 		return sanitizeLoadedResponseChunks(req.ResponseChunks), nil
 	}
 
-	key := GenerateResponseChunksKey(req.ProjectID, req.ID)
+	key := GenerateResponseChunksKey(req.ID)
 
 	data, err := s.DataStorageService.LoadData(ctx, dataStorage, key)
 	if err != nil {
@@ -1584,7 +1571,7 @@ func (s *RequestService) LoadRequestExecutionRequestBody(ctx context.Context, ex
 		return exec.RequestBody, nil
 	}
 
-	key := GenerateExecutionRequestBodyKey(exec.ProjectID, exec.RequestID, exec.ID)
+	key := GenerateExecutionRequestBodyKey(exec.RequestID, exec.ID)
 
 	data, err := s.DataStorageService.LoadData(ctx, dataStorage, key)
 	if err != nil {
@@ -1619,7 +1606,7 @@ func (s *RequestService) LoadRequestExecutionResponseBody(ctx context.Context, e
 		return sanitizeLoadedResponseBody(exec.ResponseBody), nil
 	}
 
-	key := GenerateExecutionResponseBodyKey(exec.ProjectID, exec.RequestID, exec.ID)
+	key := GenerateExecutionResponseBodyKey(exec.RequestID, exec.ID)
 
 	data, err := s.DataStorageService.LoadData(ctx, dataStorage, key)
 	if err != nil {
@@ -1665,7 +1652,7 @@ func (s *RequestService) LoadRequestExecutionResponseChunks(ctx context.Context,
 		return sanitizeLoadedResponseChunks(exec.ResponseChunks), nil
 	}
 
-	key := GenerateExecutionResponseChunksKey(exec.ProjectID, exec.RequestID, exec.ID)
+	key := GenerateExecutionResponseChunksKey(exec.RequestID, exec.ID)
 
 	data, err := s.DataStorageService.LoadData(ctx, dataStorage, key)
 	if err != nil {

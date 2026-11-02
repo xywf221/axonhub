@@ -10,7 +10,6 @@ import (
 
 // contextContainer contains all values in the context.
 type contextContainer struct {
-	ProjectID     *int
 	TraceID       *string
 	RequestID     *string
 	OperationName *string

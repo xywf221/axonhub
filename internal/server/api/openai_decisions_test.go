@@ -15,7 +15,6 @@ import (
 	"github.com/looplj/axonhub/internal/ent/apikey"
 	"github.com/looplj/axonhub/internal/ent/channel"
 	"github.com/looplj/axonhub/internal/ent/enttest"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/user"
 	"github.com/looplj/axonhub/internal/objects"
 	"github.com/looplj/axonhub/internal/pkg/xcache"
@@ -98,19 +97,12 @@ func TestOpenAIHandlers_CreateDecisions_authenticatedRoutePersistsMetadata(t *te
 		SetStatus(user.StatusActivated).
 		Save(setupCtx)
 	require.NoError(t, err)
-	proj, err := client.Project.Create().
-		SetName("decisions-route-project").
-		SetDescription("route test").
-		SetStatus(project.StatusActive).
-		Save(setupCtx)
-	require.NoError(t, err)
 	apiKeyValue, err := biz.GenerateAPIKey("ah")
 	require.NoError(t, err)
 	_, err = client.APIKey.Create().
 		SetName("decisions-route-key").
 		SetKey(apiKeyValue).
 		SetUserID(owner.ID).
-		SetProjectID(proj.ID).
 		SetType(apikey.TypeUser).
 		SetStatus(apikey.StatusEnabled).
 		Save(setupCtx)
@@ -151,7 +143,6 @@ func TestOpenAIHandlers_CreateDecisions_authenticatedRoutePersistsMetadata(t *te
 		systemService,
 		usageLogService,
 		promptService,
-		nil,
 		promptProtectionService,
 		biz.NewLiveStreamRegistry(),
 		limiter,
@@ -160,12 +151,10 @@ func TestOpenAIHandlers_CreateDecisions_authenticatedRoutePersistsMetadata(t *te
 	orchestratorInstance.PipelineFactory = pipeline.NewFactory(executor)
 	handlers := &OpenAIHandlers{DecisionsHandlers: NewChatCompletionHandlers(orchestratorInstance)}
 
-	projectService := biz.NewProjectService(biz.ProjectServiceParams{CacheConfig: xcache.Config{Mode: xcache.ModeMemory}, Ent: client})
 	apiKeyService := biz.NewAPIKeyService(biz.APIKeyServiceParams{
-		CacheConfig:    xcache.Config{Mode: xcache.ModeMemory},
-		Ent:            client,
-		ProjectService: projectService,
-		KeyPrefix:      "ah",
+		CacheConfig: xcache.Config{Mode: xcache.ModeMemory},
+		Ent:         client,
+		KeyPrefix:   "ah",
 	})
 	t.Cleanup(apiKeyService.Stop)
 	authService := biz.NewAuthService(biz.AuthServiceParams{APIKeyService: apiKeyService, Ent: client})
@@ -196,10 +185,9 @@ func TestOpenAIHandlers_CreateDecisions_unauthenticatedRouteIsRejected(t *testin
 	client := enttest.NewEntClient(t, "sqlite3", "file:decisions-auth?mode=memory&_fk=0")
 	t.Cleanup(func() { _ = client.Close() })
 	apiKeyService := biz.NewAPIKeyService(biz.APIKeyServiceParams{
-		CacheConfig:    xcache.Config{Mode: xcache.ModeMemory},
-		Ent:            client,
-		ProjectService: biz.NewProjectService(biz.ProjectServiceParams{CacheConfig: xcache.Config{Mode: xcache.ModeMemory}, Ent: client}),
-		KeyPrefix:      "ah",
+		CacheConfig: xcache.Config{Mode: xcache.ModeMemory},
+		Ent:         client,
+		KeyPrefix:   "ah",
 	})
 	t.Cleanup(apiKeyService.Stop)
 	authService := biz.NewAuthService(biz.AuthServiceParams{APIKeyService: apiKeyService, Ent: client})

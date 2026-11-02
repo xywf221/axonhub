@@ -23,7 +23,7 @@ func TestUpdateResponseHeadersMasksSensitiveValues(t *testing.T) {
 	svc := NewRequestService(client, system.CacheConfig, system, nil, storage, NewLiveStreamRegistry())
 	req, err := client.Request.Create().SetModelID("model").SetRequestBody([]byte(`{}`)).SetStatus(request.StatusProcessing).Save(ctx)
 	require.NoError(t, err)
-	execution, err := client.RequestExecution.Create().SetRequestID(req.ID).SetProjectID(req.ProjectID).SetModelID("model").SetRequestBody([]byte(`{}`)).SetStatus(requestexecution.StatusProcessing).Save(ctx)
+	execution, err := client.RequestExecution.Create().SetRequestID(req.ID).SetModelID("model").SetRequestBody([]byte(`{}`)).SetStatus(requestexecution.StatusProcessing).Save(ctx)
 	require.NoError(t, err)
 
 	req, err = client.Request.Get(ctx, execution.RequestID)

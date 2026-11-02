@@ -11,12 +11,10 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
 	"github.com/looplj/axonhub/internal/objects"
-	"github.com/shopspring/decimal"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -65,53 +63,12 @@ type ComplexityRoot struct {
 		ModelIDs             func(childComplexity int) int
 		ModelMappings        func(childComplexity int) int
 		Name                 func(childComplexity int) int
-		Quota                func(childComplexity int) int
 		TraceStickyMode      func(childComplexity int) int
-	}
-
-	APIKeyProfileQuotaUsage struct {
-		ProfileName func(childComplexity int) int
-		Quota       func(childComplexity int) int
-		Usage       func(childComplexity int) int
-		Window      func(childComplexity int) int
 	}
 
 	APIKeyProfiles struct {
 		ActiveProfile func(childComplexity int) int
 		Profiles      func(childComplexity int) int
-	}
-
-	APIKeyQuota struct {
-		Cost        func(childComplexity int) int
-		Period      func(childComplexity int) int
-		Requests    func(childComplexity int) int
-		TotalTokens func(childComplexity int) int
-	}
-
-	APIKeyQuotaCalendarDuration struct {
-		Unit func(childComplexity int) int
-	}
-
-	APIKeyQuotaPastDuration struct {
-		Unit  func(childComplexity int) int
-		Value func(childComplexity int) int
-	}
-
-	APIKeyQuotaPeriod struct {
-		CalendarDuration func(childComplexity int) int
-		PastDuration     func(childComplexity int) int
-		Type             func(childComplexity int) int
-	}
-
-	APIKeyQuotaUsage struct {
-		RequestCount func(childComplexity int) int
-		TotalCost    func(childComplexity int) int
-		TotalTokens  func(childComplexity int) int
-	}
-
-	APIKeyQuotaWindow struct {
-		End   func(childComplexity int) int
-		Start func(childComplexity int) int
 	}
 
 	ModelMapping struct {
@@ -126,8 +83,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		APIKey            func(childComplexity int, id *objects.GUID, key *string, name *string) int
-		APIKeyQuotaUsages func(childComplexity int, apiKeyID *objects.GUID, key *string, name *string) int
+		APIKey func(childComplexity int, id *objects.GUID, key *string, name *string) int
 	}
 }
 
@@ -138,7 +94,6 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	APIKey(ctx context.Context, id *objects.GUID, key *string, name *string) (*APIKey, error)
-	APIKeyQuotaUsages(ctx context.Context, apiKeyID *objects.GUID, key *string, name *string) ([]*APIKeyProfileQuotaUsage, error)
 }
 
 type executableSchema struct {
@@ -233,43 +188,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.APIKeyProfile.Name(childComplexity), true
-	case "APIKeyProfile.quota":
-		if e.complexity.APIKeyProfile.Quota == nil {
-			break
-		}
-
-		return e.complexity.APIKeyProfile.Quota(childComplexity), true
 	case "APIKeyProfile.traceStickyMode":
 		if e.complexity.APIKeyProfile.TraceStickyMode == nil {
 			break
 		}
 
 		return e.complexity.APIKeyProfile.TraceStickyMode(childComplexity), true
-
-	case "APIKeyProfileQuotaUsage.profileName":
-		if e.complexity.APIKeyProfileQuotaUsage.ProfileName == nil {
-			break
-		}
-
-		return e.complexity.APIKeyProfileQuotaUsage.ProfileName(childComplexity), true
-	case "APIKeyProfileQuotaUsage.quota":
-		if e.complexity.APIKeyProfileQuotaUsage.Quota == nil {
-			break
-		}
-
-		return e.complexity.APIKeyProfileQuotaUsage.Quota(childComplexity), true
-	case "APIKeyProfileQuotaUsage.usage":
-		if e.complexity.APIKeyProfileQuotaUsage.Usage == nil {
-			break
-		}
-
-		return e.complexity.APIKeyProfileQuotaUsage.Usage(childComplexity), true
-	case "APIKeyProfileQuotaUsage.window":
-		if e.complexity.APIKeyProfileQuotaUsage.Window == nil {
-			break
-		}
-
-		return e.complexity.APIKeyProfileQuotaUsage.Window(childComplexity), true
 
 	case "APIKeyProfiles.activeProfile":
 		if e.complexity.APIKeyProfiles.ActiveProfile == nil {
@@ -283,102 +207,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.APIKeyProfiles.Profiles(childComplexity), true
-
-	case "APIKeyQuota.cost":
-		if e.complexity.APIKeyQuota.Cost == nil {
-			break
-		}
-
-		return e.complexity.APIKeyQuota.Cost(childComplexity), true
-	case "APIKeyQuota.period":
-		if e.complexity.APIKeyQuota.Period == nil {
-			break
-		}
-
-		return e.complexity.APIKeyQuota.Period(childComplexity), true
-	case "APIKeyQuota.requests":
-		if e.complexity.APIKeyQuota.Requests == nil {
-			break
-		}
-
-		return e.complexity.APIKeyQuota.Requests(childComplexity), true
-	case "APIKeyQuota.totalTokens":
-		if e.complexity.APIKeyQuota.TotalTokens == nil {
-			break
-		}
-
-		return e.complexity.APIKeyQuota.TotalTokens(childComplexity), true
-
-	case "APIKeyQuotaCalendarDuration.unit":
-		if e.complexity.APIKeyQuotaCalendarDuration.Unit == nil {
-			break
-		}
-
-		return e.complexity.APIKeyQuotaCalendarDuration.Unit(childComplexity), true
-
-	case "APIKeyQuotaPastDuration.unit":
-		if e.complexity.APIKeyQuotaPastDuration.Unit == nil {
-			break
-		}
-
-		return e.complexity.APIKeyQuotaPastDuration.Unit(childComplexity), true
-	case "APIKeyQuotaPastDuration.value":
-		if e.complexity.APIKeyQuotaPastDuration.Value == nil {
-			break
-		}
-
-		return e.complexity.APIKeyQuotaPastDuration.Value(childComplexity), true
-
-	case "APIKeyQuotaPeriod.calendarDuration":
-		if e.complexity.APIKeyQuotaPeriod.CalendarDuration == nil {
-			break
-		}
-
-		return e.complexity.APIKeyQuotaPeriod.CalendarDuration(childComplexity), true
-	case "APIKeyQuotaPeriod.pastDuration":
-		if e.complexity.APIKeyQuotaPeriod.PastDuration == nil {
-			break
-		}
-
-		return e.complexity.APIKeyQuotaPeriod.PastDuration(childComplexity), true
-	case "APIKeyQuotaPeriod.type":
-		if e.complexity.APIKeyQuotaPeriod.Type == nil {
-			break
-		}
-
-		return e.complexity.APIKeyQuotaPeriod.Type(childComplexity), true
-
-	case "APIKeyQuotaUsage.requestCount":
-		if e.complexity.APIKeyQuotaUsage.RequestCount == nil {
-			break
-		}
-
-		return e.complexity.APIKeyQuotaUsage.RequestCount(childComplexity), true
-	case "APIKeyQuotaUsage.totalCost":
-		if e.complexity.APIKeyQuotaUsage.TotalCost == nil {
-			break
-		}
-
-		return e.complexity.APIKeyQuotaUsage.TotalCost(childComplexity), true
-	case "APIKeyQuotaUsage.totalTokens":
-		if e.complexity.APIKeyQuotaUsage.TotalTokens == nil {
-			break
-		}
-
-		return e.complexity.APIKeyQuotaUsage.TotalTokens(childComplexity), true
-
-	case "APIKeyQuotaWindow.end":
-		if e.complexity.APIKeyQuotaWindow.End == nil {
-			break
-		}
-
-		return e.complexity.APIKeyQuotaWindow.End(childComplexity), true
-	case "APIKeyQuotaWindow.start":
-		if e.complexity.APIKeyQuotaWindow.Start == nil {
-			break
-		}
-
-		return e.complexity.APIKeyQuotaWindow.Start(childComplexity), true
 
 	case "ModelMapping.from":
 		if e.complexity.ModelMapping.From == nil {
@@ -438,17 +266,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.APIKey(childComplexity, args["id"].(*objects.GUID), args["key"].(*string), args["name"].(*string)), true
-	case "Query.apiKeyQuotaUsages":
-		if e.complexity.Query.APIKeyQuotaUsages == nil {
-			break
-		}
-
-		args, err := ec.field_Query_apiKeyQuotaUsages_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.APIKeyQuotaUsages(childComplexity, args["apiKeyId"].(*objects.GUID), args["key"].(*string), args["name"].(*string)), true
 
 	}
 	return 0, false
@@ -459,10 +276,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputAPIKeyProfileInput,
-		ec.unmarshalInputAPIKeyQuotaCalendarDurationInput,
-		ec.unmarshalInputAPIKeyQuotaInput,
-		ec.unmarshalInputAPIKeyQuotaPastDurationInput,
-		ec.unmarshalInputAPIKeyQuotaPeriodInput,
 		ec.unmarshalInputLoadApiKeyProfileTemplateInput,
 		ec.unmarshalInputModelMappingInput,
 		ec.unmarshalInputUpdateAPIKeyProfilesInput,
@@ -633,27 +446,6 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		return nil, err
 	}
 	args["name"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_apiKeyQuotaUsages_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "apiKeyId", ec.unmarshalOID2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐGUID)
-	if err != nil {
-		return nil, err
-	}
-	args["apiKeyId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "key", ec.unmarshalOString2ᚖstring)
-	if err != nil {
-		return nil, err
-	}
-	args["key"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "name", ec.unmarshalOString2ᚖstring)
-	if err != nil {
-		return nil, err
-	}
-	args["name"] = arg2
 	return args, nil
 }
 
@@ -1061,45 +853,6 @@ func (ec *executionContext) fieldContext_APIKeyProfile_modelIDs(_ context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _APIKeyProfile_quota(ctx context.Context, field graphql.CollectedField, obj *objects.APIKeyProfile) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_APIKeyProfile_quota,
-		func(ctx context.Context) (any, error) {
-			return obj.Quota, nil
-		},
-		nil,
-		ec.marshalOAPIKeyQuota2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuota,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_APIKeyProfile_quota(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "APIKeyProfile",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "requests":
-				return ec.fieldContext_APIKeyQuota_requests(ctx, field)
-			case "totalTokens":
-				return ec.fieldContext_APIKeyQuota_totalTokens(ctx, field)
-			case "cost":
-				return ec.fieldContext_APIKeyQuota_cost(ctx, field)
-			case "period":
-				return ec.fieldContext_APIKeyQuota_period(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type APIKeyQuota", field.Name)
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _APIKeyProfile_loadBalanceStrategy(ctx context.Context, field graphql.CollectedField, obj *objects.APIKeyProfile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1153,146 +906,6 @@ func (ec *executionContext) fieldContext_APIKeyProfile_traceStickyMode(_ context
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _APIKeyProfileQuotaUsage_profileName(ctx context.Context, field graphql.CollectedField, obj *APIKeyProfileQuotaUsage) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_APIKeyProfileQuotaUsage_profileName,
-		func(ctx context.Context) (any, error) {
-			return obj.ProfileName, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_APIKeyProfileQuotaUsage_profileName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "APIKeyProfileQuotaUsage",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _APIKeyProfileQuotaUsage_quota(ctx context.Context, field graphql.CollectedField, obj *APIKeyProfileQuotaUsage) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_APIKeyProfileQuotaUsage_quota,
-		func(ctx context.Context) (any, error) {
-			return obj.Quota, nil
-		},
-		nil,
-		ec.marshalNAPIKeyQuota2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuota,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_APIKeyProfileQuotaUsage_quota(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "APIKeyProfileQuotaUsage",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "requests":
-				return ec.fieldContext_APIKeyQuota_requests(ctx, field)
-			case "totalTokens":
-				return ec.fieldContext_APIKeyQuota_totalTokens(ctx, field)
-			case "cost":
-				return ec.fieldContext_APIKeyQuota_cost(ctx, field)
-			case "period":
-				return ec.fieldContext_APIKeyQuota_period(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type APIKeyQuota", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _APIKeyProfileQuotaUsage_window(ctx context.Context, field graphql.CollectedField, obj *APIKeyProfileQuotaUsage) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_APIKeyProfileQuotaUsage_window,
-		func(ctx context.Context) (any, error) {
-			return obj.Window, nil
-		},
-		nil,
-		ec.marshalNAPIKeyQuotaWindow2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚋopenapiᚐAPIKeyQuotaWindow,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_APIKeyProfileQuotaUsage_window(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "APIKeyProfileQuotaUsage",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "start":
-				return ec.fieldContext_APIKeyQuotaWindow_start(ctx, field)
-			case "end":
-				return ec.fieldContext_APIKeyQuotaWindow_end(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type APIKeyQuotaWindow", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _APIKeyProfileQuotaUsage_usage(ctx context.Context, field graphql.CollectedField, obj *APIKeyProfileQuotaUsage) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_APIKeyProfileQuotaUsage_usage,
-		func(ctx context.Context) (any, error) {
-			return obj.Usage, nil
-		},
-		nil,
-		ec.marshalNAPIKeyQuotaUsage2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚋopenapiᚐAPIKeyQuotaUsage,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_APIKeyProfileQuotaUsage_usage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "APIKeyProfileQuotaUsage",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "requestCount":
-				return ec.fieldContext_APIKeyQuotaUsage_requestCount(ctx, field)
-			case "totalTokens":
-				return ec.fieldContext_APIKeyQuotaUsage_totalTokens(ctx, field)
-			case "totalCost":
-				return ec.fieldContext_APIKeyQuotaUsage_totalCost(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type APIKeyQuotaUsage", field.Name)
 		},
 	}
 	return fc, nil
@@ -1363,467 +976,12 @@ func (ec *executionContext) fieldContext_APIKeyProfiles_profiles(_ context.Conte
 				return ec.fieldContext_APIKeyProfile_channelTagsMatchMode(ctx, field)
 			case "modelIDs":
 				return ec.fieldContext_APIKeyProfile_modelIDs(ctx, field)
-			case "quota":
-				return ec.fieldContext_APIKeyProfile_quota(ctx, field)
 			case "loadBalanceStrategy":
 				return ec.fieldContext_APIKeyProfile_loadBalanceStrategy(ctx, field)
 			case "traceStickyMode":
 				return ec.fieldContext_APIKeyProfile_traceStickyMode(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type APIKeyProfile", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _APIKeyQuota_requests(ctx context.Context, field graphql.CollectedField, obj *objects.APIKeyQuota) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_APIKeyQuota_requests,
-		func(ctx context.Context) (any, error) {
-			return obj.Requests, nil
-		},
-		nil,
-		ec.marshalOInt2ᚖint64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_APIKeyQuota_requests(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "APIKeyQuota",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _APIKeyQuota_totalTokens(ctx context.Context, field graphql.CollectedField, obj *objects.APIKeyQuota) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_APIKeyQuota_totalTokens,
-		func(ctx context.Context) (any, error) {
-			return obj.TotalTokens, nil
-		},
-		nil,
-		ec.marshalOInt2ᚖint64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_APIKeyQuota_totalTokens(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "APIKeyQuota",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _APIKeyQuota_cost(ctx context.Context, field graphql.CollectedField, obj *objects.APIKeyQuota) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_APIKeyQuota_cost,
-		func(ctx context.Context) (any, error) {
-			return obj.Cost, nil
-		},
-		nil,
-		ec.marshalODecimal2ᚖgithubᚗcomᚋshopspringᚋdecimalᚐDecimal,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_APIKeyQuota_cost(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "APIKeyQuota",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Decimal does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _APIKeyQuota_period(ctx context.Context, field graphql.CollectedField, obj *objects.APIKeyQuota) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_APIKeyQuota_period,
-		func(ctx context.Context) (any, error) {
-			return obj.Period, nil
-		},
-		nil,
-		ec.marshalNAPIKeyQuotaPeriod2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaPeriod,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_APIKeyQuota_period(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "APIKeyQuota",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "type":
-				return ec.fieldContext_APIKeyQuotaPeriod_type(ctx, field)
-			case "pastDuration":
-				return ec.fieldContext_APIKeyQuotaPeriod_pastDuration(ctx, field)
-			case "calendarDuration":
-				return ec.fieldContext_APIKeyQuotaPeriod_calendarDuration(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type APIKeyQuotaPeriod", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _APIKeyQuotaCalendarDuration_unit(ctx context.Context, field graphql.CollectedField, obj *objects.APIKeyQuotaCalendarDuration) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_APIKeyQuotaCalendarDuration_unit,
-		func(ctx context.Context) (any, error) {
-			return obj.Unit, nil
-		},
-		nil,
-		ec.marshalNAPIKeyQuotaCalendarDurationUnit2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaCalendarDurationUnit,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_APIKeyQuotaCalendarDuration_unit(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "APIKeyQuotaCalendarDuration",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type APIKeyQuotaCalendarDurationUnit does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _APIKeyQuotaPastDuration_value(ctx context.Context, field graphql.CollectedField, obj *objects.APIKeyQuotaPastDuration) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_APIKeyQuotaPastDuration_value,
-		func(ctx context.Context) (any, error) {
-			return obj.Value, nil
-		},
-		nil,
-		ec.marshalNInt2int64,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_APIKeyQuotaPastDuration_value(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "APIKeyQuotaPastDuration",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _APIKeyQuotaPastDuration_unit(ctx context.Context, field graphql.CollectedField, obj *objects.APIKeyQuotaPastDuration) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_APIKeyQuotaPastDuration_unit,
-		func(ctx context.Context) (any, error) {
-			return obj.Unit, nil
-		},
-		nil,
-		ec.marshalNAPIKeyQuotaPastDurationUnit2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaPastDurationUnit,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_APIKeyQuotaPastDuration_unit(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "APIKeyQuotaPastDuration",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type APIKeyQuotaPastDurationUnit does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _APIKeyQuotaPeriod_type(ctx context.Context, field graphql.CollectedField, obj *objects.APIKeyQuotaPeriod) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_APIKeyQuotaPeriod_type,
-		func(ctx context.Context) (any, error) {
-			return obj.Type, nil
-		},
-		nil,
-		ec.marshalNAPIKeyQuotaPeriodType2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaPeriodType,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_APIKeyQuotaPeriod_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "APIKeyQuotaPeriod",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type APIKeyQuotaPeriodType does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _APIKeyQuotaPeriod_pastDuration(ctx context.Context, field graphql.CollectedField, obj *objects.APIKeyQuotaPeriod) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_APIKeyQuotaPeriod_pastDuration,
-		func(ctx context.Context) (any, error) {
-			return obj.PastDuration, nil
-		},
-		nil,
-		ec.marshalOAPIKeyQuotaPastDuration2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaPastDuration,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_APIKeyQuotaPeriod_pastDuration(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "APIKeyQuotaPeriod",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "value":
-				return ec.fieldContext_APIKeyQuotaPastDuration_value(ctx, field)
-			case "unit":
-				return ec.fieldContext_APIKeyQuotaPastDuration_unit(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type APIKeyQuotaPastDuration", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _APIKeyQuotaPeriod_calendarDuration(ctx context.Context, field graphql.CollectedField, obj *objects.APIKeyQuotaPeriod) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_APIKeyQuotaPeriod_calendarDuration,
-		func(ctx context.Context) (any, error) {
-			return obj.CalendarDuration, nil
-		},
-		nil,
-		ec.marshalOAPIKeyQuotaCalendarDuration2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaCalendarDuration,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_APIKeyQuotaPeriod_calendarDuration(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "APIKeyQuotaPeriod",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "unit":
-				return ec.fieldContext_APIKeyQuotaCalendarDuration_unit(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type APIKeyQuotaCalendarDuration", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _APIKeyQuotaUsage_requestCount(ctx context.Context, field graphql.CollectedField, obj *APIKeyQuotaUsage) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_APIKeyQuotaUsage_requestCount,
-		func(ctx context.Context) (any, error) {
-			return obj.RequestCount, nil
-		},
-		nil,
-		ec.marshalNInt2int,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_APIKeyQuotaUsage_requestCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "APIKeyQuotaUsage",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _APIKeyQuotaUsage_totalTokens(ctx context.Context, field graphql.CollectedField, obj *APIKeyQuotaUsage) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_APIKeyQuotaUsage_totalTokens,
-		func(ctx context.Context) (any, error) {
-			return obj.TotalTokens, nil
-		},
-		nil,
-		ec.marshalNInt2int,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_APIKeyQuotaUsage_totalTokens(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "APIKeyQuotaUsage",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _APIKeyQuotaUsage_totalCost(ctx context.Context, field graphql.CollectedField, obj *APIKeyQuotaUsage) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_APIKeyQuotaUsage_totalCost,
-		func(ctx context.Context) (any, error) {
-			return obj.TotalCost, nil
-		},
-		nil,
-		ec.marshalNDecimal2githubᚗcomᚋshopspringᚋdecimalᚐDecimal,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_APIKeyQuotaUsage_totalCost(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "APIKeyQuotaUsage",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Decimal does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _APIKeyQuotaWindow_start(ctx context.Context, field graphql.CollectedField, obj *APIKeyQuotaWindow) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_APIKeyQuotaWindow_start,
-		func(ctx context.Context) (any, error) {
-			return obj.Start, nil
-		},
-		nil,
-		ec.marshalOTime2ᚖtimeᚐTime,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_APIKeyQuotaWindow_start(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "APIKeyQuotaWindow",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _APIKeyQuotaWindow_end(ctx context.Context, field graphql.CollectedField, obj *APIKeyQuotaWindow) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_APIKeyQuotaWindow_end,
-		func(ctx context.Context) (any, error) {
-			return obj.End, nil
-		},
-		nil,
-		ec.marshalOTime2ᚖtimeᚐTime,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_APIKeyQuotaWindow_end(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "APIKeyQuotaWindow",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2093,57 +1251,6 @@ func (ec *executionContext) fieldContext_Query_apiKey(ctx context.Context, field
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_apiKey_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_apiKeyQuotaUsages(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Query_apiKeyQuotaUsages,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().APIKeyQuotaUsages(ctx, fc.Args["apiKeyId"].(*objects.GUID), fc.Args["key"].(*string), fc.Args["name"].(*string))
-		},
-		nil,
-		ec.marshalNAPIKeyProfileQuotaUsage2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚋopenapiᚐAPIKeyProfileQuotaUsageᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Query_apiKeyQuotaUsages(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "profileName":
-				return ec.fieldContext_APIKeyProfileQuotaUsage_profileName(ctx, field)
-			case "quota":
-				return ec.fieldContext_APIKeyProfileQuotaUsage_quota(ctx, field)
-			case "window":
-				return ec.fieldContext_APIKeyProfileQuotaUsage_window(ctx, field)
-			case "usage":
-				return ec.fieldContext_APIKeyProfileQuotaUsage_usage(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type APIKeyProfileQuotaUsage", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_apiKeyQuotaUsages_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -3711,7 +2818,7 @@ func (ec *executionContext) unmarshalInputAPIKeyProfileInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "modelMappings", "channelIDs", "channelTags", "channelTagsMatchMode", "modelIDs", "quota", "loadBalanceStrategy", "traceStickyMode"}
+	fieldsInOrder := [...]string{"name", "modelMappings", "channelIDs", "channelTags", "channelTagsMatchMode", "modelIDs", "loadBalanceStrategy", "traceStickyMode"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -3760,13 +2867,6 @@ func (ec *executionContext) unmarshalInputAPIKeyProfileInput(ctx context.Context
 				return it, err
 			}
 			it.ModelIDs = data
-		case "quota":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("quota"))
-			data, err := ec.unmarshalOAPIKeyQuotaInput2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuota(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Quota = data
 		case "loadBalanceStrategy":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("loadBalanceStrategy"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -3781,156 +2881,6 @@ func (ec *executionContext) unmarshalInputAPIKeyProfileInput(ctx context.Context
 				return it, err
 			}
 			it.TraceStickyMode = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputAPIKeyQuotaCalendarDurationInput(ctx context.Context, obj any) (objects.APIKeyQuotaCalendarDuration, error) {
-	var it objects.APIKeyQuotaCalendarDuration
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"unit"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "unit":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("unit"))
-			data, err := ec.unmarshalNAPIKeyQuotaCalendarDurationUnit2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaCalendarDurationUnit(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Unit = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputAPIKeyQuotaInput(ctx context.Context, obj any) (objects.APIKeyQuota, error) {
-	var it objects.APIKeyQuota
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"requests", "totalTokens", "cost", "period"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "requests":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requests"))
-			data, err := ec.unmarshalOInt2ᚖint64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Requests = data
-		case "totalTokens":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("totalTokens"))
-			data, err := ec.unmarshalOInt2ᚖint64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.TotalTokens = data
-		case "cost":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cost"))
-			data, err := ec.unmarshalODecimalInput2ᚖgithubᚗcomᚋshopspringᚋdecimalᚐDecimal(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Cost = data
-		case "period":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("period"))
-			data, err := ec.unmarshalNAPIKeyQuotaPeriodInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaPeriod(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Period = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputAPIKeyQuotaPastDurationInput(ctx context.Context, obj any) (objects.APIKeyQuotaPastDuration, error) {
-	var it objects.APIKeyQuotaPastDuration
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"value", "unit"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "value":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("value"))
-			data, err := ec.unmarshalNInt2int64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Value = data
-		case "unit":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("unit"))
-			data, err := ec.unmarshalNAPIKeyQuotaPastDurationUnit2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaPastDurationUnit(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Unit = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputAPIKeyQuotaPeriodInput(ctx context.Context, obj any) (objects.APIKeyQuotaPeriod, error) {
-	var it objects.APIKeyQuotaPeriod
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"type", "pastDuration", "calendarDuration"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "type":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
-			data, err := ec.unmarshalNAPIKeyQuotaPeriodType2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaPeriodType(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Type = data
-		case "pastDuration":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pastDuration"))
-			data, err := ec.unmarshalOAPIKeyQuotaPastDurationInput2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaPastDuration(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.PastDuration = data
-		case "calendarDuration":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("calendarDuration"))
-			data, err := ec.unmarshalOAPIKeyQuotaCalendarDurationInput2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaCalendarDuration(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.CalendarDuration = data
 		}
 	}
 
@@ -4140,66 +3090,10 @@ func (ec *executionContext) _APIKeyProfile(ctx context.Context, sel ast.Selectio
 			out.Values[i] = ec._APIKeyProfile_channelTagsMatchMode(ctx, field, obj)
 		case "modelIDs":
 			out.Values[i] = ec._APIKeyProfile_modelIDs(ctx, field, obj)
-		case "quota":
-			out.Values[i] = ec._APIKeyProfile_quota(ctx, field, obj)
 		case "loadBalanceStrategy":
 			out.Values[i] = ec._APIKeyProfile_loadBalanceStrategy(ctx, field, obj)
 		case "traceStickyMode":
 			out.Values[i] = ec._APIKeyProfile_traceStickyMode(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var aPIKeyProfileQuotaUsageImplementors = []string{"APIKeyProfileQuotaUsage"}
-
-func (ec *executionContext) _APIKeyProfileQuotaUsage(ctx context.Context, sel ast.SelectionSet, obj *APIKeyProfileQuotaUsage) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, aPIKeyProfileQuotaUsageImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("APIKeyProfileQuotaUsage")
-		case "profileName":
-			out.Values[i] = ec._APIKeyProfileQuotaUsage_profileName(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "quota":
-			out.Values[i] = ec._APIKeyProfileQuotaUsage_quota(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "window":
-			out.Values[i] = ec._APIKeyProfileQuotaUsage_window(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "usage":
-			out.Values[i] = ec._APIKeyProfileQuotaUsage_usage(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4241,264 +3135,6 @@ func (ec *executionContext) _APIKeyProfiles(ctx context.Context, sel ast.Selecti
 			}
 		case "profiles":
 			out.Values[i] = ec._APIKeyProfiles_profiles(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var aPIKeyQuotaImplementors = []string{"APIKeyQuota"}
-
-func (ec *executionContext) _APIKeyQuota(ctx context.Context, sel ast.SelectionSet, obj *objects.APIKeyQuota) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, aPIKeyQuotaImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("APIKeyQuota")
-		case "requests":
-			out.Values[i] = ec._APIKeyQuota_requests(ctx, field, obj)
-		case "totalTokens":
-			out.Values[i] = ec._APIKeyQuota_totalTokens(ctx, field, obj)
-		case "cost":
-			out.Values[i] = ec._APIKeyQuota_cost(ctx, field, obj)
-		case "period":
-			out.Values[i] = ec._APIKeyQuota_period(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var aPIKeyQuotaCalendarDurationImplementors = []string{"APIKeyQuotaCalendarDuration"}
-
-func (ec *executionContext) _APIKeyQuotaCalendarDuration(ctx context.Context, sel ast.SelectionSet, obj *objects.APIKeyQuotaCalendarDuration) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, aPIKeyQuotaCalendarDurationImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("APIKeyQuotaCalendarDuration")
-		case "unit":
-			out.Values[i] = ec._APIKeyQuotaCalendarDuration_unit(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var aPIKeyQuotaPastDurationImplementors = []string{"APIKeyQuotaPastDuration"}
-
-func (ec *executionContext) _APIKeyQuotaPastDuration(ctx context.Context, sel ast.SelectionSet, obj *objects.APIKeyQuotaPastDuration) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, aPIKeyQuotaPastDurationImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("APIKeyQuotaPastDuration")
-		case "value":
-			out.Values[i] = ec._APIKeyQuotaPastDuration_value(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "unit":
-			out.Values[i] = ec._APIKeyQuotaPastDuration_unit(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var aPIKeyQuotaPeriodImplementors = []string{"APIKeyQuotaPeriod"}
-
-func (ec *executionContext) _APIKeyQuotaPeriod(ctx context.Context, sel ast.SelectionSet, obj *objects.APIKeyQuotaPeriod) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, aPIKeyQuotaPeriodImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("APIKeyQuotaPeriod")
-		case "type":
-			out.Values[i] = ec._APIKeyQuotaPeriod_type(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "pastDuration":
-			out.Values[i] = ec._APIKeyQuotaPeriod_pastDuration(ctx, field, obj)
-		case "calendarDuration":
-			out.Values[i] = ec._APIKeyQuotaPeriod_calendarDuration(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var aPIKeyQuotaUsageImplementors = []string{"APIKeyQuotaUsage"}
-
-func (ec *executionContext) _APIKeyQuotaUsage(ctx context.Context, sel ast.SelectionSet, obj *APIKeyQuotaUsage) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, aPIKeyQuotaUsageImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("APIKeyQuotaUsage")
-		case "requestCount":
-			out.Values[i] = ec._APIKeyQuotaUsage_requestCount(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "totalTokens":
-			out.Values[i] = ec._APIKeyQuotaUsage_totalTokens(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "totalCost":
-			out.Values[i] = ec._APIKeyQuotaUsage_totalCost(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var aPIKeyQuotaWindowImplementors = []string{"APIKeyQuotaWindow"}
-
-func (ec *executionContext) _APIKeyQuotaWindow(ctx context.Context, sel ast.SelectionSet, obj *APIKeyQuotaWindow) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, aPIKeyQuotaWindowImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("APIKeyQuotaWindow")
-		case "start":
-			out.Values[i] = ec._APIKeyQuotaWindow_start(ctx, field, obj)
-		case "end":
-			out.Values[i] = ec._APIKeyQuotaWindow_end(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4658,28 +3294,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_apiKey(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "apiKeyQuotaUsages":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_apiKeyQuotaUsages(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -5096,150 +3710,6 @@ func (ec *executionContext) unmarshalNAPIKeyProfileInput2ᚕgithubᚗcomᚋloopl
 	return res, nil
 }
 
-func (ec *executionContext) marshalNAPIKeyProfileQuotaUsage2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚋopenapiᚐAPIKeyProfileQuotaUsageᚄ(ctx context.Context, sel ast.SelectionSet, v []*APIKeyProfileQuotaUsage) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNAPIKeyProfileQuotaUsage2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚋopenapiᚐAPIKeyProfileQuotaUsage(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalNAPIKeyProfileQuotaUsage2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚋopenapiᚐAPIKeyProfileQuotaUsage(ctx context.Context, sel ast.SelectionSet, v *APIKeyProfileQuotaUsage) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._APIKeyProfileQuotaUsage(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNAPIKeyQuota2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuota(ctx context.Context, sel ast.SelectionSet, v *objects.APIKeyQuota) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._APIKeyQuota(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNAPIKeyQuotaCalendarDurationUnit2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaCalendarDurationUnit(ctx context.Context, v any) (objects.APIKeyQuotaCalendarDurationUnit, error) {
-	tmp, err := graphql.UnmarshalString(v)
-	res := objects.APIKeyQuotaCalendarDurationUnit(tmp)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNAPIKeyQuotaCalendarDurationUnit2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaCalendarDurationUnit(ctx context.Context, sel ast.SelectionSet, v objects.APIKeyQuotaCalendarDurationUnit) graphql.Marshaler {
-	_ = sel
-	res := graphql.MarshalString(string(v))
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-	}
-	return res
-}
-
-func (ec *executionContext) unmarshalNAPIKeyQuotaPastDurationUnit2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaPastDurationUnit(ctx context.Context, v any) (objects.APIKeyQuotaPastDurationUnit, error) {
-	tmp, err := graphql.UnmarshalString(v)
-	res := objects.APIKeyQuotaPastDurationUnit(tmp)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNAPIKeyQuotaPastDurationUnit2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaPastDurationUnit(ctx context.Context, sel ast.SelectionSet, v objects.APIKeyQuotaPastDurationUnit) graphql.Marshaler {
-	_ = sel
-	res := graphql.MarshalString(string(v))
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-	}
-	return res
-}
-
-func (ec *executionContext) marshalNAPIKeyQuotaPeriod2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaPeriod(ctx context.Context, sel ast.SelectionSet, v objects.APIKeyQuotaPeriod) graphql.Marshaler {
-	return ec._APIKeyQuotaPeriod(ctx, sel, &v)
-}
-
-func (ec *executionContext) unmarshalNAPIKeyQuotaPeriodInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaPeriod(ctx context.Context, v any) (objects.APIKeyQuotaPeriod, error) {
-	res, err := ec.unmarshalInputAPIKeyQuotaPeriodInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNAPIKeyQuotaPeriodType2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaPeriodType(ctx context.Context, v any) (objects.APIKeyQuotaPeriodType, error) {
-	tmp, err := graphql.UnmarshalString(v)
-	res := objects.APIKeyQuotaPeriodType(tmp)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNAPIKeyQuotaPeriodType2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaPeriodType(ctx context.Context, sel ast.SelectionSet, v objects.APIKeyQuotaPeriodType) graphql.Marshaler {
-	_ = sel
-	res := graphql.MarshalString(string(v))
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-	}
-	return res
-}
-
-func (ec *executionContext) marshalNAPIKeyQuotaUsage2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚋopenapiᚐAPIKeyQuotaUsage(ctx context.Context, sel ast.SelectionSet, v *APIKeyQuotaUsage) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._APIKeyQuotaUsage(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNAPIKeyQuotaWindow2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚋopenapiᚐAPIKeyQuotaWindow(ctx context.Context, sel ast.SelectionSet, v *APIKeyQuotaWindow) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._APIKeyQuotaWindow(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v any) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -5248,22 +3718,6 @@ func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v any) (
 func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.SelectionSet, v bool) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalBoolean(v)
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-	}
-	return res
-}
-
-func (ec *executionContext) unmarshalNDecimal2githubᚗcomᚋshopspringᚋdecimalᚐDecimal(ctx context.Context, v any) (decimal.Decimal, error) {
-	res, err := objects.UnmarshalDecimal(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNDecimal2githubᚗcomᚋshopspringᚋdecimalᚐDecimal(ctx context.Context, sel ast.SelectionSet, v decimal.Decimal) graphql.Marshaler {
-	_ = sel
-	res := objects.MarshalDecimal(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -5290,22 +3744,6 @@ func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v any) (int, 
 func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalInt(v)
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-	}
-	return res
-}
-
-func (ec *executionContext) unmarshalNInt2int64(ctx context.Context, v any) (int64, error) {
-	res, err := graphql.UnmarshalInt64(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNInt2int64(ctx context.Context, sel ast.SelectionSet, v int64) graphql.Marshaler {
-	_ = sel
-	res := graphql.MarshalInt64(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -5656,51 +4094,6 @@ func (ec *executionContext) marshalOAPIKeyProfiles2ᚖgithubᚗcomᚋloopljᚋax
 	return ec._APIKeyProfiles(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOAPIKeyQuota2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuota(ctx context.Context, sel ast.SelectionSet, v *objects.APIKeyQuota) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._APIKeyQuota(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOAPIKeyQuotaCalendarDuration2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaCalendarDuration(ctx context.Context, sel ast.SelectionSet, v *objects.APIKeyQuotaCalendarDuration) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._APIKeyQuotaCalendarDuration(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalOAPIKeyQuotaCalendarDurationInput2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaCalendarDuration(ctx context.Context, v any) (*objects.APIKeyQuotaCalendarDuration, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputAPIKeyQuotaCalendarDurationInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalOAPIKeyQuotaInput2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuota(ctx context.Context, v any) (*objects.APIKeyQuota, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputAPIKeyQuotaInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOAPIKeyQuotaPastDuration2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaPastDuration(ctx context.Context, sel ast.SelectionSet, v *objects.APIKeyQuotaPastDuration) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._APIKeyQuotaPastDuration(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalOAPIKeyQuotaPastDurationInput2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyQuotaPastDuration(ctx context.Context, v any) (*objects.APIKeyQuotaPastDuration, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputAPIKeyQuotaPastDurationInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v any) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -5741,42 +4134,6 @@ func (ec *executionContext) marshalOChannelTagsMatchMode2githubᚗcomᚋlooplj�
 	_ = sel
 	_ = ctx
 	res := graphql.MarshalString(string(v))
-	return res
-}
-
-func (ec *executionContext) unmarshalODecimal2ᚖgithubᚗcomᚋshopspringᚋdecimalᚐDecimal(ctx context.Context, v any) (*decimal.Decimal, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := objects.UnmarshalDecimal(v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalODecimal2ᚖgithubᚗcomᚋshopspringᚋdecimalᚐDecimal(ctx context.Context, sel ast.SelectionSet, v *decimal.Decimal) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	_ = sel
-	_ = ctx
-	res := objects.MarshalDecimal(*v)
-	return res
-}
-
-func (ec *executionContext) unmarshalODecimalInput2ᚖgithubᚗcomᚋshopspringᚋdecimalᚐDecimal(ctx context.Context, v any) (*decimal.Decimal, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := objects.UnmarshalDecimal(v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalODecimalInput2ᚖgithubᚗcomᚋshopspringᚋdecimalᚐDecimal(ctx context.Context, sel ast.SelectionSet, v *decimal.Decimal) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	_ = sel
-	_ = ctx
-	res := objects.MarshalDecimal(*v)
 	return res
 }
 
@@ -5830,24 +4187,6 @@ func (ec *executionContext) marshalOInt2ᚕintᚄ(ctx context.Context, sel ast.S
 	}
 
 	return ret
-}
-
-func (ec *executionContext) unmarshalOInt2ᚖint64(ctx context.Context, v any) (*int64, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := graphql.UnmarshalInt64(v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOInt2ᚖint64(ctx context.Context, sel ast.SelectionSet, v *int64) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	_ = sel
-	_ = ctx
-	res := graphql.MarshalInt64(*v)
-	return res
 }
 
 func (ec *executionContext) marshalOModelMapping2ᚕgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐModelMappingᚄ(ctx context.Context, sel ast.SelectionSet, v []objects.ModelMapping) graphql.Marshaler {
@@ -5966,24 +4305,6 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	_ = sel
 	_ = ctx
 	res := graphql.MarshalString(*v)
-	return res
-}
-
-func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v any) (*time.Time, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := graphql.UnmarshalTime(v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	_ = sel
-	_ = ctx
-	res := graphql.MarshalTime(*v)
 	return res
 }
 

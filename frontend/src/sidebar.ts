@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/authStore';
 import { useSidebarPrefsStore } from '@/stores/sidebarPrefsStore';
 import { formatUserName, isCJKName } from '@/lib/utils';
-import { useRoutePermissions } from '@/hooks/useRoutePermissions';
 import { useMe } from '@/features/auth/data/auth';
 import { type SidebarData, type NavGroup, type NavLink } from './components/layout/types';
 
@@ -51,7 +50,6 @@ export function useSidebarData(): SidebarData {
   const { t } = useTranslation();
   const { user: authUser } = useAuthStore((state) => state.auth);
   const { data: meData } = useMe();
-  const { filterNavGroups } = useRoutePermissions();
   const hiddenItems = useSidebarPrefsStore((state) => state.hiddenItems);
 
   // Use data from me query if available, otherwise fall back to auth store
@@ -89,11 +87,8 @@ export function useSidebarData(): SidebarData {
 
   const rawNavGroups = useRawNavGroups();
 
-  // Filter by permission first, then by the user's own visibility preferences.
-  const filteredNavGroups = useMemo(
-    () => applyHiddenNavItems(filterNavGroups(rawNavGroups), hiddenItems),
-    [filterNavGroups, rawNavGroups, hiddenItems]
-  );
+  // Filter by the user's own visibility preferences.
+  const filteredNavGroups = useMemo(() => applyHiddenNavItems(rawNavGroups, hiddenItems), [rawNavGroups, hiddenItems]);
 
   return {
     user: {

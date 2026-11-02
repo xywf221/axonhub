@@ -51,12 +51,12 @@ test('password login rejects a cross-origin redirect and uses the default destin
   const auth = await setup(t);
   auth.useSignIn('/\\evil.example').onSuccess(data);
   assert.deepEqual(auth.pushed, []);
-  assert.deepEqual(auth.navigated, [{ to: '/project/playground' }]);
+  assert.deepEqual(auth.navigated, [{ to: '/' }]);
 });
 
 test('OIDC authorization and exchange preserve the full original destination', async (t) => {
   const auth = await setup(t);
-  const redirect = '/project/requests?status=error#details';
+  const redirect = '/requests?status=error#details';
   auth.useOIDCAuthorize(redirect).onSuccess({ data: { url: 'https://idp.example/authorize' } });
   assert.equal(window.location.href, 'https://idp.example/authorize');
   auth.useOIDCExchange().onSuccess({ data });
@@ -70,13 +70,13 @@ test('OIDC without a return path uses the default destination', async (t) => {
   auth.useOIDCAuthorize().onSuccess({ data: { url: 'https://idp.example/authorize' } });
   auth.useOIDCExchange().onSuccess({ data });
   assert.deepEqual(auth.pushed, []);
-  assert.deepEqual(auth.navigated, [{ to: '/project/playground' }]);
+  assert.deepEqual(auth.navigated, [{ to: '/' }]);
 });
 
 test('failed OIDC exchange preserves the safe destination for another login attempt', async (t) => {
   const auth = await setup(t);
-  redirects.storeOIDCRedirect('/project/requests');
+  redirects.storeOIDCRedirect('/requests');
   auth.useOIDCExchange().onError(new Error('exchange failed'));
-  assert.deepEqual(auth.navigated, [{ to: '/sign-in', search: { redirect: '/project/requests' } }]);
+  assert.deepEqual(auth.navigated, [{ to: '/sign-in', search: { redirect: '/requests' } }]);
   assert.equal(redirects.consumeOIDCRedirect(), undefined);
 });

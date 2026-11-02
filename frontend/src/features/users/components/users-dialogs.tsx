@@ -1,9 +1,7 @@
 import { useUsers } from '../context/users-context';
 import { UsersActionDialog } from './users-action-dialog';
-import { UsersAddToProjectDialog } from './users-add-to-project-dialog';
 import { UsersChangePasswordDialog } from './users-change-password-dialog';
 import { UsersDeleteDialog } from './users-delete-dialog';
-import { UsersInviteDialog } from './users-invite-dialog';
 import { UsersStatusDialog } from './users-status-dialog';
 
 export function UsersDialogs() {
@@ -11,8 +9,6 @@ export function UsersDialogs() {
   return (
     <>
       <UsersActionDialog key='user-add' open={open === 'add'} onOpenChange={() => setOpen('add')} />
-
-      <UsersInviteDialog key='user-invite' open={open === 'invite'} onOpenChange={() => setOpen('invite')} />
 
       {currentRow && (
         <>
@@ -57,18 +53,6 @@ export function UsersDialogs() {
             open={open === 'status'}
             onOpenChange={() => {
               setOpen('status');
-              setTimeout(() => {
-                setCurrentRow(null);
-              }, 500);
-            }}
-            currentRow={currentRow}
-          />
-
-          <UsersAddToProjectDialog
-            key={`user-add-to-project-${currentRow.id}`}
-            open={open === 'addToProject'}
-            onOpenChange={() => {
-              setOpen('addToProject');
               setTimeout(() => {
                 setCurrentRow(null);
               }, 500);

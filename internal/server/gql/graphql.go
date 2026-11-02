@@ -27,18 +27,14 @@ import (
 	"github.com/looplj/axonhub/internal/ent/channelprobe"
 	"github.com/looplj/axonhub/internal/ent/datastorage"
 	"github.com/looplj/axonhub/internal/ent/model"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/prompt"
 	"github.com/looplj/axonhub/internal/ent/request"
 	"github.com/looplj/axonhub/internal/ent/requestexecution"
-	"github.com/looplj/axonhub/internal/ent/role"
 	"github.com/looplj/axonhub/internal/ent/system"
 	"github.com/looplj/axonhub/internal/ent/thread"
 	"github.com/looplj/axonhub/internal/ent/trace"
 	"github.com/looplj/axonhub/internal/ent/usagelog"
 	"github.com/looplj/axonhub/internal/ent/user"
-	"github.com/looplj/axonhub/internal/ent/userproject"
-	"github.com/looplj/axonhub/internal/ent/userrole"
 	"github.com/looplj/axonhub/internal/pkg/xerrors"
 	"github.com/looplj/axonhub/internal/server/backup"
 	"github.com/looplj/axonhub/internal/server/biz"
@@ -59,10 +55,7 @@ type Dependencies struct {
 	SystemService                  *biz.SystemService
 	ChannelService                 *biz.ChannelService
 	RequestService                 *biz.RequestService
-	QuotaService                   *biz.QuotaService
-	ProjectService                 *biz.ProjectService
 	DataStorageService             *biz.DataStorageService
-	RoleService                    *biz.RoleService
 	TraceService                   *biz.TraceService
 	ThreadService                  *biz.ThreadService
 	UsageLogService                *biz.UsageLogService
@@ -99,10 +92,7 @@ func NewGraphqlHandlers(deps Dependencies) *GraphqlHandler {
 			deps.SystemService,
 			deps.ChannelService,
 			deps.RequestService,
-			deps.QuotaService,
-			deps.ProjectService,
 			deps.DataStorageService,
-			deps.RoleService,
 			deps.TraceService,
 			deps.ThreadService,
 			deps.UsageLogService,
@@ -213,12 +203,8 @@ var guidTypeToNodeType = map[string]string{
 	ent.TypeChannelOverrideTemplate: channeloverridetemplate.Table,
 	ent.TypeRequest:                 request.Table,
 	ent.TypeRequestExecution:        requestexecution.Table,
-	ent.TypeRole:                    role.Table,
 	ent.TypeSystem:                  system.Table,
 	ent.TypeUsageLog:                usagelog.Table,
-	ent.TypeProject:                 project.Table,
-	ent.TypeUserProject:             userproject.Table,
-	ent.TypeUserRole:                userrole.Table,
 	ent.TypeThread:                  thread.Table,
 	ent.TypeTrace:                   trace.Table,
 	ent.TypeDataStorage:             datastorage.Table,

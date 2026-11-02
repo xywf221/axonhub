@@ -13,7 +13,6 @@ import (
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/apikey"
 	"github.com/looplj/axonhub/internal/ent/enttest"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/user"
 	"github.com/looplj/axonhub/internal/objects"
 	"github.com/looplj/axonhub/internal/server/biz"
@@ -58,19 +57,6 @@ func createTestUserWithScopes(t *testing.T, ctx context.Context, client *ent.Cli
 	return testUser
 }
 
-func createTestProject(t *testing.T, ctx context.Context, client *ent.Client) *ent.Project {
-	t.Helper()
-
-	testProject, err := client.Project.Create().
-		SetName(fmt.Sprintf("test-project-%d", time.Now().UnixNano())).
-		SetDescription("test project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
-	return testProject
-}
-
 func TestApiKeyProfileTemplate_CreateTemplate(t *testing.T) {
 	mutationResolver, _, ctx, client := setupTestAPIKeyProfileTemplateResolvers(t)
 	defer client.Close()
@@ -78,12 +64,9 @@ func TestApiKeyProfileTemplate_CreateTemplate(t *testing.T) {
 	testUser := createTestUserWithScopes(t, ctx, client)
 	ctx = contexts.WithUser(ctx, testUser)
 
-	testProject := createTestProject(t, ctx, client)
-
 	input := ent.CreateAPIKeyProfileTemplateInput{
 		Name:        "my-template",
 		Description: ptrStr("A test template"),
-		ProjectID:   testProject.ID,
 	}
 
 	profile := objects.APIKeyProfile{
@@ -97,7 +80,6 @@ func TestApiKeyProfileTemplate_CreateTemplate(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, template)
 	require.Equal(t, "my-template", template.Name)
-	require.Equal(t, testProject.ID, template.ProjectID)
 	require.NotNil(t, template.Profile)
 	require.Equal(t, "my-template", template.Profile.Name)
 }
@@ -109,12 +91,9 @@ func TestApiKeyProfileTemplate_UpdateTemplate(t *testing.T) {
 	testUser := createTestUserWithScopes(t, ctx, client)
 	ctx = contexts.WithUser(ctx, testUser)
 
-	testProject := createTestProject(t, ctx, client)
-
 	template, err := client.APIKeyProfileTemplate.Create().
 		SetName("original-name").
 		SetDescription("original desc").
-		SetProject(testProject).
 		SetProfile(&objects.APIKeyProfile{Name: "original-profile"}).
 		Save(ctx)
 	require.NoError(t, err)
@@ -146,12 +125,9 @@ func TestApiKeyProfileTemplate_DeleteTemplate(t *testing.T) {
 	testUser := createTestUserWithScopes(t, ctx, client)
 	ctx = contexts.WithUser(ctx, testUser)
 
-	testProject := createTestProject(t, ctx, client)
-
 	template, err := client.APIKeyProfileTemplate.Create().
 		SetName("to-delete").
 		SetDescription("delete me").
-		SetProject(testProject).
 		SetProfile(&objects.APIKeyProfile{Name: "delete-profile"}).
 		Save(ctx)
 	require.NoError(t, err)
@@ -172,8 +148,6 @@ func TestApiKeyProfileTemplate_LoadTemplate(t *testing.T) {
 	testUser := createTestUserWithScopes(t, ctx, client)
 	ctx = contexts.WithUser(ctx, testUser)
 
-	testProject := createTestProject(t, ctx, client)
-
 	existingProfiles := &objects.APIKeyProfiles{
 		ActiveProfile: "Default",
 		Profiles: []objects.APIKeyProfile{
@@ -185,7 +159,6 @@ func TestApiKeyProfileTemplate_LoadTemplate(t *testing.T) {
 		SetName("test-api-key").
 		SetKey(fmt.Sprintf("ah-test-%d", time.Now().UnixNano())).
 		SetUserID(testUser.ID).
-		SetProjectID(testProject.ID).
 		SetType(apikey.TypeUser).
 		SetProfiles(existingProfiles).
 		Save(ctx)
@@ -200,7 +173,6 @@ func TestApiKeyProfileTemplate_LoadTemplate(t *testing.T) {
 	template, err := client.APIKeyProfileTemplate.Create().
 		SetName("load-template").
 		SetDescription("load me").
-		SetProject(testProject).
 		SetProfile(templateProfile).
 		Save(ctx)
 	require.NoError(t, err)
@@ -226,27 +198,17 @@ func TestApiKeyProfileTemplate_QueryTemplates(t *testing.T) {
 	testUser := createTestUserWithScopes(t, ctx, client)
 	ctx = contexts.WithUser(ctx, testUser)
 
-	testProject := createTestProject(t, ctx, client)
-
 	for i := range 3 {
 		_, err := client.APIKeyProfileTemplate.Create().
 			SetName(fmt.Sprintf("template-%d", i)).
 			SetDescription(fmt.Sprintf("template %d", i)).
-			SetProject(testProject).
 			SetProfile(&objects.APIKeyProfile{Name: fmt.Sprintf("profile-%d", i)}).
 			Save(ctx)
 		require.NoError(t, err)
 	}
 
-	where := &ent.APIKeyProfileTemplateWhereInput{
-		HasProject: ptrBool(true),
-		HasProjectWith: []*ent.ProjectWhereInput{
-			{ID: &testProject.ID},
-		},
-	}
-
 	first := 10
-	conn, err := queryResolver.APIKeyProfileTemplates(ctx, nil, &first, nil, nil, nil, where)
+	conn, err := queryResolver.APIKeyProfileTemplates(ctx, nil, &first, nil, nil, nil, nil)
 	require.NoError(t, err)
 	require.NotNil(t, conn)
 	require.Equal(t, 3, conn.TotalCount)
@@ -254,8 +216,4 @@ func TestApiKeyProfileTemplate_QueryTemplates(t *testing.T) {
 
 func ptrStr(s string) *string {
 	return &s
-}
-
-func ptrBool(b bool) *bool {
-	return &b
 }

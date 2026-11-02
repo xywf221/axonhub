@@ -24,22 +24,7 @@ func selectCandidates(inbound *PersistentInboundTransformer, quotaProvider Provi
 
 		selector := inbound.state.CandidateSelector
 
-		// Project-level profile filtering (upper boundary)
-		if inbound.state.APIKey != nil {
-			if project := inbound.state.APIKey.Edges.Project; project != nil {
-				if projectProfile := project.GetActiveProfile(); projectProfile != nil {
-					if len(projectProfile.ChannelIDs) > 0 {
-						selector = WithSelectedChannelsSelector(selector, projectProfile.ChannelIDs)
-					}
-
-					if len(projectProfile.ChannelTags) > 0 {
-						selector = WithChannelTagsFilterSelector(selector, projectProfile.ChannelTags, projectProfile.ChannelTagsMatchMode)
-					}
-				}
-			}
-		}
-
-		// Key-level profile filtering (narrows further within project scope)
+		// Key-level profile filtering
 		if profile := inbound.state.APIKey.GetActiveProfile(); profile != nil {
 			if len(profile.ChannelIDs) > 0 {
 				selector = WithSelectedChannelsSelector(selector, profile.ChannelIDs)

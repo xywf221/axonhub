@@ -254,18 +254,6 @@ func createTestChannel(t *testing.T, ctx context.Context, client *ent.Client) *e
 	return ch
 }
 
-// createTestProject creates a test project in the database.
-func createTestProject(t *testing.T, ctx context.Context, client *ent.Client) *ent.Project {
-	t.Helper()
-
-	project, err := client.Project.Create().
-		SetName("Test Project").
-		Save(ctx)
-	require.NoError(t, err)
-
-	return project
-}
-
 // buildMockOpenAIResponse creates a mock OpenAI chat completion response.
 func buildMockOpenAIResponse(id, model, content string, promptTokens, completionTokens int) []byte {
 	resp := map[string]any{

@@ -1,7 +1,3 @@
-scalar Decimal
-scalar DecimalInput
-scalar Time
-
 type APIKey {
   id: ID!
   key: String!
@@ -22,31 +18,8 @@ type APIKeyProfile {
   channelTags: [String!]
   channelTagsMatchMode: ChannelTagsMatchMode
   modelIDs: [String!]
-  quota: APIKeyQuota
   loadBalanceStrategy: String
   traceStickyMode: String
-}
-
-type APIKeyQuota {
-  requests: Int
-  totalTokens: Int
-  cost: Decimal
-  period: APIKeyQuotaPeriod!
-}
-
-type APIKeyQuotaPeriod {
-  type: APIKeyQuotaPeriodType!
-  pastDuration: APIKeyQuotaPastDuration
-  calendarDuration: APIKeyQuotaCalendarDuration
-}
-
-type APIKeyQuotaPastDuration {
-  value: Int!
-  unit: APIKeyQuotaPastDurationUnit!
-}
-
-type APIKeyQuotaCalendarDuration {
-  unit: APIKeyQuotaCalendarDurationUnit!
 }
 
 type ModelMapping {
@@ -58,23 +31,6 @@ enum ChannelTagsMatchMode {
   any
   all
   none
-}
-
-enum APIKeyQuotaPeriodType {
-  all_time
-  past_duration
-  calendar_duration
-}
-
-enum APIKeyQuotaPastDurationUnit {
-  minute
-  hour
-  day
-}
-
-enum APIKeyQuotaCalendarDurationUnit {
-  day
-  month
 }
 
 input UpdateAPIKeyProfilesInput {
@@ -89,31 +45,8 @@ input APIKeyProfileInput {
   channelTags: [String!]
   channelTagsMatchMode: ChannelTagsMatchMode
   modelIDs: [String!]
-  quota: APIKeyQuotaInput
   loadBalanceStrategy: String
   traceStickyMode: String
-}
-
-input APIKeyQuotaInput {
-  requests: Int
-  totalTokens: Int
-  cost: DecimalInput
-  period: APIKeyQuotaPeriodInput!
-}
-
-input APIKeyQuotaPeriodInput {
-  type: APIKeyQuotaPeriodType!
-  pastDuration: APIKeyQuotaPastDurationInput
-  calendarDuration: APIKeyQuotaCalendarDurationInput
-}
-
-input APIKeyQuotaPastDurationInput {
-  value: Int!
-  unit: APIKeyQuotaPastDurationUnit!
-}
-
-input APIKeyQuotaCalendarDurationInput {
-  unit: APIKeyQuotaCalendarDurationUnit!
 }
 
 input ModelMappingInput {
@@ -153,30 +86,4 @@ extend type Query {
   inside the caller's own project are visible (requires the read_api_keys scope).
   """
   apiKey(id: ID, key: String, name: String): APIKey!
-
-  """
-  Returns quota usage for the profiles that have quota enabled on an API key.
-  Provide exactly one of apiKeyId, key, or name; all identify a key, and only
-  keys inside the caller's own project are visible (requires the read_api_keys
-  scope).
-  """
-  apiKeyQuotaUsages(apiKeyId: ID, key: String, name: String): [APIKeyProfileQuotaUsage!]!
-}
-
-type APIKeyProfileQuotaUsage {
-  profileName: String!
-  quota: APIKeyQuota!
-  window: APIKeyQuotaWindow!
-  usage: APIKeyQuotaUsage!
-}
-
-type APIKeyQuotaUsage {
-  requestCount: Int!
-  totalTokens: Int!
-  totalCost: Decimal!
-}
-
-type APIKeyQuotaWindow {
-  start: Time
-  end: Time
 }

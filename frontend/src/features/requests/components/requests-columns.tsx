@@ -3,20 +3,17 @@
 import { format } from 'date-fns';
 import { ColumnDef } from '@tanstack/react-table';
 import { IconAlertTriangle, IconArrowsExchange, IconArrowsJoin2, IconCheck, IconCoin, IconQuestionMark, IconRoute } from '@tabler/icons-react';
-import { Ban, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { zhCN, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 import { extractNumberID, formatUserName } from '@/lib/utils';
 import { formatDuration } from '@/utils/format-duration';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
-import { usePermissions } from '@/hooks/usePermissions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DataTableColumnHeader } from '@/components/data-table-column-header';
-import { useGeneralSettings, useSecuritySettings, useUpdateSecuritySettings } from '@/features/system/data/system';
-import { useRequestPermissions } from '../../../hooks/useRequestPermissions';
+import { useGeneralSettings } from '@/features/system/data/system';
 import { Request } from '../data/schema';
 import { calculateTokensPerSecond, getTokensPerSecondValue } from '../utils/tokens-per-second';
 import { getRequestModelAuditTooltip, getUpstreamModelAudit } from '../utils/upstream-model-audit';
@@ -46,38 +43,8 @@ export const MODEL_ID_COLUMN = 'modelID' as const;
 export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnDef<Request>[] {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'zh' ? zhCN : enUS;
-  const permissions = useRequestPermissions();
-  const { hasSystemScope } = usePermissions();
   const { data: settings } = useGeneralSettings();
-  const { data: securitySettings } = useSecuritySettings();
-  const updateSecuritySettings = useUpdateSecuritySettings();
   const { navigateWithSearch } = usePaginationSearch({ defaultPageSize: 20 });
-  const canManageSecuritySettings = hasSystemScope('write_settings');
-
-  const blockedIPs = securitySettings?.blockedIPs ?? [];
-  const showIPBanIcon = securitySettings?.showRequestLogIPBanIcon === true;
-
-  const normalizeBlockedIPs = (ips: string[]) => Array.from(new Set(ips.map((ip) => ip.trim()).filter((ip) => ip.length > 0)));
-
-  const handleBlockIP = async (clientIP: string) => {
-    const normalizedIP = clientIP.trim();
-    if (!normalizedIP) return;
-
-    const nextBlockedIPs = normalizeBlockedIPs([...blockedIPs, normalizedIP]);
-    if (nextBlockedIPs.length === blockedIPs.length && blockedIPs.includes(normalizedIP)) {
-      toast.info(t('requests.actions.ipAlreadyBlocked'));
-      return;
-    }
-
-    await updateSecuritySettings.mutateAsync({ blockedIPs: nextBlockedIPs });
-  };
-
-  const handleUnblockIP = async (clientIP: string) => {
-    const normalizedIP = clientIP.trim();
-    if (!normalizedIP) return;
-
-    await updateSecuritySettings.mutateAsync({ blockedIPs: blockedIPs.filter((ip) => ip.trim() !== normalizedIP) });
-  };
 
   const openDetail = (requestId: string) => {
     if (options?.onViewDetail) {
@@ -86,7 +53,7 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
     }
 
     navigateWithSearch({
-      to: '/project/requests/$requestId',
+      to: '/requests/$requestId',
       params: { requestId },
     });
   };
@@ -306,49 +273,7 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
         const normalizedIP = row.original.clientIP?.trim() ?? '';
         if (!normalizedIP) return <span className='text-muted-foreground text-xs'>-</span>;
 
-        const isBlocked = blockedIPs.includes(normalizedIP);
-        return (
-          <div className='flex items-center gap-2'>
-            <span className='font-mono text-xs'>{normalizedIP}</span>
-            {canManageSecuritySettings &&
-              showIPBanIcon &&
-              (isBlocked ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='icon-sm'
-                      className='h-6 w-6 shrink-0 text-red-500/80 hover:bg-red-50 hover:text-red-600 dark:text-red-300/80 dark:hover:bg-red-950/30 dark:hover:text-red-300'
-                      disabled={updateSecuritySettings.isPending}
-                      onClick={() => void handleUnblockIP(normalizedIP)}
-                      aria-label={t('requests.actions.unblockIP')}
-                    >
-                      <Ban className='h-3.5 w-3.5' />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{t('requests.actions.unblockIP')}</TooltipContent>
-                </Tooltip>
-              ) : (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='icon-sm'
-                      className='text-muted-foreground h-6 w-6 shrink-0 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 dark:hover:text-red-300'
-                      disabled={updateSecuritySettings.isPending}
-                      onClick={() => void handleBlockIP(normalizedIP)}
-                      aria-label={t('requests.actions.blockIP')}
-                    >
-                      <Ban className='h-3.5 w-3.5' />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{t('requests.actions.blockIP')}</TooltipContent>
-                </Tooltip>
-              ))}
-          </div>
-        );
+        return <span className='font-mono text-xs'>{normalizedIP}</span>;
       },
     },
     {
@@ -371,8 +296,7 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
         );
       },
     },
-    ...(permissions.canViewChannels
-      ? ([
+    ...([
           {
             id: 'channel',
             accessorFn: (row) => row.executions?.edges?.[0]?.node?.channel?.id ?? row.channel?.id ?? '',
@@ -465,8 +389,7 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
               return <span className='font-mono text-xs'>key{index}</span>;
             },
           },
-        ] as ColumnDef<Request>[])
-      : []),
+        ] as ColumnDef<Request>[]),
     {
       id: 'tokens',
       accessorFn: (row) => {

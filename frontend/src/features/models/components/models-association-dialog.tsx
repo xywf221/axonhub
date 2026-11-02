@@ -719,7 +719,7 @@ export function ModelsAssociationDialog() {
   const updateModel = useUpdateModel();
   const updateModelSettings = useUpdateModelSettings();
   const { data: settings, isLoading: isSettingsLoading } = useModelSettings();
-  const { data: channelsData } = useAllChannelSummarys(undefined, { enabled: open === 'association' || open === 'developerAssociation' });
+  const { data: channelsData } = useAllChannelSummarys({ enabled: open === 'association' || open === 'developerAssociation' });
   const { data: availableModels, mutateAsync: fetchModels } = useQueryModels();
   const { data: allTags = [] } = useAllChannelTags();
   const { mutateAsync: queryConnections } = useQueryModelChannelConnections();

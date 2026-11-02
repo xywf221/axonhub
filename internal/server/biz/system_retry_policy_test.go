@@ -32,7 +32,7 @@ func TestSystemService_RetryPolicyOrDefault_WithAPIKeyPrincipal(t *testing.T) {
 
 	// Read it back the way an API-key-authenticated streaming path does: ent
 	// client in context, API-key principal, and no privacy bypass.
-	apiKeyCtx := authz.NewAPIKeyContext(ent.NewContext(t.Context(), client), 1, 1)
+	apiKeyCtx := authz.NewAPIKeyContext(ent.NewContext(t.Context(), client), 1)
 
 	got := service.RetryPolicyOrDefault(apiKeyCtx)
 	require.Equal(t, 7, got.MaxChannelRetries, "configured retry policy must survive an API-key request context")

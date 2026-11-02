@@ -5,7 +5,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/schema"
-	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
@@ -28,10 +27,8 @@ func (Prompt) Mixin() []ent.Mixin {
 
 func (Prompt) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("project_id").
-			StorageKey("prompts_by_project_id"),
-		index.Fields("project_id", "name", "deleted_at").
-			StorageKey("prompts_by_project_id_name").
+		index.Fields("name", "deleted_at").
+			StorageKey("prompts_by_name").
 			Unique(),
 	}
 }
@@ -39,10 +36,6 @@ func (Prompt) Indexes() []ent.Index {
 // Fields of the Prompt.
 func (Prompt) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int("project_id").
-			Immutable().
-			Comment("Project ID that this prompt belongs to").Annotations(
-			entgql.Skip(entgql.SkipMutationCreateInput, entgql.SkipMutationUpdateInput)),
 		field.String("name").
 			Comment("prompt name"),
 		field.String("description").
@@ -69,17 +62,7 @@ func (Prompt) Fields() []ent.Field {
 
 // Edges of the Prompt.
 func (Prompt) Edges() []ent.Edge {
-	return []ent.Edge{
-		edge.From("project", Project.Type).
-			Ref("prompts").
-			Field("project_id").
-			Immutable().
-			Required().
-			Unique().
-			Annotations(
-				entgql.Skip(entgql.SkipMutationCreateInput, entgql.SkipMutationUpdateInput),
-			),
-	}
+	return nil
 }
 
 func (Prompt) Annotations() []schema.Annotation {
@@ -94,12 +77,10 @@ func (Prompt) Policy() ent.Policy {
 	return scopes.Policy{
 		Query: scopes.QueryPolicy{
 			scopes.OwnerRule(),
-			scopes.UserProjectScopeReadRule(scopes.ScopeReadPrompts),
 			scopes.UserReadScopeRule(scopes.ScopeReadPrompts),
 		},
 		Mutation: scopes.MutationPolicy{
 			scopes.OwnerRule(),
-			scopes.UserProjectScopeWriteRule(scopes.ScopeWritePrompts),
 			scopes.UserWriteScopeRule(scopes.ScopeWritePrompts),
 		},
 	}

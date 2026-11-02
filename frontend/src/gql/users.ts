@@ -6,7 +6,6 @@ export const ME_QUERY = `
       firstName
       lastName
       isOwner
-      scopes
       preferLanguage
       avatar
       hasPassword
@@ -16,18 +15,6 @@ export const ME_QUERY = `
         issuer
         subject
         email
-      }
-      roles {
-        name
-      }
-      projects {
-        projectID
-        isOwner
-        scopes
-        effectiveScopes
-        roles {
-          name
-        }
       }
     }
   }
@@ -49,15 +36,6 @@ export const USERS_QUERY = `
           lastName
           isOwner
           preferLanguage
-          scopes
-          roles {
-            edges {
-              node {
-                id
-                name
-              }
-            }
-          }
         }
       }
       pageInfo {
@@ -82,15 +60,6 @@ export const USER_QUERY = `
       lastName
       isOwner
       preferLanguage
-      scopes
-      roles {
-        edges {
-          node {
-            id
-            name
-          }
-        }
-      }
     }
   }
 `;
@@ -107,15 +76,6 @@ export const CREATE_USER_MUTATION = `
       lastName
       isOwner
       preferLanguage
-      scopes
-      roles {
-        edges {
-          node {
-            id
-            name
-          }
-        }
-      }
     }
   }
 `;
@@ -132,15 +92,6 @@ export const UPDATE_USER_MUTATION = `
       lastName
       isOwner
       preferLanguage
-      scopes
-      roles {
-        edges {
-          node {
-            id
-            name
-          }
-        }
-      }
     }
   }
 `;
@@ -157,15 +108,6 @@ export const UPDATE_USER_STATUS_MUTATION = `
       lastName
       isOwner
       preferLanguage
-      scopes
-      roles {
-        edges {
-          node {
-            id
-            name
-          }
-        }
-      }
     }
   }
 `;
@@ -186,15 +128,6 @@ export const SIGN_IN_MUTATION = `
         lastName
         isOwner
         preferLanguage
-        scopes
-        roles {
-          edges {
-            node {
-              id
-              name
-            }
-          }
-        }
       }
       token
     }

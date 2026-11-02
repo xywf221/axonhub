@@ -3,7 +3,6 @@ import { SortingState } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 import { useDebounce } from '@/hooks/use-debounce';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
-import { usePermissions } from '@/hooks/usePermissions';
 import { Main } from '@/components/layout/main';
 import { PageHeader } from '@/components/layout/page-header';
 import { createColumns } from './components/channels-columns';
@@ -31,12 +30,10 @@ const ChannelsDialogs = lazy(() => import('./components/channels-dialogs').then(
 function ChannelsContent() {
   const { t } = useTranslation();
   useProvidersData();
-  const { channelPermissions, hasSystemScope } = usePermissions();
   const { data: quotaRoutingSettings } = useQuotaRoutingSettings();
   const queryClient = useQueryClient();
   const authUserId = useAuthStore((state) => state.auth.user?.id);
-  const canReadSystemSettings = hasSystemScope('read_settings');
-  const quotaRoutingCacheKey = `${authUserId ?? 'signed-out'}:${canReadSystemSettings}`;
+  const quotaRoutingCacheKey = `${authUserId ?? 'signed-out'}`;
   const previousQuotaRoutingCacheKey = useRef<string | undefined>(undefined);
   const currentQuotaRoutingSettings = previousQuotaRoutingCacheKey.current === quotaRoutingCacheKey ? quotaRoutingSettings : undefined;
   useEffect(() => {
@@ -278,8 +275,8 @@ function ChannelsContent() {
   }, []);
 
   const columns = useMemo(
-     () => createColumns(t, channelPermissions.canWrite, currentQuotaRoutingSettings?.defaultMode),
-     [t, channelPermissions.canWrite, currentQuotaRoutingSettings?.defaultMode]
+     () => createColumns(t, true, currentQuotaRoutingSettings?.defaultMode),
+     [t, currentQuotaRoutingSettings?.defaultMode]
   );
 
   return (
@@ -319,7 +316,7 @@ function ChannelsContent() {
         onModelFilterChange={handleModelFilterChange}
         columnVisibility={columnVisibility}
         onColumnVisibilityChange={setColumnVisibility}
-        canWrite={channelPermissions.canWrite}
+        canWrite={true}
       />
     </div>
   );

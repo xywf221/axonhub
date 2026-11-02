@@ -5,7 +5,6 @@
   "traces.common.badges.response": "Response",
   "traces.common.badges.trace": "Trace",
   "traces.columns.traceId": "Trace ID",
-  "traces.columns.project": "Project",
   "traces.columns.thread": "Thread",
   "traces.columns.userQuery": "User Query",
   "traces.columns.requestCount": "Request Count",

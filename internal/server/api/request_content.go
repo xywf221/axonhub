@@ -11,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/fx"
 
-	"github.com/looplj/axonhub/internal/contexts"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/datastorage"
 	"github.com/looplj/axonhub/internal/server/biz"
@@ -40,12 +39,6 @@ type DownloadContentRequest struct {
 func (h *RequestContentHandlers) DownloadRequestContent(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	projectID, ok := contexts.GetProjectID(ctx)
-	if !ok || projectID <= 0 {
-		JSONError(c, http.StatusBadRequest, errors.New("Project ID not found in context"))
-		return
-	}
-
 	var reqquest DownloadContentRequest
 	if err := c.ShouldBindUri(&reqquest); err != nil {
 		JSONError(c, http.StatusBadRequest, fmt.Errorf("Invalid request body: %w", err))
@@ -62,11 +55,6 @@ func (h *RequestContentHandlers) DownloadRequestContent(c *gin.Context) {
 		return
 	}
 
-	if projectID != req.ProjectID {
-		JSONError(c, http.StatusNotFound, errors.New("Request not found"))
-		return
-	}
-
 	if !req.ContentSaved || req.ContentStorageID == nil || req.ContentStorageKey == nil || strings.TrimSpace(*req.ContentStorageKey) == "" {
 		JSONError(c, http.StatusNotFound, errors.New("Content not found"))
 		return
@@ -77,7 +65,7 @@ func (h *RequestContentHandlers) DownloadRequestContent(c *gin.Context) {
 	if !strings.HasPrefix(key, "/") {
 		key = "/" + key
 	}
-	expectedPrefix := fmt.Sprintf("/%d/requests/%d/", req.ProjectID, req.ID)
+	expectedPrefix := fmt.Sprintf("/requests/%d/", req.ID)
 	if !strings.HasPrefix(key, expectedPrefix) {
 		JSONError(c, http.StatusNotFound, errors.New("Content not found"))
 		return

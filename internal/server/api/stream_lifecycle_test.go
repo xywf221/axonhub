@@ -149,8 +149,6 @@ func TestRawOpenAIChatStreamLifecyclePersistsAndWritesProtocolOutcomes(t *testin
 			client := enttest.NewEntClient(t, "sqlite3", "file:ent?mode=memory&_fk=1")
 			defer client.Close()
 			baseCtx := authz.WithTestBypass(ent.NewContext(t.Context(), client))
-			project, err := client.Project.Create().SetName("stream-test").SetDescription("stream-test").Save(baseCtx)
-			require.NoError(t, err)
 			systemService := biz.NewSystemService(biz.SystemServiceParams{CacheConfig: xcache.Config{Mode: xcache.ModeMemory}, Ent: client})
 			channelService := biz.NewChannelServiceForTest(client)
 			usageLogService := biz.NewUsageLogService(client, systemService, channelService)
@@ -165,10 +163,10 @@ func TestRawOpenAIChatStreamLifecyclePersistsAndWritesProtocolOutcomes(t *testin
 			if requestBody == "" {
 				requestBody = `{"stream":true}`
 			}
-			req, err := client.Request.Create().SetProjectID(project.ID).SetModelID("gpt-test").SetFormat(llm.APIFormatOpenAIChatCompletion.String()).
+			req, err := client.Request.Create().SetModelID("gpt-test").SetFormat(llm.APIFormatOpenAIChatCompletion.String()).
 				SetStatus(request.StatusProcessing).SetStream(true).SetRequestBody(objects.JSONRawMessage(requestBody)).Save(baseCtx)
 			require.NoError(t, err)
-			execution, err := client.RequestExecution.Create().SetRequestID(req.ID).SetProjectID(project.ID).SetModelID("gpt-test").
+			execution, err := client.RequestExecution.Create().SetRequestID(req.ID).SetModelID("gpt-test").
 				SetFormat(llm.APIFormatOpenAIChatCompletion.String()).SetStatus(requestexecution.StatusProcessing).SetStream(true).
 				SetRequestBody(objects.JSONRawMessage(`{"stream":true}`)).Save(baseCtx)
 			require.NoError(t, err)

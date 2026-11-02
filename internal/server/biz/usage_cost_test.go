@@ -101,7 +101,6 @@ func TestUsageCost_PerUnitPromptAndCompletion(t *testing.T) {
 
 	ul, err := usageLogService.CreateUsageLog(ctx, CreateUsageLogParams{
 		RequestID:     1,
-		ProjectID:     1,
 		ChannelID:     ch.ID,
 		ActualModelID: "m1",
 		Usage:         usage,
@@ -176,7 +175,6 @@ func TestUsageCost_TieredPrompt(t *testing.T) {
 
 	ul, err := usageLogService.CreateUsageLog(ctx, CreateUsageLogParams{
 		RequestID:     1,
-		ProjectID:     1,
 		ChannelID:     ch.ID,
 		ActualModelID: "m2",
 		Usage:         usage,
@@ -252,7 +250,6 @@ func TestUsageCost_VolumePrompt(t *testing.T) {
 
 	ul, err := usageLogService.CreateUsageLog(ctx, CreateUsageLogParams{
 		RequestID:     1,
-		ProjectID:     1,
 		ChannelID:     ch.ID,
 		ActualModelID: "m8",
 		Usage:         usage,
@@ -329,7 +326,6 @@ func TestUsageCost_VolumePromptFirstTier(t *testing.T) {
 
 	ul, err := usageLogService.CreateUsageLog(ctx, CreateUsageLogParams{
 		RequestID:     1,
-		ProjectID:     1,
 		ChannelID:     ch.ID,
 		ActualModelID: "m9",
 		Usage:         usage,
@@ -383,7 +379,6 @@ func TestUsageCost_NoPriceConfigured(t *testing.T) {
 
 	ul, err := usageLogService.CreateUsageLog(ctx, CreateUsageLogParams{
 		RequestID:     1,
-		ProjectID:     1,
 		ChannelID:     ch.ID,
 		ActualModelID: "m3",
 		Usage:         usage,
@@ -467,7 +462,6 @@ func TestUsageCost_CacheVariant5Min(t *testing.T) {
 
 	ul, err := usageLogService.CreateUsageLog(ctx, CreateUsageLogParams{
 		RequestID:     1,
-		ProjectID:     1,
 		ChannelID:     ch.ID,
 		ActualModelID: "m4",
 		Usage:         usage,
@@ -558,7 +552,6 @@ func TestUsageCost_CacheVariant1Hour(t *testing.T) {
 
 	ul, err := usageLogService.CreateUsageLog(ctx, CreateUsageLogParams{
 		RequestID:     1,
-		ProjectID:     1,
 		ChannelID:     ch.ID,
 		ActualModelID: "m5",
 		Usage:         usage,
@@ -654,7 +647,6 @@ func TestUsageCost_CacheVariantBoth5MinAnd1Hour(t *testing.T) {
 
 	ul, err := usageLogService.CreateUsageLog(ctx, CreateUsageLogParams{
 		RequestID:     1,
-		ProjectID:     1,
 		ChannelID:     ch.ID,
 		ActualModelID: "m6",
 		Usage:         usage,
@@ -741,7 +733,6 @@ func TestUsageCost_CacheVariantFallbackToShared(t *testing.T) {
 
 	ul, err := usageLogService.CreateUsageLog(ctx, CreateUsageLogParams{
 		RequestID:     1,
-		ProjectID:     1,
 		ChannelID:     ch.ID,
 		ActualModelID: "m7",
 		Usage:         usage,
@@ -824,7 +815,6 @@ func TestUsageCost_FallbackToModelLibraryPrice(t *testing.T) {
 
 	ul, err := usageLogService.CreateUsageLog(ctx, CreateUsageLogParams{
 		RequestID:     1,
-		ProjectID:     1,
 		ChannelID:     ch.ID,
 		ActualModelID: "m-fallback",
 		Usage:         usage,
@@ -899,7 +889,6 @@ func TestUsageCost_ChannelPriceWinsOverModelLibrary(t *testing.T) {
 
 	ul, err := usageLogService.CreateUsageLog(ctx, CreateUsageLogParams{
 		RequestID:     1,
-		ProjectID:     1,
 		ChannelID:     ch.ID,
 		ActualModelID: "m-precedence",
 		Usage:         usage,
@@ -953,7 +942,6 @@ func TestUsageCost_FallbackSkipsUnpriceableModelLibraryEntries(t *testing.T) {
 	for _, modelID := range []string{"m-no-cost", "m-archived", "m-missing"} {
 		ul, err := usageLogService.CreateUsageLog(ctx, CreateUsageLogParams{
 			RequestID:     1,
-			ProjectID:     1,
 			ChannelID:     ch.ID,
 			ActualModelID: modelID,
 			Usage:         usage,
@@ -1009,7 +997,6 @@ func TestUsageCost_FallbackStripsEffortSuffix(t *testing.T) {
 
 	ul, err := usageLogService.CreateUsageLog(ctx, CreateUsageLogParams{
 		RequestID:     1,
-		ProjectID:     1,
 		ChannelID:     ch.ID,
 		ActualModelID: "m-suffix-high",
 		Usage:         usage,
@@ -1070,7 +1057,6 @@ func TestUsageCost_FallbackPrefersExactModelBeforeSuffix(t *testing.T) {
 
 	ul, err := usageLogService.CreateUsageLog(ctx, CreateUsageLogParams{
 		RequestID:     1,
-		ProjectID:     1,
 		ChannelID:     ch.ID,
 		ActualModelID: "m-exact-high",
 		Usage:         usage,

@@ -36,7 +36,7 @@ func TestCodexRoutes_CallerIntersection(t *testing.T) {
 		{"ah-second", "B", `{"extension":true,"models":[{"slug":"B","visibility":"hide","details":{"future":3}}]}`},
 		{"ah-empty", "local-only", `{"extension":true,"models":[]}`},
 	} {
-		h.db.APIKey.Create().SetName(tc.key).SetKey(tc.key).SetType(apikey.TypeUser).SetUserID(h.key.UserID).SetProjectID(h.key.ProjectID).SetProfiles(&objects.APIKeyProfiles{ActiveProfile: "only", Profiles: []objects.APIKeyProfile{{Name: "only", ModelIDs: []string{tc.model}}}}).SaveX(h.ctx)
+		h.db.APIKey.Create().SetName(tc.key).SetKey(tc.key).SetType(apikey.TypeUser).SetUserID(h.key.UserID).SetProfiles(&objects.APIKeyProfiles{ActiveProfile: "only", Profiles: []objects.APIKeyProfile{{Name: "only", ModelIDs: []string{tc.model}}}}).SaveX(h.ctx)
 		result := h.request("GET", "/codex/models?client_version=0.162.1", tc.key)
 		require.Equal(t, 200, result.Code, result.Body.String())
 		require.JSONEq(t, tc.expected, result.Body.String())

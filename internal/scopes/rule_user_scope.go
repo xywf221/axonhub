@@ -8,70 +8,45 @@ import (
 	"github.com/looplj/axonhub/internal/ent/privacy"
 )
 
-// UserReadScopeRule checks read permissions.
+// UserReadScopeRule allows any authenticated user to read.
 func UserReadScopeRule(readScope ScopeSlug) privacy.QueryRule {
-	return userScopeQueryRule{requiredScope: readScope}
+	return userScopeQueryRule{}
 }
 
 // userScopeQueryRule custom QueryRule implementation.
-type userScopeQueryRule struct {
-	requiredScope ScopeSlug
-}
+type userScopeQueryRule struct{}
 
 func (r userScopeQueryRule) EvalQuery(ctx context.Context, q ent.Query) error {
-	user, err := getUserFromContext(ctx)
-	if err != nil {
-		return err
+	if _, err := getUserFromContext(ctx); err != nil {
+		return privacy.Skipf("User not found in context")
 	}
 
-	if HasSystemScope(user, r.requiredScope) {
-		return privacy.Allow
-	}
-
-	return privacy.Skipf("user does not have required read scope: %s", r.requiredScope)
+	return privacy.Allow
 }
 
-// UserWriteScopeRule checks write permissions.
+// UserWriteScopeRule allows any authenticated user to write.
 func UserWriteScopeRule(writeScope ScopeSlug) privacy.MutationRule {
 	return privacy.MutationRuleFunc(func(ctx context.Context, m ent.Mutation) error {
-		user, err := getUserFromContext(ctx)
-		if err != nil {
-			return err
+		if _, err := getUserFromContext(ctx); err != nil {
+			return privacy.Skipf("User not found in context")
 		}
 
-		if HasSystemScope(user, writeScope) {
-			return privacy.Allow
-		}
-
-		return privacy.Skipf("user does not have required write scope: %s", writeScope)
+		return privacy.Allow
 	})
 }
 
-// UserScopeQueryMutationRule checks both read and write permissions.
+// UserScopeQueryMutationRule allows any authenticated user to access.
 func UserScopeQueryMutationRule(requiredScope ScopeSlug) privacy.QueryMutationRule {
 	return privacy.ContextQueryMutationRule(func(ctx context.Context) error {
-		user, err := getUserFromContext(ctx)
-		if err != nil {
-			return err
+		if _, err := getUserFromContext(ctx); err != nil {
+			return privacy.Skipf("User not found in context")
 		}
 
-		if HasSystemScope(user, requiredScope) {
-			return privacy.Allow
-		}
-
-		return privacy.Skipf("user does not have required scope: %s", requiredScope)
+		return privacy.Allow
 	})
 }
 
 func UserHasScope(ctx context.Context, requiredScope ScopeSlug) bool {
 	user, ok := contexts.GetUser(ctx)
-	if !ok || user == nil {
-		return false
-	}
-
-	if HasSystemScope(user, requiredScope) {
-		return true
-	}
-
-	return false
+	return ok && user != nil
 }

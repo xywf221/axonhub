@@ -154,9 +154,6 @@ func (_u *TraceUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Trace.status": %w`, err)}
 		}
 	}
-	if _u.mutation.ProjectCleared() && len(_u.mutation.ProjectIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "Trace.project"`)
-	}
 	return nil
 }
 
@@ -390,9 +387,6 @@ func (_u *TraceUpdateOne) check() error {
 		if err := trace.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Trace.status": %w`, err)}
 		}
-	}
-	if _u.mutation.ProjectCleared() && len(_u.mutation.ProjectIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "Trace.project"`)
 	}
 	return nil
 }

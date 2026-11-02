@@ -1,23 +1,15 @@
-# Fine-grained Permission
+# Permissions
 
 ## Overview
-AxonHub provides role-based access control (RBAC) so that organizations can tailor API access, feature visibility, and resource quotas to specific teams or workloads. Fine-grained rules allow administrators to enforce least-privilege policies, protect sensitive data, and monitor usage across projects.
+AxonHub is a single-tenant deployment: every authenticated user has full access to all features and data. Roles, projects, and per-user permission assignments are not part of the system, so there is no RBAC configuration to maintain.
 
-## Key Concepts
-- **Roles** – Collections of permissions that define a user or API key's capabilities.
-- **Scopes** – Granular privileges such as managing channels, issuing API keys, or viewing traces.
-- **Projects** – Logical containers that tie together datasets, model profiles, and API activity.
-- **API Keys** – Tokens issued per project or user that inherit role scopes and can be rotated at any time.
-
-## Common Policies
-1. **Separation of Duties** – Assign operational teams read-only access to traces while keeping configuration changes limited to administrators.
-2. **Quota Guardrails** – Combine rate limits and per-model cost ceilings to prevent runaway spend.
-3. **Environment Isolation** – Create dedicated projects for staging and production, mapping distinct model profiles and upstream credentials.
+## API Key Scopes
+API keys are the only principals with restricted permissions. Each API key carries a list of scopes that determine which operations it may perform; requests authenticated with a key are limited to those scopes.
 
 ## Best Practices
 - Rotate API keys regularly and revoke unused credentials from the admin console.
-- Use service accounts with minimal scopes for automation pipelines and CI/CD flows.
-- Enable auditing to capture every administrative change for compliance investigations.
+- Grant each API key only the scopes it needs for its workload.
+- Use separate API keys for automation pipelines and CI/CD flows.
 
 ## Related Resources
 - [OpenAI API](../api-reference/openai-api.md)

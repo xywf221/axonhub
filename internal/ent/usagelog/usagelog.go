@@ -27,8 +27,6 @@ const (
 	FieldRequestID = "request_id"
 	// FieldAPIKeyID holds the string denoting the api_key_id field in the database.
 	FieldAPIKeyID = "api_key_id"
-	// FieldProjectID holds the string denoting the project_id field in the database.
-	FieldProjectID = "project_id"
 	// FieldChannelID holds the string denoting the channel_id field in the database.
 	FieldChannelID = "channel_id"
 	// FieldModelID holds the string denoting the model_id field in the database.
@@ -69,8 +67,6 @@ const (
 	FieldCostPriceReferenceID = "cost_price_reference_id"
 	// EdgeRequest holds the string denoting the request edge name in mutations.
 	EdgeRequest = "request"
-	// EdgeProject holds the string denoting the project edge name in mutations.
-	EdgeProject = "project"
 	// EdgeChannel holds the string denoting the channel edge name in mutations.
 	EdgeChannel = "channel"
 	// Table holds the table name of the usagelog in the database.
@@ -82,13 +78,6 @@ const (
 	RequestInverseTable = "requests"
 	// RequestColumn is the table column denoting the request relation/edge.
 	RequestColumn = "request_id"
-	// ProjectTable is the table that holds the project relation/edge.
-	ProjectTable = "usage_logs"
-	// ProjectInverseTable is the table name for the Project entity.
-	// It exists in this package in order to avoid circular dependency with the "project" package.
-	ProjectInverseTable = "projects"
-	// ProjectColumn is the table column denoting the project relation/edge.
-	ProjectColumn = "project_id"
 	// ChannelTable is the table that holds the channel relation/edge.
 	ChannelTable = "usage_logs"
 	// ChannelInverseTable is the table name for the Channel entity.
@@ -105,7 +94,6 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldRequestID,
 	FieldAPIKeyID,
-	FieldProjectID,
 	FieldChannelID,
 	FieldModelID,
 	FieldPromptTokens,
@@ -151,8 +139,6 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// DefaultProjectID holds the default value on creation for the "project_id" field.
-	DefaultProjectID int
 	// DefaultPromptTokens holds the default value on creation for the "prompt_tokens" field.
 	DefaultPromptTokens int64
 	// DefaultCompletionTokens holds the default value on creation for the "completion_tokens" field.
@@ -236,11 +222,6 @@ func ByRequestID(opts ...sql.OrderTermOption) OrderOption {
 // ByAPIKeyID orders the results by the api_key_id field.
 func ByAPIKeyID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAPIKeyID, opts...).ToFunc()
-}
-
-// ByProjectID orders the results by the project_id field.
-func ByProjectID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldProjectID, opts...).ToFunc()
 }
 
 // ByChannelID orders the results by the channel_id field.
@@ -340,13 +321,6 @@ func ByRequestField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
-// ByProjectField orders the results by project field.
-func ByProjectField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newProjectStep(), sql.OrderByField(field, opts...))
-	}
-}
-
 // ByChannelField orders the results by channel field.
 func ByChannelField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -358,13 +332,6 @@ func newRequestStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(RequestInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, RequestTable, RequestColumn),
-	)
-}
-func newProjectStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ProjectInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, ProjectTable, ProjectColumn),
 	)
 }
 func newChannelStep() *sqlgraph.Step {

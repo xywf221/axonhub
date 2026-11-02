@@ -28,14 +28,10 @@ type Tx struct {
 	ChannelProbe *ChannelProbeClient
 	// DataStorage is the client for interacting with the DataStorage builders.
 	DataStorage *DataStorageClient
-	// Invitation is the client for interacting with the Invitation builders.
-	Invitation *InvitationClient
 	// Model is the client for interacting with the Model builders.
 	Model *ModelClient
 	// OIDCIdentity is the client for interacting with the OIDCIdentity builders.
 	OIDCIdentity *OIDCIdentityClient
-	// Project is the client for interacting with the Project builders.
-	Project *ProjectClient
 	// Prompt is the client for interacting with the Prompt builders.
 	Prompt *PromptClient
 	// PromptProtectionRule is the client for interacting with the PromptProtectionRule builders.
@@ -46,8 +42,6 @@ type Tx struct {
 	Request *RequestClient
 	// RequestExecution is the client for interacting with the RequestExecution builders.
 	RequestExecution *RequestExecutionClient
-	// Role is the client for interacting with the Role builders.
-	Role *RoleClient
 	// System is the client for interacting with the System builders.
 	System *SystemClient
 	// Thread is the client for interacting with the Thread builders.
@@ -58,10 +52,6 @@ type Tx struct {
 	UsageLog *UsageLogClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
-	// UserProject is the client for interacting with the UserProject builders.
-	UserProject *UserProjectClient
-	// UserRole is the client for interacting with the UserRole builders.
-	UserRole *UserRoleClient
 
 	// lazily loaded.
 	client     *Client
@@ -201,23 +191,18 @@ func (tx *Tx) init() {
 	tx.ChannelOverrideTemplate = NewChannelOverrideTemplateClient(tx.config)
 	tx.ChannelProbe = NewChannelProbeClient(tx.config)
 	tx.DataStorage = NewDataStorageClient(tx.config)
-	tx.Invitation = NewInvitationClient(tx.config)
 	tx.Model = NewModelClient(tx.config)
 	tx.OIDCIdentity = NewOIDCIdentityClient(tx.config)
-	tx.Project = NewProjectClient(tx.config)
 	tx.Prompt = NewPromptClient(tx.config)
 	tx.PromptProtectionRule = NewPromptProtectionRuleClient(tx.config)
 	tx.ProviderQuotaStatus = NewProviderQuotaStatusClient(tx.config)
 	tx.Request = NewRequestClient(tx.config)
 	tx.RequestExecution = NewRequestExecutionClient(tx.config)
-	tx.Role = NewRoleClient(tx.config)
 	tx.System = NewSystemClient(tx.config)
 	tx.Thread = NewThreadClient(tx.config)
 	tx.Trace = NewTraceClient(tx.config)
 	tx.UsageLog = NewUsageLogClient(tx.config)
 	tx.User = NewUserClient(tx.config)
-	tx.UserProject = NewUserProjectClient(tx.config)
-	tx.UserRole = NewUserRoleClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

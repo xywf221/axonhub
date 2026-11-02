@@ -27,19 +27,18 @@ type Dependencies struct {
 	Ent                          *ent.Client
 	APIKeyService                *biz.APIKeyService
 	APIKeyProfileTemplateService *biz.APIKeyProfileTemplateService
-	QuotaService                 *biz.QuotaService
 }
 
 func NewGraphqlHandlers(deps Dependencies) *GraphqlHandler {
-	gqlSrv := handler.New(NewSchema(deps.APIKeyService, deps.APIKeyProfileTemplateService, deps.QuotaService))
+	gqlSrv := handler.New(NewSchema(deps.APIKeyService, deps.APIKeyProfileTemplateService))
 
 	gqlSrv.AddTransport(transport.Options{})
-	// Intentionally NOT registering transport.GET: the apiKeyQuotaUsages query
-	// accepts a plaintext `key`, and gqlgen's GET transport reads operation
-	// variables from the URL query string. Allowing GET would let secret API
-	// keys land in URLs (reverse-proxy/access logs, browser history, traces).
-	// Programmatic clients (and the genqlient SDK) use POST, so GET has no
-	// legitimate consumer here.
+	// Intentionally NOT registering transport.GET: the openapi schema accepts
+	// plaintext API keys, and gqlgen's GET transport reads operation variables
+	// from the URL query string. Allowing GET would let secret API keys land in
+	// URLs (reverse-proxy/access logs, browser history, traces). Programmatic
+	// clients (and the genqlient SDK) use POST, so GET has no legitimate
+	// consumer here.
 	gqlSrv.AddTransport(transport.POST{})
 	gqlSrv.AddTransport(transport.MultipartForm{})
 

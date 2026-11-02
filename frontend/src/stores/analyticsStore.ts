@@ -5,7 +5,6 @@ interface AnalyticsFilterState {
   filter: AnalyticsFilter;
   setStartTime: (time: string | null) => void;
   setEndTime: (time: string | null) => void;
-  setProjectIDs: (ids: string[]) => void;
   setChannelIDs: (ids: string[]) => void;
   setModelIDs: (ids: string[]) => void;
   setAPIKeyIDs: (ids: string[]) => void;
@@ -16,7 +15,6 @@ interface AnalyticsFilterState {
 const defaultFilter: AnalyticsFilter = {
   startTime: null,
   endTime: null,
-  projectIDs: undefined,
   channelIDs: undefined,
   modelIDs: undefined,
   apiKeyIDs: undefined,
@@ -34,11 +32,6 @@ export const useAnalyticsFilterStore = create<AnalyticsFilterState>((set) => ({
   setEndTime: (time) =>
     set((state) => ({
       filter: { ...state.filter, endTime: time },
-    })),
-
-  setProjectIDs: (ids) =>
-    set((state) => ({
-      filter: { ...state.filter, projectIDs: ids.length > 0 ? ids : undefined },
     })),
 
   setChannelIDs: (ids) =>

@@ -296,7 +296,6 @@
   "channels.dialogs.oauth.labels.callbackUrl": "Callback URL",
   "channels.dialogs.oauth.placeholders.authorizationUrl": "OAuth URL will appear here after starting OAuth",
   "channels.dialogs.oauth.placeholders.callbackUrl": "Paste the full callback URL here",
-  "channels.dialogs.oauth.errors.projectRequired": "Please select a project first",
   "channels.dialogs.oauth.errors.sessionMissing": "Missing OAuth session",
   "channels.dialogs.oauth.errors.callbackUrlRequired": "Please paste the callback URL",
   "channels.dialogs.oauth.errors.deviceFlowExpired": "Device flow expired. Please try again.",

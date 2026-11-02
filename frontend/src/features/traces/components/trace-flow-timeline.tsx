@@ -198,7 +198,7 @@ function SegmentNode({ data, selected }: NodeProps<SegmentFlowNode>) {
 
   const handleViewRequest = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const url = `/project/requests/${encodeURIComponent(buildGUID('Request', seg.id))}`;
+    const url = `/requests/${encodeURIComponent(buildGUID('Request', seg.id))}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 

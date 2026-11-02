@@ -39,7 +39,6 @@ func (RequestExecution) Indexes() []ent.Index {
 
 func (RequestExecution) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int("project_id").Immutable().Default(1),
 		field.Int("request_id").Immutable(),
 		field.Int("channel_id").Immutable().Optional(), // Optional for deleted channel, this field is not null.
 		// 1-based position of the API key actually used, matching the order of the

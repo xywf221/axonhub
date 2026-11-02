@@ -3,8 +3,6 @@
   "threads.description": "Browse conversation threads and their associated traces.",
   "threads.filters.filterThreadId": "Filter by thread ID...",
   "threads.columns.threadId": "Thread ID",
-  "threads.columns.project": "Project",
-  "threads.columns.unknownProject": "Unknown Project",
   "threads.columns.traceCount": "Trace Count",
   "threads.columns.firstUserQuery": "User Query",
   "threads.columns.details": "Details",

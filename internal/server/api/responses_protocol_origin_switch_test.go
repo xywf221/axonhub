@@ -44,10 +44,10 @@ func TestResponsesProtocolIntegrationOriginSwitchRejectsOrphanDelta(t *testing.T
 		require.NoError(t, err)
 	}))
 
-	client, handlers, project := newResponsesIntegrationFixture(t, originA.URL, func(create *ent.ChannelCreate) {
+	client, handlers := newResponsesIntegrationFixture(t, originA.URL, func(create *ent.ChannelCreate) {
 		create.SetCredentials(objects.ChannelCredentials{APIKey: "origin-a-key"})
 	})
-	gateway := responsesIntegrationGateway(t, client, handlers, project)
+	gateway := responsesIntegrationGateway(t, client, handlers)
 
 	firstStatus, firstBody := responsesIntegrationPost(t, gateway, "/v1/responses", `{"model":"synthetic-model","input":"origin-a-input`+strings.Repeat("x", 16<<20)+`"}`, 60*time.Second)
 	require.Equal(t, http.StatusOK, firstStatus, string(firstBody))

@@ -56,14 +56,10 @@ func TestRequestContentHandlers_DownloadRequestContent(t *testing.T) {
 	ctx := ent.NewContext(context.Background(), client)
 	ctx = authz.WithTestBypass(ctx)
 
-	project, err := client.Project.Create().SetName("p1").SetDescription("d").Save(ctx)
-	require.NoError(t, err)
-
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
 		ctx := ent.NewContext(c.Request.Context(), client)
 		ctx = contexts.WithUser(ctx, &ent.User{ID: 1, IsOwner: true})
-		ctx = contexts.WithProjectID(ctx, project.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -82,7 +78,6 @@ func TestRequestContentHandlers_DownloadRequestContent(t *testing.T) {
 	require.NoError(t, err)
 
 	reqRow, err := client.Request.Create().
-		SetProjectID(project.ID).
 		SetModelID("m1").
 		SetFormat("openai/video").
 		SetSource("api").
@@ -94,7 +89,7 @@ func TestRequestContentHandlers_DownloadRequestContent(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	key := fmt.Sprintf("/%d/requests/%d/video/video.mp4", project.ID, reqRow.ID)
+	key := fmt.Sprintf("/requests/%d/video/video.mp4", reqRow.ID)
 	fullPath := filepath.Join(contentDir, filepath.FromSlash(key))
 	require.NoError(t, os.MkdirAll(filepath.Dir(fullPath), 0o755))
 	require.NoError(t, os.WriteFile(fullPath, []byte("video-content"), 0o644))
@@ -127,28 +122,8 @@ func TestRequestContentHandlers_DownloadRequestContent(t *testing.T) {
 		require.Contains(t, w.Header().Get("Content-Disposition"), "video.mp4")
 	})
 
-	t.Run("returns 404 for mismatched project", func(t *testing.T) {
-		router2 := gin.New()
-		router2.Use(func(c *gin.Context) {
-			ctx := ent.NewContext(c.Request.Context(), client)
-			ctx = contexts.WithUser(ctx, &ent.User{ID: 1, IsOwner: true})
-			ctx = contexts.WithProjectID(ctx, project.ID+999)
-			c.Request = c.Request.WithContext(ctx)
-			c.Next()
-		})
-		router2.GET("/admin/requests/:request_id/content", h.DownloadRequestContent)
-
-		path := fmt.Sprintf("/admin/requests/%s/content", url.PathEscape(requestIDStr))
-		req := httptest.NewRequest(http.MethodGet, path, nil)
-		w := httptest.NewRecorder()
-		router2.ServeHTTP(w, req)
-
-		require.Equal(t, http.StatusNotFound, w.Code)
-	})
-
 	t.Run("returns 404 when not saved", func(t *testing.T) {
 		unsaved, err := client.Request.Create().
-			SetProjectID(project.ID).
 			SetModelID("m2").
 			SetFormat("openai/video").
 			SetSource("api").
@@ -177,7 +152,6 @@ func TestRequestContentHandlers_DownloadRequestContent(t *testing.T) {
 	t.Run("escapes directory traversal on fs", func(t *testing.T) {
 		traversalKey := "/../../etc/passwd"
 		evil, err := client.Request.Create().
-			SetProjectID(project.ID).
 			SetModelID("m3").
 			SetFormat("openai/video").
 			SetSource("api").

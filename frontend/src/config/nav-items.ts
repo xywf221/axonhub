@@ -8,7 +8,6 @@ import {
   IconKey,
   IconLayoutDashboard,
   IconNote,
-  IconPackages,
   IconRobot,
   IconSettings,
   IconShield,
@@ -41,28 +40,18 @@ export const NAV_GROUP_DEFS: NavGroupDef[] = [
     titleKey: 'sidebar.groups.admin',
     items: [
       { titleKey: 'sidebar.items.dashboard', url: '/', icon: IconLayoutDashboard },
-      { titleKey: 'sidebar.items.projects', url: '/projects', icon: IconPackages },
       { titleKey: 'sidebar.items.channels', url: '/channels', icon: IconAi },
       { titleKey: 'sidebar.items.models', url: '/models', icon: IconRobot },
       { titleKey: 'sidebar.items.promptProtectionRules', url: '/prompt-protection-rules', icon: IconShield },
       { titleKey: 'sidebar.items.dataStorages', url: '/data-storages', icon: IconDatabase },
+      { titleKey: 'sidebar.items.apiKeys', url: '/api-keys', icon: IconKey },
+      { titleKey: 'sidebar.items.prompts', url: '/prompts', icon: IconNote },
+      { titleKey: 'sidebar.items.requests', url: '/requests', icon: IconActivity },
+      { titleKey: 'sidebar.items.usageStats', url: '/usage-stats', icon: IconChartBar },
+      { titleKey: 'sidebar.items.traces', url: '/traces', icon: IconAB2 },
+      { titleKey: 'sidebar.items.threads', url: '/threads', icon: IconBaselineDensityMedium },
+      { titleKey: 'sidebar.items.playground', url: '/playground', icon: IconRobot },
       { titleKey: 'sidebar.items.users', url: '/users', icon: IconUsers },
-      { titleKey: 'sidebar.items.roles', url: '/roles', icon: IconShield },
-    ],
-  },
-  {
-    id: 'project',
-    titleKey: 'sidebar.groups.project',
-    items: [
-      { titleKey: 'sidebar.items.apiKeys', url: '/project/api-keys', icon: IconKey },
-      { titleKey: 'sidebar.items.prompts', url: '/project/prompts', icon: IconNote },
-      { titleKey: 'sidebar.items.requests', url: '/project/requests', icon: IconActivity },
-      { titleKey: 'sidebar.items.usageStats', url: '/project/usage-stats', icon: IconChartBar },
-      { titleKey: 'sidebar.items.traces', url: '/project/traces', icon: IconAB2 },
-      { titleKey: 'sidebar.items.threads', url: '/project/threads', icon: IconBaselineDensityMedium },
-      { titleKey: 'sidebar.items.users', url: '/project/users', icon: IconUsers },
-      { titleKey: 'sidebar.items.roles', url: '/project/roles', icon: IconShield },
-      { titleKey: 'sidebar.items.playground', url: '/project/playground', icon: IconRobot },
     ],
   },
   {
@@ -75,19 +64,12 @@ export const NAV_GROUP_DEFS: NavGroupDef[] = [
 // All navigable URLs in display order.
 export const NAV_ITEM_URLS: string[] = NAV_GROUP_DEFS.flatMap((group) => group.items.map((item) => item.url));
 
-// Project-scoped URLs, used as the landing fallback for non-owner users.
-export const PROJECT_NAV_ITEM_URLS: string[] = (NAV_GROUP_DEFS.find((group) => group.id === 'project')?.items ?? []).map(
-  (item) => item.url
-);
-
 // Pick a landing route that is not hidden. Falls back to `preferred` when the
 // user has hidden every candidate.
-export function pickFallbackNavUrl(preferred: string, hiddenItems: string[], isOwner: boolean): string {
+export function pickFallbackNavUrl(preferred: string, hiddenItems: string[]): string {
   if (!hiddenItems.includes(preferred)) {
     return preferred;
   }
 
-  const candidates = isOwner ? NAV_ITEM_URLS : PROJECT_NAV_ITEM_URLS;
-
-  return candidates.find((url) => !hiddenItems.includes(url)) ?? preferred;
+  return NAV_ITEM_URLS.find((url) => !hiddenItems.includes(url)) ?? preferred;
 }

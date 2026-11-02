@@ -20,7 +20,6 @@ import (
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/channel"
 	"github.com/looplj/axonhub/internal/ent/enttest"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/objects"
 	"github.com/looplj/axonhub/internal/pkg/xcache"
 	"github.com/looplj/axonhub/internal/server/biz"
@@ -41,11 +40,11 @@ func TestResponsesProtocolIntegrationHTTPUsesProductionHandlerAndUpstream(t *tes
 	}))
 	t.Cleanup(upstream.Close)
 
-	client, handlers, project := newResponsesIntegrationFixture(t, upstream.URL)
+	client, handlers := newResponsesIntegrationFixture(t, upstream.URL)
 	request := httptest.NewRequest(http.MethodPost, "/v1/responses", stringsReader(`{"model":"synthetic-model","input":"synthetic-input"}`))
 	requestContext := authz.WithTestBypass(ent.NewContext(context.Background(), client))
-	requestContext = contexts.WithAPIKey(requestContext, &ent.APIKey{ProjectID: project.ID})
-	request = request.WithContext(contexts.WithProjectID(requestContext, project.ID))
+	requestContext = contexts.WithAPIKey(requestContext, &ent.APIKey{})
+	request = request.WithContext(requestContext)
 	recorder := httptest.NewRecorder()
 	router := gin.New()
 	router.POST("/v1/responses", handlers.CreateResponse)
@@ -72,12 +71,12 @@ func TestResponsesProtocolIntegrationIsolation(t *testing.T) {
 		require.NoError(t, err)
 	}))
 	t.Cleanup(upstream.Close)
-	client, handlers, project := newResponsesIntegrationFixture(t, upstream.URL)
+	client, handlers := newResponsesIntegrationFixture(t, upstream.URL)
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
 		requestContext := authz.WithTestBypass(ent.NewContext(c.Request.Context(), client))
-		requestContext = contexts.WithAPIKey(requestContext, &ent.APIKey{ProjectID: project.ID})
-		c.Request = c.Request.WithContext(contexts.WithProjectID(requestContext, project.ID))
+		requestContext = contexts.WithAPIKey(requestContext, &ent.APIKey{})
+		c.Request = c.Request.WithContext(requestContext)
 		c.Next()
 	})
 	router.GET("/v1/responses", handlers.CreateResponseWebSocket(5*time.Second))
@@ -101,18 +100,16 @@ func TestResponsesProtocolIntegrationIsolation(t *testing.T) {
 	require.Error(t, err)
 }
 
-func newResponsesIntegrationFixture(t *testing.T, upstreamURL string, configure ...func(*ent.ChannelCreate)) (*ent.Client, *OpenAIHandlers, *ent.Project) {
+func newResponsesIntegrationFixture(t *testing.T, upstreamURL string, configure ...func(*ent.ChannelCreate)) (*ent.Client, *OpenAIHandlers) {
 	t.Helper()
 	client := enttest.NewEntClient(t, "sqlite3", "file:"+t.Name()+"?mode=memory&_fk=1")
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
 	ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
-	project, err := client.Project.Create().SetName("responses-integration-project").SetDescription("synthetic").SetStatus(project.StatusActive).Save(ctx)
-	require.NoError(t, err)
 	create := client.Channel.Create().SetType(channel.TypeOpenaiResponses).SetName("responses-integration-channel").SetStatus(channel.StatusEnabled).SetTags([]string{"synthetic"}).SetBaseURL(upstreamURL).SetCredentials(objects.ChannelCredentials{APIKey: "synthetic-key"}).SetSupportedModels([]string{"synthetic-model"}).SetDefaultTestModel("synthetic-model")
 	for _, apply := range configure {
 		apply(create)
 	}
-	_, err = create.Save(ctx)
+	_, err := create.Save(ctx)
 	require.NoError(t, err)
 
 	cacheConfig := xcache.Config{Mode: xcache.ModeMemory}
@@ -131,10 +128,10 @@ func newResponsesIntegrationFixture(t *testing.T, upstreamURL string, configure 
 	params := OpenAIHandlersParams{
 		ChannelService: channelService, ModelService: modelService, DefaultSelector: selector, RequestService: requestService,
 		SystemService: systemService, UsageLogService: usageLogService, PromptService: biz.NewPromptService(biz.PromptServiceParams{Ent: client}),
-		PromptProtectionRuleService: protection, QuotaService: biz.NewQuotaService(client, systemService), HttpClient: httpclient.NewHttpClient(),
+		PromptProtectionRuleService: protection, HttpClient: httpclient.NewHttpClient(),
 		LiveStreamRegistry: biz.NewLiveStreamRegistry(), ChannelLimiterManager: orchestrator.NewChannelLimiterManager(), Client: client,
 	}
-	return client, NewOpenAIHandlers(params), project
+	return client, NewOpenAIHandlers(params)
 }
 
 func readRequestBody(r *http.Request) ([]byte, error) {

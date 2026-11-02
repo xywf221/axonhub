@@ -44,14 +44,14 @@ func responsesIntegrationServer(t *testing.T, handler http.Handler) *httptest.Se
 	return server
 }
 
-func responsesIntegrationGateway(t *testing.T, client *ent.Client, handlers *OpenAIHandlers, project *ent.Project) *httptest.Server {
+func responsesIntegrationGateway(t *testing.T, client *ent.Client, handlers *OpenAIHandlers) *httptest.Server {
 	t.Helper()
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(ent.NewContext(c.Request.Context(), client))
-		ctx = contexts.WithAPIKey(ctx, &ent.APIKey{ID: 101, ProjectID: project.ID})
+		ctx = contexts.WithAPIKey(ctx, &ent.APIKey{ID: 101})
 		ctx = shared.WithSessionScope(ctx, "api_key:101")
-		c.Request = c.Request.WithContext(contexts.WithProjectID(ctx, project.ID))
+		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
 	router.POST("/v1/responses", handlers.CreateResponse)

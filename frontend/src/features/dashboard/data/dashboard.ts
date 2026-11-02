@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { useQuery } from '@tanstack/react-query';
 import { graphqlRequest } from '@/gql/graphql';
-import { useSelectedProjectId } from '@/stores/projectStore';
 
 // Schema definitions
 export const requestStatsSchema = z.object({
@@ -91,13 +90,6 @@ export const hourlyRequestStatsSchema = z.object({
   count: z.number(),
 });
 
-export const topProjectsSchema = z.object({
-  projectId: z.string(),
-  projectName: z.string(),
-  projectDescription: z.string(),
-  requestCount: z.number(),
-});
-
 export const channelSuccessRateSchema = z.object({
   channelId: z.string(),
   channelName: z.string(),
@@ -139,7 +131,6 @@ export type CostByModel = z.infer<typeof costByModelSchema>;
 export type CostByAPIKey = z.infer<typeof costByAPIKeySchema>;
 export type DailyRequestStats = z.infer<typeof dailyRequestStatsSchema>;
 export type HourlyRequestStats = z.infer<typeof hourlyRequestStatsSchema>;
-export type TopProjects = z.infer<typeof topProjectsSchema>;
 export type ChannelSuccessRate = z.infer<typeof channelSuccessRateSchema>;
 export type ModelPerformanceStat = z.infer<typeof modelPerformanceStatSchema>;
 export type ChannelPerformanceStat = z.infer<typeof channelPerformanceStatSchema>;
@@ -296,17 +287,6 @@ const HOURLY_REQUEST_STATS_QUERY = `
   }
 `;
 
-const TOP_PROJECTS_QUERY = `
-  query GetTopProjects {
-    topRequestsProjects {
-      projectId
-      projectName
-      projectDescription
-      requestCount
-    }
-  }
-`;
-
 const CHANNEL_SUCCESS_RATES_QUERY = `
   query GetChannelSuccessRates($timeWindow: String, $limit: Int) {
     channelSuccessRates(timeWindow: $timeWindow, limit: $limit) {
@@ -345,20 +325,15 @@ const USAGE_STATS_BY_USER_QUERY = `
 `;
 
 export function useUsageStatsByUser(timeWindow?: string) {
-  const selectedProjectId = useSelectedProjectId();
-
   return useQuery({
-    queryKey: ['usageStatsByUser', timeWindow, selectedProjectId],
+    queryKey: ['usageStatsByUser', timeWindow],
     queryFn: async () => {
-      const headers = selectedProjectId ? { 'X-Project-ID': selectedProjectId } : undefined;
       const data = await graphqlRequest<{ usageStatsByUser: UsageStatsByUser[] }>(
         USAGE_STATS_BY_USER_QUERY,
-        { timeWindow },
-        headers
+        { timeWindow }
       );
       return data.usageStatsByUser.map((item) => usageStatsByUserSchema.parse(item));
     },
-    enabled: !!selectedProjectId,
     refetchInterval: 60000,
     placeholderData: (previousData) => previousData,
   });
@@ -576,17 +551,6 @@ export function useHourlyRequestStats(date?: string) {
     queryFn: async () => {
       const data = await graphqlRequest<{ hourlyRequestStats: HourlyRequestStats[] }>(HOURLY_REQUEST_STATS_QUERY, { date });
       return data.hourlyRequestStats.map((item) => hourlyRequestStatsSchema.parse(item));
-    },
-    refetchInterval: 300000,
-  });
-}
-
-export function useTopProjects() {
-  return useQuery({
-    queryKey: ['topRequestsProjects'],
-    queryFn: async () => {
-      const data = await graphqlRequest<{ topRequestsProjects: TopProjects[] }>(TOP_PROJECTS_QUERY);
-      return data.topRequestsProjects.map((item) => topProjectsSchema.parse(item));
     },
     refetchInterval: 300000,
   });

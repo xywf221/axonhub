@@ -22,7 +22,6 @@ import type { ApiKeyProfileTemplate, ApiKeyProfile } from '../data/schema';
 
 interface ApiKeyLoadTemplatePopoverProps {
   apiKeyID: string;
-  projectID: string | null;
   /** Popover Portal 容器元素，解决 Dialog 内无法滚动的问题 */
   portalContainer?: HTMLElement | null;
   onLoadComplete?: (loadedProfiles: { activeProfile: string; profiles: ApiKeyProfile[] }) => void;
@@ -83,7 +82,6 @@ function TemplateItem({
 
 export function ApiKeyLoadTemplatePopover({
   apiKeyID,
-  projectID,
   portalContainer,
   onLoadComplete,
 }: ApiKeyLoadTemplatePopoverProps) {
@@ -92,7 +90,7 @@ export function ApiKeyLoadTemplatePopover({
   const [loadingTemplateId, setLoadingTemplateId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ApiKeyProfileTemplate | null>(null);
 
-  const { data: templates, isLoading: isLoadingTemplates } = useApiKeyProfileTemplates(projectID);
+  const { data: templates, isLoading: isLoadingTemplates } = useApiKeyProfileTemplates();
   const loadTemplate = useLoadApiKeyProfileTemplate();
   const deleteTemplate = useDeleteApiKeyProfileTemplate();
   const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);

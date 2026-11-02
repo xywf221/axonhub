@@ -94,13 +94,6 @@ type TokenStats {
   lastUpdated: Time
 }
 
-type TopRequestsProjects {
-  projectId: ID!
-  projectName: String!
-  projectDescription: String!
-  requestCount: Int!
-}
-
 type ChannelSuccessRate {
   channelId: ID!
   channelName: String!
@@ -233,7 +226,6 @@ extend type Query {
     input: APIKeyTokenUsageStatsInput
   ): [APIKeyTokenUsageStats!]!
   dailyRequestStats: [DailyRequestStats!]!
-  topRequestsProjects: [TopRequestsProjects!]!
   tokenStats: TokenStats!
   channelSuccessRates(timeWindow: String, limit: Int): [ChannelSuccessRate!]!
   fastestChannels(input: FastestChannelsInput!): [FastestChannel!]!

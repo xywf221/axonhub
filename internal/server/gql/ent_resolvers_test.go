@@ -1,7 +1,6 @@
 package gql
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -16,14 +15,6 @@ import (
 	"github.com/looplj/axonhub/internal/pkg/xcache"
 	"github.com/looplj/axonhub/internal/server/biz"
 )
-
-func TestPromptResolverProjectID(t *testing.T) {
-	projectID, err := (&promptResolver{}).ProjectID(context.Background(), &ent.Prompt{ProjectID: 42})
-
-	require.NoError(t, err)
-	require.Equal(t, ent.TypeProject, projectID.Type)
-	require.Equal(t, 42, projectID.ID)
-}
 
 func TestChannelResolver_ProviderQuotaStatus_HidesDisabledCollectionProvider(t *testing.T) {
 	client := enttest.NewEntClient(t, "sqlite3", "file:ent?mode=memory&_fk=1")

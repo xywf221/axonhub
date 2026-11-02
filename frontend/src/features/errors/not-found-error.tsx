@@ -8,7 +8,6 @@ import {
   IconMessages,
   IconSettings,
   IconChartBar,
-  IconShield,
   IconPlayerPlay,
   IconHelpCircle,
   IconArrowLeft,
@@ -67,13 +66,6 @@ export default function NotFoundError() {
       path: '/api-keys',
       icon: <IconKey className='h-5 w-5' />,
       keywords: ['api', 'keys', 'authentication', 'tokens', 'access'],
-    },
-    {
-      title: 'Roles',
-      description: 'Configure user roles and permissions',
-      path: '/roles',
-      icon: <IconShield className='h-5 w-5' />,
-      keywords: ['roles', 'permissions', 'access', 'security', 'rbac'],
     },
     {
       title: 'Playground',

@@ -8,34 +8,23 @@ This document gives a compact view of AxonHub's data domains and core relationsh
 
 | Domain | Main entities | Responsibility |
 |---|---|---|
-| Identity and access | User, Project, UserProject, Role, UserRole, APIKey | Membership, authentication, ownership, and scoped access |
+| Identity and access | User, APIKey, OIDCIdentity | Single-tenant authentication, API key ownership, and scopes |
 | Provider configuration | Model, Channel, ChannelModelPrice, ChannelModelPriceVersion | Available models, provider connections, and pricing |
 | Request lifecycle | Request, RequestExecution, UsageLog | Inbound requests, provider attempts, usage, and cost |
 | Observability | Thread, Trace, ChannelProbe, ProviderQuotaStatus | Request grouping and provider health |
 | Storage and configuration | DataStorage, System, Prompt, PromptProtectionRule | Payload storage and reusable system configuration |
-| Supporting access | OIDCIdentity, Invitation, APIKeyProfileTemplate, ChannelOverrideTemplate | Login identities, onboarding, and reusable templates |
+| Supporting configuration | APIKeyProfileTemplate, ChannelOverrideTemplate | Reusable API key and channel override templates |
 
 ## Core Relationships
 
 ```mermaid
 erDiagram
-    User ||--o{ UserProject : joins
-    Project ||--o{ UserProject : has_members
-    User ||--o{ UserRole : receives
-    Role ||--o{ UserRole : assigned_through
-    Project o|--o{ Role : defines
-
-    User o|--o{ APIKey : owns
-    Project ||--o{ APIKey : contains
-    Project ||--o{ Prompt : contains
-    Project ||--o{ APIKeyProfileTemplate : contains
+    User ||--o{ APIKey : owns
     User ||--o{ ChannelOverrideTemplate : owns
+    User ||--o{ OIDCIdentity : authenticates
 
-    Project ||--o{ Thread : contains
-    Project ||--o{ Trace : contains
     Thread o|--o{ Trace : groups
     Trace o|--o{ Request : groups
-    Project ||--o{ Request : owns
     APIKey o|--o{ Request : authenticates
     Channel o|--o{ Request : routes
     DataStorage o|--o{ Request : stores
@@ -54,9 +43,8 @@ erDiagram
 
 ## Relationship Notes
 
-- A user can join multiple projects through `UserProject` and receive roles through `UserRole`.
-- A role may be global or belong to a project; authorization is evaluated from ownership, membership, roles, and scopes.
-- Every request belongs to a project. API key, trace, channel, and data-storage associations may be absent depending on the request source and processing stage.
+- AxonHub is single-tenant: users are not grouped into projects or assigned roles, and every authenticated user has full access.
+- Every request records the authenticated `user_id`. API key, trace, channel, and data-storage associations may be absent depending on the request source and processing stage.
 - `Request` represents the client-facing operation. `RequestExecution` represents an individual provider attempt, so one request can have multiple executions because of retries or fallback.
 - `UsageLog` records accounting data for a request and may attribute usage to a channel.
 - `Thread` groups traces, and a trace groups related requests.
@@ -74,8 +62,8 @@ Request and response payloads may remain in the primary database or be stored th
 
 ## Data Boundaries
 
-- Project-owned records must retain their project scope throughout queries and mutations.
-- Global resources such as channels, models, system settings, and data-storage definitions can be shared across projects, subject to authorization.
+- Global resources such as channels, models, system settings, prompts, and data-storage definitions are shared across the deployment.
+- API keys are the only principals with restricted permissions, through their scopes.
 - Soft deletion is applied by the Ent schemas where historical identity or uniqueness must be preserved.
 
 ## Source of Truth
@@ -89,5 +77,5 @@ Use this document for domain orientation only. For exact fields, constraints, in
 ## Related Resources
 
 - [Transformation Flow Architecture](transformation-flow.md)
-- [Fine-grained Permission Guide](../guides/permissions.md)
+- [Permission Guide](../guides/permissions.md)
 - [Tracing Guide](../guides/tracing.md)

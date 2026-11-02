@@ -28,8 +28,6 @@ func (APIKey) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("user_id").
 			StorageKey("api_keys_by_user_id"),
-		index.Fields("project_id").
-			StorageKey("api_keys_by_project_id"),
 		index.Fields("key").
 			StorageKey("api_keys_by_key").
 			Unique(),
@@ -42,13 +40,6 @@ func (APIKey) Fields() []ent.Field {
 			Annotations(
 				entgql.Skip(entgql.SkipMutationCreateInput, entgql.SkipMutationUpdateInput),
 			).Comment("The creator of the API key"),
-		field.Int("project_id").
-			Immutable().
-			Default(1).
-			Comment("Project ID, default to 1 for backward compatibility").
-			Annotations(
-				entgql.Skip(entgql.SkipMutationUpdateInput),
-			),
 		field.String("key").
 			Annotations(
 				entgql.Skip(entgql.SkipMutationCreateInput, entgql.SkipMutationUpdateInput),
@@ -74,10 +65,6 @@ func (APIKey) Fields() []ent.Field {
 			Annotations(
 				entgql.Skip(entgql.SkipMutationCreateInput, entgql.SkipMutationUpdateInput),
 			),
-		field.Strings("allowed_ips").
-			Comment("IP CIDR allowlist for this API key. If non-empty, only requests from matching source IPs are accepted.").
-			Default([]string{}).
-			Optional(),
 	}
 }
 
@@ -91,14 +78,6 @@ func (APIKey) Edges() []ent.Edge {
 				entgql.Directives(forceResolver()),
 			).
 			Ref("api_keys").Field("user_id"),
-		edge.From("project", Project.Type).
-			Unique().
-			Immutable().
-			Required().
-			Annotations(
-				entgql.Skip(entgql.SkipMutationUpdateInput),
-			).
-			Ref("api_keys").Field("project_id"),
 		edge.To("requests", Request.Type).
 			Annotations(
 				entgql.Skip(entgql.SkipMutationCreateInput, entgql.SkipMutationUpdateInput),
@@ -119,14 +98,14 @@ func (APIKey) Annotations() []schema.Annotation {
 func (APIKey) Policy() ent.Policy {
 	return scopes.Policy{
 		Query: scopes.QueryPolicy{
-			scopes.UserPersonalAPIKeyReadRule(scopes.ScopeReadAPIKeys),  // User 主体：project_id 过滤 + personal key 仅创建者可见
-			scopes.APIKeyProjectScopeReadRule(scopes.ScopeReadAPIKeys),  // API key 主体：用于 OpenAPI 走 service account 读 APIKey
-			scopes.OwnerRule(), // owner 用户可以访问所有 API Keys
+			scopes.UserPersonalAPIKeyReadRule(scopes.ScopeReadAPIKeys),
+			scopes.APIKeyScopeQueryRule(scopes.ScopeReadAPIKeys),
+			scopes.OwnerRule(),
 		},
 		Mutation: scopes.MutationPolicy{
-			scopes.UserProjectScopeWriteRule(scopes.ScopeWriteAPIKeys),   // 需要 API Keys 写入权限
-			scopes.APIKeyProjectScopeWriteRule(scopes.ScopeWriteAPIKeys), // API key scope + project 校验
-			scopes.OwnerRule(), // owner 用户可以修改所有 API Keys
+			scopes.UserWriteScopeRule(scopes.ScopeWriteAPIKeys),
+			scopes.APIKeyScopeMutationRule(scopes.ScopeWriteAPIKeys),
+			scopes.OwnerRule(),
 		},
 	}
 }

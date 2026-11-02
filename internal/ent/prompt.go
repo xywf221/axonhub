@@ -10,7 +10,6 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/prompt"
 	"github.com/looplj/axonhub/internal/objects"
 )
@@ -26,8 +25,6 @@ type Prompt struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt int `json:"deleted_at,omitempty"`
-	// Project ID that this prompt belongs to
-	ProjectID int `json:"project_id,omitempty"`
 	// prompt name
 	Name string `json:"name,omitempty"`
 	// prompt description
@@ -41,33 +38,8 @@ type Prompt struct {
 	// prompt insertion order, smaller values are inserted first
 	Order int `json:"order,omitempty"`
 	// prompt settings in JSON format
-	Settings objects.PromptSettings `json:"settings,omitempty"`
-	// Edges holds the relations/edges for other nodes in the graph.
-	// The values are being populated by the PromptQuery when eager-loading is set.
-	Edges        PromptEdges `json:"edges"`
+	Settings     objects.PromptSettings `json:"settings,omitempty"`
 	selectValues sql.SelectValues
-}
-
-// PromptEdges holds the relations/edges for other nodes in the graph.
-type PromptEdges struct {
-	// Project holds the value of the project edge.
-	Project *Project `json:"project,omitempty"`
-	// loadedTypes holds the information for reporting if a
-	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
-	// totalCount holds the count of the edges above.
-	totalCount [1]map[string]int
-}
-
-// ProjectOrErr returns the Project value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e PromptEdges) ProjectOrErr() (*Project, error) {
-	if e.Project != nil {
-		return e.Project, nil
-	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: project.Label}
-	}
-	return nil, &NotLoadedError{edge: "project"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -77,7 +49,7 @@ func (*Prompt) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case prompt.FieldSettings:
 			values[i] = new([]byte)
-		case prompt.FieldID, prompt.FieldDeletedAt, prompt.FieldProjectID, prompt.FieldOrder:
+		case prompt.FieldID, prompt.FieldDeletedAt, prompt.FieldOrder:
 			values[i] = new(sql.NullInt64)
 		case prompt.FieldName, prompt.FieldDescription, prompt.FieldRole, prompt.FieldContent, prompt.FieldStatus:
 			values[i] = new(sql.NullString)
@@ -121,12 +93,6 @@ func (_m *Prompt) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
 				_m.DeletedAt = int(value.Int64)
-			}
-		case prompt.FieldProjectID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field project_id", values[i])
-			} else if value.Valid {
-				_m.ProjectID = int(value.Int64)
 			}
 		case prompt.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -185,11 +151,6 @@ func (_m *Prompt) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryProject queries the "project" edge of the Prompt entity.
-func (_m *Prompt) QueryProject() *ProjectQuery {
-	return NewPromptClient(_m.config).QueryProject(_m)
-}
-
 // Update returns a builder for updating this Prompt.
 // Note that you need to call Prompt.Unwrap() before calling this method if this Prompt
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -221,9 +182,6 @@ func (_m *Prompt) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("deleted_at=")
 	builder.WriteString(fmt.Sprintf("%v", _m.DeletedAt))
-	builder.WriteString(", ")
-	builder.WriteString("project_id=")
-	builder.WriteString(fmt.Sprintf("%v", _m.ProjectID))
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)

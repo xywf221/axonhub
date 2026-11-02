@@ -58,19 +58,18 @@ func TestPersistentStreams_ResponsesTerminalSurvivesProtocolConversion(t *testin
 				ctx := authz.WithTestBypass(ent.NewContext(t.Context(), client))
 				streamCtx, cancel := context.WithCancel(ctx)
 				defer cancel()
-				project := createTestProject(t, ctx, client)
 				channel := createTestChannel(t, ctx, client)
 				_, requestService, systemService, usageLogService := setupTestServices(t, client)
 				require.NoError(t, systemService.SetStoragePolicy(ctx, &biz.StoragePolicy{
 					StoreChunks: true, StoreRequestBody: true, StoreResponseBody: true,
 				}))
 				req, err := client.Request.Create().
-					SetProjectID(project.ID).SetChannelID(channel.ID).SetModelID("gpt-5").
+					SetChannelID(channel.ID).SetModelID("gpt-5").
 					SetStatus(request.StatusProcessing).SetRequestBody([]byte(`{"stream":true}`)).
 					SetStream(true).Save(ctx)
 				require.NoError(t, err)
 				execution, err := client.RequestExecution.Create().
-					SetRequestID(req.ID).SetProjectID(project.ID).SetChannelID(channel.ID).SetModelID("gpt-5").
+					SetRequestID(req.ID).SetChannelID(channel.ID).SetModelID("gpt-5").
 					SetFormat(llm.APIFormatOpenAIResponse.String()).SetStatus(requestexecution.StatusProcessing).
 					SetRequestBody([]byte(`{"stream":true}`)).SetStream(true).Save(ctx)
 				require.NoError(t, err)
@@ -216,7 +215,6 @@ func TestPersistentStreams_ProviderCompletionPersistsExecutionButConversionFailu
 	client := enttest.NewEntClient(t, "sqlite3", "file:ent?mode=memory&_fk=0")
 	defer client.Close()
 	ctx := authz.WithTestBypass(ent.NewContext(t.Context(), client))
-	project := createTestProject(t, ctx, client)
 	channel := createTestChannel(t, ctx, client)
 	_, requestService, systemService, usageLogService := setupTestServices(t, client)
 	require.NoError(t, systemService.SetStoragePolicy(ctx, &biz.StoragePolicy{
@@ -224,11 +222,11 @@ func TestPersistentStreams_ProviderCompletionPersistsExecutionButConversionFailu
 	}))
 
 	req, err := client.Request.Create().
-		SetProjectID(project.ID).SetChannelID(channel.ID).SetModelID("gpt-5").
+		SetChannelID(channel.ID).SetModelID("gpt-5").
 		SetStatus(request.StatusProcessing).SetRequestBody([]byte(`{"stream":true}`)).SetStream(true).Save(ctx)
 	require.NoError(t, err)
 	execution, err := client.RequestExecution.Create().
-		SetRequestID(req.ID).SetProjectID(project.ID).SetChannelID(channel.ID).SetModelID("gpt-5").
+		SetRequestID(req.ID).SetChannelID(channel.ID).SetModelID("gpt-5").
 		SetFormat(llm.APIFormatOpenAIResponse.String()).SetStatus(requestexecution.StatusProcessing).
 		SetRequestBody([]byte(`{"stream":true}`)).SetStream(true).Save(ctx)
 	require.NoError(t, err)
@@ -274,9 +272,8 @@ func TestInboundPersistentStream_SourceContextErrorsPersistRequestStatus(t *test
 			client := enttest.NewEntClient(t, "sqlite3", "file:ent?mode=memory&_fk=0")
 			defer client.Close()
 			ctx := authz.WithTestBypass(ent.NewContext(t.Context(), client))
-			project := createTestProject(t, ctx, client)
 			_, requestService, _, _ := setupTestServices(t, client)
-			req, err := client.Request.Create().SetProjectID(project.ID).SetModelID("gpt-test").
+			req, err := client.Request.Create().SetModelID("gpt-test").
 				SetStatus(request.StatusProcessing).SetStream(true).SetRequestBody([]byte(`{"stream":true}`)).Save(ctx)
 			require.NoError(t, err)
 
@@ -308,12 +305,11 @@ func TestOutboundPersistentStream_SourceContextErrorsPersistExecutionStatus(t *t
 			client := enttest.NewEntClient(t, "sqlite3", "file:ent?mode=memory&_fk=0")
 			defer client.Close()
 			ctx := authz.WithTestBypass(ent.NewContext(t.Context(), client))
-			project := createTestProject(t, ctx, client)
 			_, requestService, _, usageLogService := setupTestServices(t, client)
-			req, err := client.Request.Create().SetProjectID(project.ID).SetModelID("gpt-test").
+			req, err := client.Request.Create().SetModelID("gpt-test").
 				SetStatus(request.StatusProcessing).SetStream(true).SetRequestBody([]byte(`{"stream":true}`)).Save(ctx)
 			require.NoError(t, err)
-			execution, err := client.RequestExecution.Create().SetRequestID(req.ID).SetProjectID(project.ID).SetModelID("gpt-test").
+			execution, err := client.RequestExecution.Create().SetRequestID(req.ID).SetModelID("gpt-test").
 				SetFormat(llm.APIFormatOpenAIChatCompletion.String()).SetStatus(requestexecution.StatusProcessing).SetStream(true).
 				SetRequestBody([]byte(`{"stream":true}`)).Save(ctx)
 			require.NoError(t, err)

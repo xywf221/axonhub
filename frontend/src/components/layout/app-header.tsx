@@ -8,11 +8,9 @@ import { Button } from '@/components/ui/button';
 import { LanguageSwitch } from '@/components/language-switch';
 import { ThemeSwitch } from '@/components/theme-switch';
 import { QuotaBadges } from '@/components/quota-badges';
-import { PermissionGuard } from '@/components/permission-guard';
 import { checkProviderQuotas } from '@/features/system/data/quotas';
 import { useBrandSettings } from '@/features/system/data/system';
 import { BrandLogo } from './brand-logo';
-import { ProjectSwitcher } from './project-switcher';
 import { toast } from 'sonner';
 
 export function AppHeader() {
@@ -46,7 +44,7 @@ export function AppHeader() {
   return (
     <header className='bg-background/95 supports-[backdrop-filter]:bg-background/60 fixed top-0 z-50 w-full backdrop-blur'>
       <div className='flex h-14 items-center justify-between'>
-        {/* Logo + Project Switcher - 左侧对齐 */}
+        {/* Logo - 左侧对齐 */}
         <div className='flex items-center gap-2 pl-6'>
           {/* Sidebar Toggle - 与侧边栏图标垂直对齐 */}
           <SidebarTrigger className='-ml-4 size-8' />
@@ -58,31 +56,20 @@ export function AppHeader() {
             </div>
             <span className='text-sm leading-none font-semibold'>{displayName}</span>
           </div>
-
-          {/* Separator */}
-          <div className='bg-border mx-0.5 h-3.5 w-px' />
-
-          {/* Project Switcher */}
-          <ProjectSwitcher />
         </div>
 
         {/* 右侧控件 */}
         <div className='flex items-center gap-2 pr-6'>
-          {/* Quota Badges - only visible to users with channel read permission */}
-          <PermissionGuard requiredSystemScope='read_channels'>
-            <QuotaBadges onRefresh={handleRefresh} isRefreshing={isRefreshing} />
-          </PermissionGuard>
+          <QuotaBadges onRefresh={handleRefresh} isRefreshing={isRefreshing} />
 
           {/* Desktop-only controls - hidden on mobile */}
           {!isMobile && (
             <>
-              <PermissionGuard requiredSystemScope='read_settings'>
-                <Link to='/system'>
-                  <Button variant='ghost' size='icon' className='size-8'>
-                    <IconSettings className='h-4 w-4' />
-                  </Button>
-                </Link>
-              </PermissionGuard>
+              <Link to='/system'>
+                <Button variant='ghost' size='icon' className='size-8'>
+                  <IconSettings className='h-4 w-4' />
+                </Button>
+              </Link>
               <LanguageSwitch />
               <ThemeSwitch />
             </>

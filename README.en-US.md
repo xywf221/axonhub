@@ -153,7 +153,7 @@ Whether you're using OpenAI SDK, Anthropic SDK, or any AI SDK, AxonHub transpare
 |---------|-------------|
 | 🔄 [**Any SDK → Any Model**](docs/en/api-reference/openai-api.md) | Use OpenAI SDK to call Claude, or Anthropic SDK to call GPT. Zero code changes. |
 | 🔍 [**Full Request Tracing**](docs/en/guides/tracing.md) | Complete request timelines with thread-aware observability. Debug faster. |
-| 🔐 [**Enterprise RBAC**](docs/en/guides/permissions.md) | Fine-grained access control, usage quotas, and data isolation. |
+| 🔐 [**Single-tenant Access**](docs/en/guides/permissions.md) | Every signed-in user has full access; API keys stay scope-limited. |
 | ⚡ [**Smart Load Balancing**](docs/en/guides/load-balance.md) | Auto failover in <100ms. Always route to the healthiest channel. |
 | 💰 [**Real-time Cost Tracking**](docs/en/guides/cost-tracking.md) | Per-request cost breakdown. Input, output, cache tokens—all tracked. |
 

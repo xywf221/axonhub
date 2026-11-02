@@ -16,24 +16,19 @@ import (
 	"github.com/looplj/axonhub/internal/ent/channeloverridetemplate"
 	"github.com/looplj/axonhub/internal/ent/channelprobe"
 	"github.com/looplj/axonhub/internal/ent/datastorage"
-	"github.com/looplj/axonhub/internal/ent/invitation"
 	"github.com/looplj/axonhub/internal/ent/model"
 	"github.com/looplj/axonhub/internal/ent/oidcidentity"
 	"github.com/looplj/axonhub/internal/ent/predicate"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/prompt"
 	"github.com/looplj/axonhub/internal/ent/promptprotectionrule"
 	"github.com/looplj/axonhub/internal/ent/providerquotastatus"
 	"github.com/looplj/axonhub/internal/ent/request"
 	"github.com/looplj/axonhub/internal/ent/requestexecution"
-	"github.com/looplj/axonhub/internal/ent/role"
 	"github.com/looplj/axonhub/internal/ent/system"
 	"github.com/looplj/axonhub/internal/ent/thread"
 	"github.com/looplj/axonhub/internal/ent/trace"
 	"github.com/looplj/axonhub/internal/ent/usagelog"
 	"github.com/looplj/axonhub/internal/ent/user"
-	"github.com/looplj/axonhub/internal/ent/userproject"
-	"github.com/looplj/axonhub/internal/ent/userrole"
 )
 
 // The Query interface represents an operation that queries a graph.
@@ -308,33 +303,6 @@ func (f TraverseDataStorage) Traverse(ctx context.Context, q ent.Query) error {
 	return fmt.Errorf("unexpected query type %T. expect *ent.DataStorageQuery", q)
 }
 
-// The InvitationFunc type is an adapter to allow the use of ordinary function as a Querier.
-type InvitationFunc func(context.Context, *ent.InvitationQuery) (ent.Value, error)
-
-// Query calls f(ctx, q).
-func (f InvitationFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
-	if q, ok := q.(*ent.InvitationQuery); ok {
-		return f(ctx, q)
-	}
-	return nil, fmt.Errorf("unexpected query type %T. expect *ent.InvitationQuery", q)
-}
-
-// The TraverseInvitation type is an adapter to allow the use of ordinary function as Traverser.
-type TraverseInvitation func(context.Context, *ent.InvitationQuery) error
-
-// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
-func (f TraverseInvitation) Intercept(next ent.Querier) ent.Querier {
-	return next
-}
-
-// Traverse calls f(ctx, q).
-func (f TraverseInvitation) Traverse(ctx context.Context, q ent.Query) error {
-	if q, ok := q.(*ent.InvitationQuery); ok {
-		return f(ctx, q)
-	}
-	return fmt.Errorf("unexpected query type %T. expect *ent.InvitationQuery", q)
-}
-
 // The ModelFunc type is an adapter to allow the use of ordinary function as a Querier.
 type ModelFunc func(context.Context, *ent.ModelQuery) (ent.Value, error)
 
@@ -387,33 +355,6 @@ func (f TraverseOIDCIdentity) Traverse(ctx context.Context, q ent.Query) error {
 		return f(ctx, q)
 	}
 	return fmt.Errorf("unexpected query type %T. expect *ent.OIDCIdentityQuery", q)
-}
-
-// The ProjectFunc type is an adapter to allow the use of ordinary function as a Querier.
-type ProjectFunc func(context.Context, *ent.ProjectQuery) (ent.Value, error)
-
-// Query calls f(ctx, q).
-func (f ProjectFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
-	if q, ok := q.(*ent.ProjectQuery); ok {
-		return f(ctx, q)
-	}
-	return nil, fmt.Errorf("unexpected query type %T. expect *ent.ProjectQuery", q)
-}
-
-// The TraverseProject type is an adapter to allow the use of ordinary function as Traverser.
-type TraverseProject func(context.Context, *ent.ProjectQuery) error
-
-// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
-func (f TraverseProject) Intercept(next ent.Querier) ent.Querier {
-	return next
-}
-
-// Traverse calls f(ctx, q).
-func (f TraverseProject) Traverse(ctx context.Context, q ent.Query) error {
-	if q, ok := q.(*ent.ProjectQuery); ok {
-		return f(ctx, q)
-	}
-	return fmt.Errorf("unexpected query type %T. expect *ent.ProjectQuery", q)
 }
 
 // The PromptFunc type is an adapter to allow the use of ordinary function as a Querier.
@@ -551,33 +492,6 @@ func (f TraverseRequestExecution) Traverse(ctx context.Context, q ent.Query) err
 	return fmt.Errorf("unexpected query type %T. expect *ent.RequestExecutionQuery", q)
 }
 
-// The RoleFunc type is an adapter to allow the use of ordinary function as a Querier.
-type RoleFunc func(context.Context, *ent.RoleQuery) (ent.Value, error)
-
-// Query calls f(ctx, q).
-func (f RoleFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
-	if q, ok := q.(*ent.RoleQuery); ok {
-		return f(ctx, q)
-	}
-	return nil, fmt.Errorf("unexpected query type %T. expect *ent.RoleQuery", q)
-}
-
-// The TraverseRole type is an adapter to allow the use of ordinary function as Traverser.
-type TraverseRole func(context.Context, *ent.RoleQuery) error
-
-// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
-func (f TraverseRole) Intercept(next ent.Querier) ent.Querier {
-	return next
-}
-
-// Traverse calls f(ctx, q).
-func (f TraverseRole) Traverse(ctx context.Context, q ent.Query) error {
-	if q, ok := q.(*ent.RoleQuery); ok {
-		return f(ctx, q)
-	}
-	return fmt.Errorf("unexpected query type %T. expect *ent.RoleQuery", q)
-}
-
 // The SystemFunc type is an adapter to allow the use of ordinary function as a Querier.
 type SystemFunc func(context.Context, *ent.SystemQuery) (ent.Value, error)
 
@@ -713,60 +627,6 @@ func (f TraverseUser) Traverse(ctx context.Context, q ent.Query) error {
 	return fmt.Errorf("unexpected query type %T. expect *ent.UserQuery", q)
 }
 
-// The UserProjectFunc type is an adapter to allow the use of ordinary function as a Querier.
-type UserProjectFunc func(context.Context, *ent.UserProjectQuery) (ent.Value, error)
-
-// Query calls f(ctx, q).
-func (f UserProjectFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
-	if q, ok := q.(*ent.UserProjectQuery); ok {
-		return f(ctx, q)
-	}
-	return nil, fmt.Errorf("unexpected query type %T. expect *ent.UserProjectQuery", q)
-}
-
-// The TraverseUserProject type is an adapter to allow the use of ordinary function as Traverser.
-type TraverseUserProject func(context.Context, *ent.UserProjectQuery) error
-
-// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
-func (f TraverseUserProject) Intercept(next ent.Querier) ent.Querier {
-	return next
-}
-
-// Traverse calls f(ctx, q).
-func (f TraverseUserProject) Traverse(ctx context.Context, q ent.Query) error {
-	if q, ok := q.(*ent.UserProjectQuery); ok {
-		return f(ctx, q)
-	}
-	return fmt.Errorf("unexpected query type %T. expect *ent.UserProjectQuery", q)
-}
-
-// The UserRoleFunc type is an adapter to allow the use of ordinary function as a Querier.
-type UserRoleFunc func(context.Context, *ent.UserRoleQuery) (ent.Value, error)
-
-// Query calls f(ctx, q).
-func (f UserRoleFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
-	if q, ok := q.(*ent.UserRoleQuery); ok {
-		return f(ctx, q)
-	}
-	return nil, fmt.Errorf("unexpected query type %T. expect *ent.UserRoleQuery", q)
-}
-
-// The TraverseUserRole type is an adapter to allow the use of ordinary function as Traverser.
-type TraverseUserRole func(context.Context, *ent.UserRoleQuery) error
-
-// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
-func (f TraverseUserRole) Intercept(next ent.Querier) ent.Querier {
-	return next
-}
-
-// Traverse calls f(ctx, q).
-func (f TraverseUserRole) Traverse(ctx context.Context, q ent.Query) error {
-	if q, ok := q.(*ent.UserRoleQuery); ok {
-		return f(ctx, q)
-	}
-	return fmt.Errorf("unexpected query type %T. expect *ent.UserRoleQuery", q)
-}
-
 // NewQuery returns the generic Query interface for the given typed query.
 func NewQuery(q ent.Query) (Query, error) {
 	switch q := q.(type) {
@@ -786,14 +646,10 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.ChannelProbeQuery, predicate.ChannelProbe, channelprobe.OrderOption]{typ: ent.TypeChannelProbe, tq: q}, nil
 	case *ent.DataStorageQuery:
 		return &query[*ent.DataStorageQuery, predicate.DataStorage, datastorage.OrderOption]{typ: ent.TypeDataStorage, tq: q}, nil
-	case *ent.InvitationQuery:
-		return &query[*ent.InvitationQuery, predicate.Invitation, invitation.OrderOption]{typ: ent.TypeInvitation, tq: q}, nil
 	case *ent.ModelQuery:
 		return &query[*ent.ModelQuery, predicate.Model, model.OrderOption]{typ: ent.TypeModel, tq: q}, nil
 	case *ent.OIDCIdentityQuery:
 		return &query[*ent.OIDCIdentityQuery, predicate.OIDCIdentity, oidcidentity.OrderOption]{typ: ent.TypeOIDCIdentity, tq: q}, nil
-	case *ent.ProjectQuery:
-		return &query[*ent.ProjectQuery, predicate.Project, project.OrderOption]{typ: ent.TypeProject, tq: q}, nil
 	case *ent.PromptQuery:
 		return &query[*ent.PromptQuery, predicate.Prompt, prompt.OrderOption]{typ: ent.TypePrompt, tq: q}, nil
 	case *ent.PromptProtectionRuleQuery:
@@ -804,8 +660,6 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.RequestQuery, predicate.Request, request.OrderOption]{typ: ent.TypeRequest, tq: q}, nil
 	case *ent.RequestExecutionQuery:
 		return &query[*ent.RequestExecutionQuery, predicate.RequestExecution, requestexecution.OrderOption]{typ: ent.TypeRequestExecution, tq: q}, nil
-	case *ent.RoleQuery:
-		return &query[*ent.RoleQuery, predicate.Role, role.OrderOption]{typ: ent.TypeRole, tq: q}, nil
 	case *ent.SystemQuery:
 		return &query[*ent.SystemQuery, predicate.System, system.OrderOption]{typ: ent.TypeSystem, tq: q}, nil
 	case *ent.ThreadQuery:
@@ -816,10 +670,6 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.UsageLogQuery, predicate.UsageLog, usagelog.OrderOption]{typ: ent.TypeUsageLog, tq: q}, nil
 	case *ent.UserQuery:
 		return &query[*ent.UserQuery, predicate.User, user.OrderOption]{typ: ent.TypeUser, tq: q}, nil
-	case *ent.UserProjectQuery:
-		return &query[*ent.UserProjectQuery, predicate.UserProject, userproject.OrderOption]{typ: ent.TypeUserProject, tq: q}, nil
-	case *ent.UserRoleQuery:
-		return &query[*ent.UserRoleQuery, predicate.UserRole, userrole.OrderOption]{typ: ent.TypeUserRole, tq: q}, nil
 	default:
 		return nil, fmt.Errorf("unknown query type %T", q)
 	}

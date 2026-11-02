@@ -18,7 +18,7 @@ import (
 )
 
 type PromptProvider interface {
-	GetEnabledPrompts(ctx context.Context, projectID int) ([]*ent.Prompt, error)
+	GetEnabledPrompts(ctx context.Context) ([]*ent.Prompt, error)
 }
 
 type stubPromptProvider struct {
@@ -26,7 +26,7 @@ type stubPromptProvider struct {
 	err     error
 }
 
-func (s *stubPromptProvider) GetEnabledPrompts(_ context.Context, _ int) ([]*ent.Prompt, error) {
+func (s *stubPromptProvider) GetEnabledPrompts(_ context.Context) ([]*ent.Prompt, error) {
 	if s.err != nil {
 		return nil, s.err
 	}
@@ -38,15 +38,9 @@ func injectPrompts(inbound *PersistentInboundTransformer) pipeline.Middleware {
 	matcher := biz.NewPromptMatcher()
 
 	return pipeline.OnLlmRequest("inject-prompts", func(ctx context.Context, llmRequest *llm.Request) (*llm.Request, error) {
-		projectID, ok := contexts.GetProjectID(ctx)
-		if !ok {
-			log.Debug(ctx, "no project ID in context, skipping prompt injection")
-			return llmRequest, nil
-		}
-
-		enabledPrompts, err := inbound.state.PromptProvider.GetEnabledPrompts(ctx, projectID)
+		enabledPrompts, err := inbound.state.PromptProvider.GetEnabledPrompts(ctx)
 		if err != nil {
-			log.Warn(ctx, "failed to get enabled prompts", log.Int("project_id", projectID), log.Cause(err))
+			log.Warn(ctx, "failed to get enabled prompts", log.Cause(err))
 			return llmRequest, nil
 		}
 

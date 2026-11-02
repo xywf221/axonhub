@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
-import RequestDetailGlobalPage from '@/features/requests/components/request-detail-global-page';
+import RequestDetailPage from '@/features/requests/components/request-detail-page';
 
 export const Route = createFileRoute('/_authenticated/requests/$requestId')({
-  component: RequestDetailGlobalPage,
+  validateSearch: (search: Record<string, unknown>) => search,
+  component: RequestDetailPage,
 });

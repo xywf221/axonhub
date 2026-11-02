@@ -2,8 +2,6 @@ package objects
 
 import (
 	"slices"
-
-	"github.com/shopspring/decimal"
 )
 
 type APIKeyProfiles struct {
@@ -19,7 +17,6 @@ type APIKeyProfile struct {
 	TemplateID          *int           `json:"templateID,omitempty"`
 	TemplateName        string         `json:"templateName,omitempty"`
 	ModelMappings       []ModelMapping `json:"modelMappings"`
-	Quota               *APIKeyQuota   `json:"quota,omitempty"`
 	LoadBalanceStrategy *string        `json:"loadBalanceStrategy,omitempty"`
 	TraceStickyMode     *string        `json:"traceStickyMode,omitempty"`
 
@@ -106,23 +103,6 @@ func (p *APIKeyProfile) Clone() *APIKeyProfile {
 		cp.ModelMappings = make([]ModelMapping, len(p.ModelMappings))
 		copy(cp.ModelMappings, p.ModelMappings)
 	}
-	if p.Quota != nil {
-		q := *p.Quota
-		if q.Requests != nil {
-			r := *q.Requests
-			q.Requests = &r
-		}
-		if q.TotalTokens != nil {
-			tt := *q.TotalTokens
-			q.TotalTokens = &tt
-		}
-		if q.Cost != nil {
-			c := *q.Cost
-			q.Cost = &c
-		}
-		q.Period = p.Quota.Period.clone()
-		cp.Quota = &q
-	}
 	if len(p.ChannelIDs) > 0 {
 		cp.ChannelIDs = make([]int, len(p.ChannelIDs))
 		copy(cp.ChannelIDs, p.ChannelIDs)
@@ -145,64 +125,3 @@ func (p *APIKeyProfile) Clone() *APIKeyProfile {
 	}
 	return &cp
 }
-
-func (p *APIKeyQuotaPeriod) clone() APIKeyQuotaPeriod {
-	if p == nil {
-		return APIKeyQuotaPeriod{}
-	}
-	cp := *p
-	if p.PastDuration != nil {
-		pd := *p.PastDuration
-		cp.PastDuration = &pd
-	}
-	if p.CalendarDuration != nil {
-		cd := *p.CalendarDuration
-		cp.CalendarDuration = &cd
-	}
-	return cp
-}
-
-type APIKeyQuota struct {
-	Requests    *int64            `json:"requests,omitempty"`
-	TotalTokens *int64            `json:"totalTokens,omitempty"`
-	Cost        *decimal.Decimal  `json:"cost,omitempty"`
-	Period      APIKeyQuotaPeriod `json:"period"`
-}
-
-type APIKeyQuotaPeriod struct {
-	Type             APIKeyQuotaPeriodType        `json:"type"`
-	PastDuration     *APIKeyQuotaPastDuration     `json:"pastDuration,omitempty"`
-	CalendarDuration *APIKeyQuotaCalendarDuration `json:"calendarDuration,omitempty"`
-}
-
-type APIKeyQuotaPeriodType string
-
-const (
-	APIKeyQuotaPeriodTypeAllTime          APIKeyQuotaPeriodType = "all_time"
-	APIKeyQuotaPeriodTypePastDuration     APIKeyQuotaPeriodType = "past_duration"
-	APIKeyQuotaPeriodTypeCalendarDuration APIKeyQuotaPeriodType = "calendar_duration"
-)
-
-type APIKeyQuotaPastDuration struct {
-	Value int64                       `json:"value"`
-	Unit  APIKeyQuotaPastDurationUnit `json:"unit"`
-}
-
-type APIKeyQuotaPastDurationUnit string
-
-const (
-	APIKeyQuotaPastDurationUnitMinute APIKeyQuotaPastDurationUnit = "minute"
-	APIKeyQuotaPastDurationUnitHour   APIKeyQuotaPastDurationUnit = "hour"
-	APIKeyQuotaPastDurationUnitDay    APIKeyQuotaPastDurationUnit = "day"
-)
-
-type APIKeyQuotaCalendarDuration struct {
-	Unit APIKeyQuotaCalendarDurationUnit `json:"unit"`
-}
-
-type APIKeyQuotaCalendarDurationUnit string
-
-const (
-	APIKeyQuotaCalendarDurationUnitDay   APIKeyQuotaCalendarDurationUnit = "day"
-	APIKeyQuotaCalendarDurationUnitMonth APIKeyQuotaCalendarDurationUnit = "month"
-)

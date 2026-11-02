@@ -14,7 +14,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/looplj/axonhub/internal/ent/predicate"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/thread"
 	"github.com/looplj/axonhub/internal/ent/trace"
 )
@@ -26,7 +25,6 @@ type ThreadQuery struct {
 	order           []thread.OrderOption
 	inters          []Interceptor
 	predicates      []predicate.Thread
-	withProject     *ProjectQuery
 	withTraces      *TraceQuery
 	loadTotal       []func(context.Context, []*Thread) error
 	modifiers       []func(*sql.Selector)
@@ -65,28 +63,6 @@ func (_q *ThreadQuery) Unique(unique bool) *ThreadQuery {
 func (_q *ThreadQuery) Order(o ...thread.OrderOption) *ThreadQuery {
 	_q.order = append(_q.order, o...)
 	return _q
-}
-
-// QueryProject chains the current query on the "project" edge.
-func (_q *ThreadQuery) QueryProject() *ProjectQuery {
-	query := (&ProjectClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(thread.Table, thread.FieldID, selector),
-			sqlgraph.To(project.Table, project.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, thread.ProjectTable, thread.ProjectColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
 }
 
 // QueryTraces chains the current query on the "traces" edge.
@@ -298,29 +274,17 @@ func (_q *ThreadQuery) Clone() *ThreadQuery {
 		return nil
 	}
 	return &ThreadQuery{
-		config:      _q.config,
-		ctx:         _q.ctx.Clone(),
-		order:       append([]thread.OrderOption{}, _q.order...),
-		inters:      append([]Interceptor{}, _q.inters...),
-		predicates:  append([]predicate.Thread{}, _q.predicates...),
-		withProject: _q.withProject.Clone(),
-		withTraces:  _q.withTraces.Clone(),
+		config:     _q.config,
+		ctx:        _q.ctx.Clone(),
+		order:      append([]thread.OrderOption{}, _q.order...),
+		inters:     append([]Interceptor{}, _q.inters...),
+		predicates: append([]predicate.Thread{}, _q.predicates...),
+		withTraces: _q.withTraces.Clone(),
 		// clone intermediate query.
 		sql:       _q.sql.Clone(),
 		path:      _q.path,
 		modifiers: append([]func(*sql.Selector){}, _q.modifiers...),
 	}
-}
-
-// WithProject tells the query-builder to eager-load the nodes that are connected to
-// the "project" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *ThreadQuery) WithProject(opts ...func(*ProjectQuery)) *ThreadQuery {
-	query := (&ProjectClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withProject = query
-	return _q
 }
 
 // WithTraces tells the query-builder to eager-load the nodes that are connected to
@@ -418,8 +382,7 @@ func (_q *ThreadQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Threa
 	var (
 		nodes       = []*Thread{}
 		_spec       = _q.querySpec()
-		loadedTypes = [2]bool{
-			_q.withProject != nil,
+		loadedTypes = [1]bool{
 			_q.withTraces != nil,
 		}
 	)
@@ -444,12 +407,6 @@ func (_q *ThreadQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Threa
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withProject; query != nil {
-		if err := _q.loadProject(ctx, query, nodes, nil,
-			func(n *Thread, e *Project) { n.Edges.Project = e }); err != nil {
-			return nil, err
-		}
-	}
 	if query := _q.withTraces; query != nil {
 		if err := _q.loadTraces(ctx, query, nodes,
 			func(n *Thread) { n.Edges.Traces = []*Trace{} },
@@ -472,35 +429,6 @@ func (_q *ThreadQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Threa
 	return nodes, nil
 }
 
-func (_q *ThreadQuery) loadProject(ctx context.Context, query *ProjectQuery, nodes []*Thread, init func(*Thread), assign func(*Thread, *Project)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*Thread)
-	for i := range nodes {
-		fk := nodes[i].ProjectID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(project.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "project_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
 func (_q *ThreadQuery) loadTraces(ctx context.Context, query *TraceQuery, nodes []*Thread, init func(*Thread), assign func(*Thread, *Trace)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[int]*Thread)
@@ -559,9 +487,6 @@ func (_q *ThreadQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != thread.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
-		}
-		if _q.withProject != nil {
-			_spec.Node.AddColumnOnce(thread.FieldProjectID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

@@ -4,7 +4,6 @@ import { toast } from 'sonner';
 import { getTokenFromStorage, useAuthStore } from '@/stores/authStore';
 import i18n from '@/lib/i18n';
 import { useErrorHandler } from '@/hooks/use-error-handler';
-import { usePermissions } from '@/hooks/usePermissions';
 import type { ProxyConfig, APIKeyAutoDisableRule } from '@/features/channels/data/schema';
 import type { ModelAssociation } from '@/features/models/data/schema';
 
@@ -129,40 +128,6 @@ const UPDATE_RETRY_POLICY_MUTATION = `
   }
 `;
 
-const WEBHOOK_NOTIFIER_CONFIG_QUERY = `
-  query WebhookNotifierConfig {
-    webhookNotifierConfig {
-      targets {
-        name
-        enabled
-        url
-        proxy {
-          type
-          url
-          username
-          password
-        }
-        timeoutMs
-        headers {
-          key
-          value
-        }
-        body
-      }
-      subscriptions {
-        event
-        targetNames
-      }
-    }
-  }
-`;
-
-const UPDATE_WEBHOOK_NOTIFIER_CONFIG_MUTATION = `
-  mutation UpdateWebhookNotifierConfig($input: WebhookNotifierConfigInput!) {
-    updateWebhookNotifierConfig(input: $input)
-  }
-`;
-
 const DEFAULT_DATA_STORAGE_QUERY = `
   query DefaultDataStorageID {
     defaultDataStorageID
@@ -258,16 +223,6 @@ export interface UpdateVideoStorageSettingsInput {
   scanLimit?: number;
 }
 
-export interface SecuritySettings {
-  blockedIPs: string[];
-  showRequestLogIPBanIcon: boolean;
-}
-
-export interface UpdateSecuritySettingsInput {
-  blockedIPs?: string[];
-  showRequestLogIPBanIcon?: boolean;
-}
-
 export interface WebSearchSettings {
   enabled: boolean;
   endpoint: string;
@@ -332,31 +287,6 @@ export interface GcCleanupPreviewItem {
 export interface AutoDisableChannel {
   enabled: boolean;
   rules: APIKeyAutoDisableRule[];
-}
-
-export interface WebhookHeader {
-  key: string;
-  value: string;
-}
-
-export interface WebhookTarget {
-  name: string;
-  enabled: boolean;
-  url: string;
-  proxy?: ProxyConfig | null;
-  timeoutMs: number;
-  headers: WebhookHeader[];
-  body: string;
-}
-
-export interface WebhookSubscription {
-  event: string;
-  targetNames: string[];
-}
-
-export interface WebhookNotifierConfig {
-  targets: WebhookTarget[];
-  subscriptions: WebhookSubscription[];
 }
 
 export interface RetryPolicy {
@@ -465,11 +395,10 @@ export interface ClearCachePayload {
 // Hooks
 export function useBrandSettings(options?: { enabled?: boolean }) {
   const { handleError } = useErrorHandler();
-  const { hasSystemScope } = usePermissions();
 
   return useQuery({
     queryKey: ['brandSettings'],
-    enabled: options?.enabled !== false && hasSystemScope('read_settings'),
+    enabled: options?.enabled !== false,
     queryFn: async () => {
       try {
         const data = await graphqlRequest<{ brandSettings: BrandSettings }>(BRAND_SETTINGS_QUERY);
@@ -484,11 +413,10 @@ export function useBrandSettings(options?: { enabled?: boolean }) {
 
 export function useStoragePolicy() {
   const { handleError } = useErrorHandler();
-  const { hasSystemScope } = usePermissions();
 
   return useQuery({
     queryKey: ['storagePolicy'],
-    enabled: hasSystemScope('read_settings'),
+    enabled: true,
     queryFn: async () => {
       try {
         const data = await graphqlRequest<{ storagePolicy: StoragePolicy }>(STORAGE_POLICY_QUERY);
@@ -604,48 +532,12 @@ export function useUpdateRetryPolicy() {
   });
 }
 
-export function useWebhookNotifierConfig() {
-  const { handleError } = useErrorHandler();
-
-  return useQuery({
-    queryKey: ['webhookNotifierConfig'],
-    queryFn: async () => {
-      try {
-        const data = await graphqlRequest<{ webhookNotifierConfig: WebhookNotifierConfig }>(WEBHOOK_NOTIFIER_CONFIG_QUERY);
-        return data.webhookNotifierConfig;
-      } catch (error) {
-        handleError(error, i18n.t('common.errors.internalServerError'));
-        throw error;
-      }
-    },
-  });
-}
-
-export function useUpdateWebhookNotifierConfig() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (input: WebhookNotifierConfig) => {
-      const data = await graphqlRequest<{ updateWebhookNotifierConfig: boolean }>(UPDATE_WEBHOOK_NOTIFIER_CONFIG_MUTATION, { input });
-      return data.updateWebhookNotifierConfig;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['webhookNotifierConfig'] });
-      toast.success(i18n.t('common.success.systemUpdated'));
-    },
-    onError: () => {
-      toast.error(i18n.t('common.errors.systemUpdateFailed'));
-    },
-  });
-}
-
 export function useDefaultDataStorageID() {
   const { handleError } = useErrorHandler();
-  const { hasSystemScope } = usePermissions();
 
   return useQuery({
     queryKey: ['defaultDataStorageID'],
-    enabled: hasSystemScope('read_settings'),
+    enabled: true,
     queryFn: async () => {
       try {
         const data = await graphqlRequest<{ defaultDataStorageID: string | null }>(DEFAULT_DATA_STORAGE_QUERY);
@@ -962,21 +854,6 @@ const UPDATE_VIDEO_STORAGE_SETTINGS_MUTATION = `
   }
 `;
 
-const SECURITY_SETTINGS_QUERY = `
-  query SecuritySettings {
-    securitySettings {
-      blockedIPs
-      showRequestLogIPBanIcon
-    }
-  }
-`;
-
-const UPDATE_SECURITY_SETTINGS_MUTATION = `
-  mutation UpdateSecuritySettings($input: UpdateSecuritySettingsInput!) {
-    updateSecuritySettings(input: $input)
-  }
-`;
-
 const WEB_SEARCH_SETTINGS_QUERY = `
   query WebSearchSettings {
     webSearchSettings {
@@ -1020,11 +897,10 @@ export interface DeveloperModelSettings {
 
 export function useModelSettings() {
   const { handleError } = useErrorHandler();
-  const { hasSystemScope } = usePermissions();
 
   return useQuery({
     queryKey: ['modelSettings'],
-    enabled: hasSystemScope('read_settings'),
+    enabled: true,
     queryFn: async () => {
       try {
         const data = await graphqlRequest<{ systemModelSettings: ModelSettings }>(MODEL_SETTINGS_QUERY);
@@ -1094,11 +970,10 @@ export interface UpdateSystemChannelSettingsInput {
 
 export function useChannelSetting(options?: { enabled?: boolean }) {
   const { handleError } = useErrorHandler();
-  const { hasSystemScope } = usePermissions();
 
   return useQuery({
     queryKey: ['channelSetting'],
-    enabled: options?.enabled !== false && hasSystemScope('read_settings'),
+    enabled: options?.enabled !== false,
     queryFn: async () => {
       try {
         const data = await graphqlRequest<{ systemChannelSettings: ChannelSetting }>(CHANNEL_SETTINGS_QUERY);
@@ -1132,11 +1007,10 @@ export function useUpdateChannelSetting() {
 
 export function useGeneralSettings() {
   const { handleError } = useErrorHandler();
-  const { hasSystemScope } = usePermissions();
 
   return useQuery({
     queryKey: ['generalSettings'],
-    enabled: hasSystemScope('read_settings'),
+    enabled: true,
     queryFn: async () => {
       try {
         const data = await graphqlRequest<{ systemGeneralSettings: SystemGeneralSettings }>(SYSTEM_GENERAL_SETTINGS_QUERY);
@@ -1207,50 +1081,12 @@ export function useUpdateVideoStorageSettings() {
   });
 }
 
-export function useSecuritySettings() {
-  const { handleError } = useErrorHandler();
-  const { hasSystemScope } = usePermissions();
-
-  return useQuery({
-    queryKey: ['securitySettings'],
-    enabled: hasSystemScope('read_settings'),
-    queryFn: async () => {
-      try {
-        const data = await graphqlRequest<{ securitySettings: SecuritySettings }>(SECURITY_SETTINGS_QUERY);
-        return data.securitySettings;
-      } catch (error) {
-        handleError(error, i18n.t('common.errors.internalServerError'));
-        throw error;
-      }
-    },
-  });
-}
-
-export function useUpdateSecuritySettings() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (input: UpdateSecuritySettingsInput) => {
-      const data = await graphqlRequest<{ updateSecuritySettings: boolean }>(UPDATE_SECURITY_SETTINGS_MUTATION, { input });
-      return data.updateSecuritySettings;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['securitySettings'] });
-      toast.success(i18n.t('common.success.systemUpdated'));
-    },
-    onError: () => {
-      toast.error(i18n.t('common.errors.systemUpdateFailed'));
-    },
-  });
-}
-
 export function useWebSearchSettings() {
   const { handleError } = useErrorHandler();
-  const { hasSystemScope } = usePermissions();
 
   return useQuery({
     queryKey: ['webSearchSettings'],
-    enabled: hasSystemScope('read_settings'),
+    enabled: true,
     queryFn: async () => {
       try {
         const data = await graphqlRequest<{ webSearchSettings: WebSearchSettings }>(WEB_SEARCH_SETTINGS_QUERY);
@@ -1575,11 +1411,10 @@ export interface SaveProxyPresetInput {
 
 export function useProxyPresets() {
   const { handleError } = useErrorHandler();
-  const { hasSystemScope } = usePermissions();
 
   return useQuery({
     queryKey: ['proxyPresets'],
-    enabled: hasSystemScope('read_settings'),
+    enabled: true,
     queryFn: async () => {
       try {
         const data = await graphqlRequest<{ proxyPresets: ProxyPreset[] }>(PROXY_PRESETS_QUERY);
@@ -1651,9 +1486,8 @@ export interface UpdateUserAgentPassThroughSettingsInput {
 }
 
 function useSystemSettingsQueryIdentity() {
-  const { hasSystemScope } = usePermissions();
   const authUserId = useAuthStore((state) => state.auth.user?.id ?? null);
-  return { authUserId, canReadSystemSettings: hasSystemScope('read_settings') };
+  return { authUserId, canReadSystemSettings: true };
 }
 
 export function useUserAgentPassThroughSettings(options?: { enabled?: boolean }) {
@@ -1842,12 +1676,11 @@ export interface UpdateQuotaRoutingSettingsInput {
 
 export function useQuotaRoutingSettings() {
   const { handleError } = useErrorHandler();
-  const { hasSystemScope } = usePermissions();
   const { authUserId, canReadSystemSettings } = useSystemSettingsQueryIdentity();
 
   return useQuery({
     queryKey: ['quotaRoutingSettings', authUserId ?? 'signed-out', canReadSystemSettings],
-    enabled: hasSystemScope('read_settings'),
+    enabled: true,
     queryFn: async () => {
       try {
         const data = await graphqlRequest<{ quotaRoutingSettings: QuotaRoutingSettings }>(QUOTA_ROUTING_SETTINGS_QUERY);
@@ -1913,11 +1746,10 @@ export interface UpdateProviderQuotaCollectionSettingsInput {
 
 export function useProviderQuotaCollectionSettings() {
   const { handleError } = useErrorHandler();
-  const { hasSystemScope } = usePermissions();
 
   return useQuery({
     queryKey: ['providerQuotaCollectionSettings'],
-    enabled: hasSystemScope('read_settings'),
+    enabled: true,
     queryFn: async () => {
       try {
         const data = await graphqlRequest<{ providerQuotaCollectionSettings: ProviderQuotaCollectionSettings }>(
@@ -1981,11 +1813,10 @@ export interface UpdateCatalogSettingsInput {
 
 export function useCatalogSettings() {
   const { handleError } = useErrorHandler();
-  const { hasSystemScope } = usePermissions();
 
   return useQuery({
     queryKey: ['catalogSettings'],
-    enabled: hasSystemScope('read_settings'),
+    enabled: true,
     queryFn: async () => {
       try {
         const data = await graphqlRequest<{ catalogSettings: CatalogSettings }>(CATALOG_SETTINGS_QUERY);

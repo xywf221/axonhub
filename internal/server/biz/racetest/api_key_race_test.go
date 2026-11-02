@@ -11,14 +11,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
 	"github.com/looplj/axonhub/internal/authz"
 	"github.com/looplj/axonhub/internal/contexts"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/apikey"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/user"
 	"github.com/looplj/axonhub/internal/pkg/xcache"
 	"github.com/looplj/axonhub/internal/scopes"
@@ -31,10 +29,10 @@ const raceConcurrency = 50
 // raceDialects lists the dialects exercised by the name-uniqueness race test.
 // Each subtest runs only when its DSN env var is set.
 //
-// PostgreSQL/MySQL/TiDB are multi-writer servers whose check-then-write race is
-// closed by the per-project row lock (SELECT ... FOR UPDATE). SQLite is included
-// even though the row lock is a NO-OP there (SQLite rejects SELECT ... FOR UPDATE):
-// it proves SQLite's own single-writer + WAL BUSY/BUSY_SNAPSHOT semantics make the
+// PostgreSQL/MySQL/TiDB are multi-writer servers: the uniqueness check runs in a
+// transaction and must fail closed, so losers get DuplicateNameError instead of a
+// duplicate live row. SQLite is included even though it serializes writers: it
+// proves SQLite's own single-writer + WAL BUSY/BUSY_SNAPSHOT semantics make the
 // burst fail closed (loser gets DuplicateNameError or SQLITE_BUSY, never a
 // duplicate live row). SQLite needs no server — point AXONHUB_TEST_SQLITE_DSN at a
 // temp file, e.g. file:/tmp/race.db.
@@ -49,18 +47,17 @@ var raceDialects = []struct {
 	{name: "sqlite", dialect: "sqlite3", envVar: "AXONHUB_TEST_SQLITE_DSN"},
 }
 
-// TestAPIKeyNameRace proves same-creator API key name uniqueness is race-safe
-// without a DB unique constraint: the per-project row lock closes the race on
+// TestAPIKeyNameRace proves API key name uniqueness is race-safe without a DB
+// unique constraint: the transactional check-then-write must fail closed on
 // PostgreSQL/MySQL/TiDB, and SQLite's single-writer semantics close it on SQLite.
 //
-// Many clients concurrently create an LLM API key with the same name and
-// creator in the same project. The lock ensures exactly one create succeeds,
-// every other create gets DuplicateNameError, and one live row remains.
-// Without it, the name-based lookup could return a not-singular error.
+// Many clients concurrently create an LLM API key with the same name. Exactly one
+// create succeeds, every other create gets DuplicateNameError, and one live row
+// remains. Without it, the name-based lookup could return a not-singular error.
 //
-// NOTE for TiDB: FOR UPDATE only locks eagerly in pessimistic transaction mode
-// (the cluster default since 3.0.8); an optimistic-mode cluster would defer the
-// lock to commit and could still race.
+// NOTE for TiDB: transaction isolation only serializes conflicting writes eagerly
+// in pessimistic transaction mode (the cluster default since 3.0.8); an
+// optimistic-mode cluster could still race.
 func TestAPIKeyNameRace(t *testing.T) {
 	ran := 0
 
@@ -90,10 +87,9 @@ func runAPIKeyNameRace(t *testing.T, dialect, dsn string) {
 	defer client.Close()
 
 	apiKeyService := biz.NewAPIKeyService(biz.APIKeyServiceParams{
-		CacheConfig:    xcache.Config{Mode: xcache.ModeMemory},
-		Ent:            client,
-		ProjectService: &biz.ProjectService{ProjectCache: xcache.NewFromConfig[xcache.Entry[ent.Project]](xcache.Config{Mode: xcache.ModeMemory})},
-		KeyPrefix:      "ah",
+		CacheConfig: xcache.Config{Mode: xcache.ModeMemory},
+		Ent:         client,
+		KeyPrefix:   "ah",
 	})
 	defer apiKeyService.Stop()
 
@@ -110,8 +106,8 @@ func runAPIKeyNameRace(t *testing.T, dialect, dsn string) {
 	require.Empty(t, errs, "no unexpected errors expected")
 	require.Equal(t, 1, ok, "exactly one concurrent create should succeed")
 	require.Equal(t, raceConcurrency-1, dup, "all other creates should get DuplicateNameError")
-	require.Equal(t, 1, countLiveByName(t, client, setupCtx, owner.ProjectID, name),
-		"the row lock must leave exactly one live row for the name")
+	require.Equal(t, 1, countLiveByName(t, client, setupCtx, name),
+		"the transactional uniqueness check must leave exactly one live row for the name")
 
 	// Name lookup (the feature this PR adds) must resolve to the single key.
 	got, err := apiKeyService.GetForRead(ctx, nil, nil, ptr(name))
@@ -179,13 +175,6 @@ func seedOwnerAPIKey(t *testing.T, client *ent.Client, setupCtx context.Context)
 		Save(setupCtx)
 	require.NoError(t, err)
 
-	p, err := client.Project.Create().
-		SetName(uuid.NewString()).
-		SetDescription("race test").
-		SetStatus(project.StatusActive).
-		Save(setupCtx)
-	require.NoError(t, err)
-
 	key, err := biz.GenerateAPIKey("ah")
 	require.NoError(t, err)
 
@@ -193,7 +182,6 @@ func seedOwnerAPIKey(t *testing.T, client *ent.Client, setupCtx context.Context)
 		SetName("Service Account").
 		SetKey(key).
 		SetUserID(u.ID).
-		SetProjectID(p.ID).
 		SetType(apikey.TypeServiceAccount).
 		SetScopes([]string{string(scopes.ScopeWriteAPIKeys), string(scopes.ScopeReadAPIKeys)}).
 		Save(setupCtx)
@@ -202,11 +190,11 @@ func seedOwnerAPIKey(t *testing.T, client *ent.Client, setupCtx context.Context)
 	return owner
 }
 
-func countLiveByName(t *testing.T, client *ent.Client, setupCtx context.Context, projectID int, name string) int {
+func countLiveByName(t *testing.T, client *ent.Client, setupCtx context.Context, name string) int {
 	t.Helper()
 
 	n, err := client.APIKey.Query().
-		Where(apikey.NameEQ(name), apikey.ProjectIDEQ(projectID)).
+		Where(apikey.NameEQ(name), apikey.TypeNEQ(apikey.TypePersonal)).
 		Count(setupCtx)
 	require.NoError(t, err)
 

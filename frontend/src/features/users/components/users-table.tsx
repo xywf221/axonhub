@@ -37,10 +37,8 @@ interface DataTableProps {
   onPageSizeChange: (pageSize: number) => void;
   nameFilter: string;
   statusFilter: string[];
-  roleFilter: string[];
   onNameFilterChange: (value: string) => void;
   onStatusFilterChange: (value: string[]) => void;
-  onRoleFilterChange: (value: string[]) => void;
 }
 
 export function UsersTable({
@@ -55,10 +53,8 @@ export function UsersTable({
   onPageSizeChange,
   nameFilter,
   statusFilter,
-  roleFilter,
   onNameFilterChange,
   onStatusFilterChange,
-  onRoleFilterChange,
 }: DataTableProps) {
   const { t } = useTranslation();
   const [rowSelection, setRowSelection] = useState({});
@@ -75,11 +71,8 @@ export function UsersTable({
     if (statusFilter.length > 0) {
       newFilters.push({ id: 'status', value: statusFilter });
     }
-    if (roleFilter.length > 0) {
-      newFilters.push({ id: 'role', value: roleFilter });
-    }
     setColumnFilters(newFilters);
-  }, [nameFilter, statusFilter, roleFilter]);
+  }, [nameFilter, statusFilter]);
 
   const handleColumnFiltersChange = (updater: ColumnFiltersState | ((prev: ColumnFiltersState) => ColumnFiltersState)) => {
     const newFilters = typeof updater === 'function' ? updater(columnFilters) : updater;
@@ -88,7 +81,6 @@ export function UsersTable({
     // Extract filter values
     const nameFilterValue = newFilters.find((f) => f.id === 'firstName')?.value;
     const statusFilterValue = newFilters.find((f) => f.id === 'status')?.value;
-    const roleFilterValue = newFilters.find((f) => f.id === 'role')?.value;
 
     // Only update if values actually change to prevent reset issues
     const newNameFilter = typeof nameFilterValue === 'string' ? nameFilterValue : '';
@@ -99,11 +91,6 @@ export function UsersTable({
     const newStatusFilter = Array.isArray(statusFilterValue) ? statusFilterValue : [];
     if (JSON.stringify(newStatusFilter.sort()) !== JSON.stringify(statusFilter.sort())) {
       onStatusFilterChange(newStatusFilter);
-    }
-
-    const newRoleFilter = Array.isArray(roleFilterValue) ? roleFilterValue : [];
-    if (JSON.stringify(newRoleFilter.sort()) !== JSON.stringify(roleFilter.sort())) {
-      onRoleFilterChange(newRoleFilter);
     }
   };
 

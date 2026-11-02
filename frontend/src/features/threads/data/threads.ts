@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { graphqlRequest } from '@/gql/graphql';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { useSelectedProjectId } from '@/stores/projectStore';
 import { useErrorHandler } from '@/hooks/use-error-handler';
 import { ThreadConnection, ThreadDetail, threadConnectionSchema, threadDetailSchema } from './schema';
 
@@ -16,7 +15,6 @@ type ThreadOrder = {
 };
 
 type ThreadWhereInput = {
-  projectID?: string;
   threadID?: string;
   threadIDContains?: string;
   [key: string]: unknown;
@@ -38,10 +36,6 @@ function buildThreadsQuery() {
             status
             createdAt
             updatedAt
-            project {
-              id
-              name
-            }
             tracesSummary: traces(first: 1, where: { statusNEQ: archived }) {
               totalCount
             }
@@ -86,10 +80,6 @@ function buildThreadDetailQuery() {
             totalCachedTokens
             totalCachedWriteTokens
           }
-          project {
-            id
-            name
-          }
           tracesSummary: traces(first: 1, where: { statusNEQ: archived }) {
             totalCount
           }
@@ -102,10 +92,6 @@ function buildThreadDetailQuery() {
                 status
                 createdAt
                 updatedAt
-                project {
-                  id
-                  name
-                }
                 thread {
                   id
                   threadID
@@ -135,25 +121,22 @@ function buildThreadDetailQuery() {
 export function useThreads(variables?: { first?: number; after?: string; orderBy?: ThreadOrder; where?: ThreadWhereInput }) {
   const { t } = useTranslation();
   const { handleError } = useErrorHandler();
-  const selectedProjectId = useSelectedProjectId();
 
   return useQuery<ThreadConnection>({
-    queryKey: ['threads', variables, selectedProjectId],
+    queryKey: ['threads', variables],
     queryFn: async () => {
       try {
         const query = buildThreadsQuery();
-        const headers = selectedProjectId ? { 'X-Project-ID': selectedProjectId } : undefined;
         const finalVariables = {
           ...variables,
           where: {
             ...variables?.where,
-            ...(selectedProjectId && { projectID: selectedProjectId }),
             // Default: exclude archived threads unless statusIn is explicitly set
             ...(variables?.where?.statusIn ? {} : { statusNEQ: variables?.where?.statusNEQ ?? 'archived' }),
           },
         };
 
-        const data = await graphqlRequest<{ threads: ThreadConnection }>(query, finalVariables, headers);
+        const data = await graphqlRequest<{ threads: ThreadConnection }>(query, finalVariables);
         return threadConnectionSchema.parse(data?.threads);
       } catch (error) {
         handleError(error, t('common.errors.internalServerError'));
@@ -182,14 +165,12 @@ export function useThreadDetail({
 }) {
   const { t } = useTranslation();
   const { handleError } = useErrorHandler();
-  const selectedProjectId = useSelectedProjectId();
 
   return useQuery<ThreadDetail>({
-    queryKey: ['thread-detail', id, tracesFirst, tracesAfter, traceOrderBy, selectedProjectId, showArchivedTraces],
+    queryKey: ['thread-detail', id, tracesFirst, tracesAfter, traceOrderBy, showArchivedTraces],
     queryFn: async () => {
       try {
         const query = buildThreadDetailQuery();
-        const headers = selectedProjectId ? { 'X-Project-ID': selectedProjectId } : undefined;
 
         const variables = {
           id,
@@ -199,7 +180,7 @@ export function useThreadDetail({
           traceWhere: showArchivedTraces ? {} : { statusNEQ: 'archived' },
         };
 
-        const data = await graphqlRequest<{ node?: ThreadDetail | null }>(query, variables, headers);
+        const data = await graphqlRequest<{ node?: ThreadDetail | null }>(query, variables);
         if (!data?.node) {
           throw new Error(t('threads.errors.notFound'));
         }

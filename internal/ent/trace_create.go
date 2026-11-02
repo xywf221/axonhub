@@ -11,7 +11,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/request"
 	"github.com/looplj/axonhub/internal/ent/thread"
 	"github.com/looplj/axonhub/internal/ent/trace"
@@ -53,12 +52,6 @@ func (_c *TraceCreate) SetNillableUpdatedAt(v *time.Time) *TraceCreate {
 	return _c
 }
 
-// SetProjectID sets the "project_id" field.
-func (_c *TraceCreate) SetProjectID(v int) *TraceCreate {
-	_c.mutation.SetProjectID(v)
-	return _c
-}
-
 // SetTraceID sets the "trace_id" field.
 func (_c *TraceCreate) SetTraceID(v string) *TraceCreate {
 	_c.mutation.SetTraceID(v)
@@ -91,11 +84,6 @@ func (_c *TraceCreate) SetNillableStatus(v *trace.Status) *TraceCreate {
 		_c.SetStatus(*v)
 	}
 	return _c
-}
-
-// SetProject sets the "project" edge to the Project entity.
-func (_c *TraceCreate) SetProject(v *Project) *TraceCreate {
-	return _c.SetProjectID(v.ID)
 }
 
 // SetThread sets the "thread" edge to the Thread entity.
@@ -178,9 +166,6 @@ func (_c *TraceCreate) defaults() error {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *TraceCreate) check() error {
-	if _, ok := _c.mutation.ProjectID(); !ok {
-		return &ValidationError{Name: "project_id", err: errors.New(`ent: missing required field "Trace.project_id"`)}
-	}
 	if _, ok := _c.mutation.TraceID(); !ok {
 		return &ValidationError{Name: "trace_id", err: errors.New(`ent: missing required field "Trace.trace_id"`)}
 	}
@@ -191,9 +176,6 @@ func (_c *TraceCreate) check() error {
 		if err := trace.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Trace.status": %w`, err)}
 		}
-	}
-	if len(_c.mutation.ProjectIDs()) == 0 {
-		return &ValidationError{Name: "project", err: errors.New(`ent: missing required edge "Trace.project"`)}
 	}
 	return nil
 }
@@ -237,23 +219,6 @@ func (_c *TraceCreate) createSpec() (*Trace, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(trace.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
-	}
-	if nodes := _c.mutation.ProjectIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   trace.ProjectTable,
-			Columns: []string{trace.ProjectColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.ProjectID = nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.ThreadIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -389,9 +354,6 @@ func (u *TraceUpsertOne) UpdateNewValues() *TraceUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(trace.FieldCreatedAt)
-		}
-		if _, exists := u.create.mutation.ProjectID(); exists {
-			s.SetIgnore(trace.FieldProjectID)
 		}
 		if _, exists := u.create.mutation.ThreadID(); exists {
 			s.SetIgnore(trace.FieldThreadID)
@@ -647,9 +609,6 @@ func (u *TraceUpsertBulk) UpdateNewValues() *TraceUpsertBulk {
 		for _, b := range u.create.builders {
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(trace.FieldCreatedAt)
-			}
-			if _, exists := b.mutation.ProjectID(); exists {
-				s.SetIgnore(trace.FieldProjectID)
 			}
 			if _, exists := b.mutation.ThreadID(); exists {
 				s.SetIgnore(trace.FieldThreadID)

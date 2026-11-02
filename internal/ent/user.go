@@ -3,7 +3,6 @@
 package ent
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -40,8 +39,6 @@ type User struct {
 	Avatar string `json:"avatar,omitempty"`
 	// IsOwner holds the value of the "is_owner" field.
 	IsOwner bool `json:"is_owner,omitempty"`
-	// User scopes in system level: write_channels, read_channels, add_users, read_users, etc.
-	Scopes []string `json:"scopes,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the UserQuery when eager-loading is set.
 	Edges        UserEdges `json:"edges"`
@@ -50,66 +47,36 @@ type User struct {
 
 // UserEdges holds the relations/edges for other nodes in the graph.
 type UserEdges struct {
-	// Projects holds the value of the projects edge.
-	Projects []*Project `json:"projects,omitempty"`
 	// APIKeys holds the value of the api_keys edge.
 	APIKeys []*APIKey `json:"api_keys,omitempty"`
-	// Roles holds the value of the roles edge.
-	Roles []*Role `json:"roles,omitempty"`
 	// ChannelOverrideTemplates holds the value of the channel_override_templates edge.
 	ChannelOverrideTemplates []*ChannelOverrideTemplate `json:"channel_override_templates,omitempty"`
 	// OidcIdentities holds the value of the oidc_identities edge.
 	OidcIdentities []*OIDCIdentity `json:"oidc_identities,omitempty"`
-	// ProjectUsers holds the value of the project_users edge.
-	ProjectUsers []*UserProject `json:"project_users,omitempty"`
-	// UserRoles holds the value of the user_roles edge.
-	UserRoles []*UserRole `json:"user_roles,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [7]bool
+	loadedTypes [3]bool
 	// totalCount holds the count of the edges above.
-	totalCount [7]map[string]int
+	totalCount [3]map[string]int
 
-	namedProjects                 map[string][]*Project
 	namedAPIKeys                  map[string][]*APIKey
-	namedRoles                    map[string][]*Role
 	namedChannelOverrideTemplates map[string][]*ChannelOverrideTemplate
 	namedOidcIdentities           map[string][]*OIDCIdentity
-	namedProjectUsers             map[string][]*UserProject
-	namedUserRoles                map[string][]*UserRole
-}
-
-// ProjectsOrErr returns the Projects value or an error if the edge
-// was not loaded in eager-loading.
-func (e UserEdges) ProjectsOrErr() ([]*Project, error) {
-	if e.loadedTypes[0] {
-		return e.Projects, nil
-	}
-	return nil, &NotLoadedError{edge: "projects"}
 }
 
 // APIKeysOrErr returns the APIKeys value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) APIKeysOrErr() ([]*APIKey, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[0] {
 		return e.APIKeys, nil
 	}
 	return nil, &NotLoadedError{edge: "api_keys"}
 }
 
-// RolesOrErr returns the Roles value or an error if the edge
-// was not loaded in eager-loading.
-func (e UserEdges) RolesOrErr() ([]*Role, error) {
-	if e.loadedTypes[2] {
-		return e.Roles, nil
-	}
-	return nil, &NotLoadedError{edge: "roles"}
-}
-
 // ChannelOverrideTemplatesOrErr returns the ChannelOverrideTemplates value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) ChannelOverrideTemplatesOrErr() ([]*ChannelOverrideTemplate, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[1] {
 		return e.ChannelOverrideTemplates, nil
 	}
 	return nil, &NotLoadedError{edge: "channel_override_templates"}
@@ -118,28 +85,10 @@ func (e UserEdges) ChannelOverrideTemplatesOrErr() ([]*ChannelOverrideTemplate, 
 // OidcIdentitiesOrErr returns the OidcIdentities value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) OidcIdentitiesOrErr() ([]*OIDCIdentity, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[2] {
 		return e.OidcIdentities, nil
 	}
 	return nil, &NotLoadedError{edge: "oidc_identities"}
-}
-
-// ProjectUsersOrErr returns the ProjectUsers value or an error if the edge
-// was not loaded in eager-loading.
-func (e UserEdges) ProjectUsersOrErr() ([]*UserProject, error) {
-	if e.loadedTypes[5] {
-		return e.ProjectUsers, nil
-	}
-	return nil, &NotLoadedError{edge: "project_users"}
-}
-
-// UserRolesOrErr returns the UserRoles value or an error if the edge
-// was not loaded in eager-loading.
-func (e UserEdges) UserRolesOrErr() ([]*UserRole, error) {
-	if e.loadedTypes[6] {
-		return e.UserRoles, nil
-	}
-	return nil, &NotLoadedError{edge: "user_roles"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -147,8 +96,6 @@ func (*User) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case user.FieldScopes:
-			values[i] = new([]byte)
 		case user.FieldIsOwner:
 			values[i] = new(sql.NullBool)
 		case user.FieldID, user.FieldDeletedAt:
@@ -244,14 +191,6 @@ func (_m *User) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.IsOwner = value.Bool
 			}
-		case user.FieldScopes:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field scopes", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Scopes); err != nil {
-					return fmt.Errorf("unmarshal field scopes: %w", err)
-				}
-			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -265,19 +204,9 @@ func (_m *User) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryProjects queries the "projects" edge of the User entity.
-func (_m *User) QueryProjects() *ProjectQuery {
-	return NewUserClient(_m.config).QueryProjects(_m)
-}
-
 // QueryAPIKeys queries the "api_keys" edge of the User entity.
 func (_m *User) QueryAPIKeys() *APIKeyQuery {
 	return NewUserClient(_m.config).QueryAPIKeys(_m)
-}
-
-// QueryRoles queries the "roles" edge of the User entity.
-func (_m *User) QueryRoles() *RoleQuery {
-	return NewUserClient(_m.config).QueryRoles(_m)
 }
 
 // QueryChannelOverrideTemplates queries the "channel_override_templates" edge of the User entity.
@@ -288,16 +217,6 @@ func (_m *User) QueryChannelOverrideTemplates() *ChannelOverrideTemplateQuery {
 // QueryOidcIdentities queries the "oidc_identities" edge of the User entity.
 func (_m *User) QueryOidcIdentities() *OIDCIdentityQuery {
 	return NewUserClient(_m.config).QueryOidcIdentities(_m)
-}
-
-// QueryProjectUsers queries the "project_users" edge of the User entity.
-func (_m *User) QueryProjectUsers() *UserProjectQuery {
-	return NewUserClient(_m.config).QueryProjectUsers(_m)
-}
-
-// QueryUserRoles queries the "user_roles" edge of the User entity.
-func (_m *User) QueryUserRoles() *UserRoleQuery {
-	return NewUserClient(_m.config).QueryUserRoles(_m)
 }
 
 // Update returns a builder for updating this User.
@@ -354,35 +273,8 @@ func (_m *User) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("is_owner=")
 	builder.WriteString(fmt.Sprintf("%v", _m.IsOwner))
-	builder.WriteString(", ")
-	builder.WriteString("scopes=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Scopes))
 	builder.WriteByte(')')
 	return builder.String()
-}
-
-// NamedProjects returns the Projects named value or an error if the edge was not
-// loaded in eager-loading with this name.
-func (_m *User) NamedProjects(name string) ([]*Project, error) {
-	if _m.Edges.namedProjects == nil {
-		return nil, &NotLoadedError{edge: name}
-	}
-	nodes, ok := _m.Edges.namedProjects[name]
-	if !ok {
-		return nil, &NotLoadedError{edge: name}
-	}
-	return nodes, nil
-}
-
-func (_m *User) appendNamedProjects(name string, edges ...*Project) {
-	if _m.Edges.namedProjects == nil {
-		_m.Edges.namedProjects = make(map[string][]*Project)
-	}
-	if len(edges) == 0 {
-		_m.Edges.namedProjects[name] = []*Project{}
-	} else {
-		_m.Edges.namedProjects[name] = append(_m.Edges.namedProjects[name], edges...)
-	}
 }
 
 // NamedAPIKeys returns the APIKeys named value or an error if the edge was not
@@ -406,30 +298,6 @@ func (_m *User) appendNamedAPIKeys(name string, edges ...*APIKey) {
 		_m.Edges.namedAPIKeys[name] = []*APIKey{}
 	} else {
 		_m.Edges.namedAPIKeys[name] = append(_m.Edges.namedAPIKeys[name], edges...)
-	}
-}
-
-// NamedRoles returns the Roles named value or an error if the edge was not
-// loaded in eager-loading with this name.
-func (_m *User) NamedRoles(name string) ([]*Role, error) {
-	if _m.Edges.namedRoles == nil {
-		return nil, &NotLoadedError{edge: name}
-	}
-	nodes, ok := _m.Edges.namedRoles[name]
-	if !ok {
-		return nil, &NotLoadedError{edge: name}
-	}
-	return nodes, nil
-}
-
-func (_m *User) appendNamedRoles(name string, edges ...*Role) {
-	if _m.Edges.namedRoles == nil {
-		_m.Edges.namedRoles = make(map[string][]*Role)
-	}
-	if len(edges) == 0 {
-		_m.Edges.namedRoles[name] = []*Role{}
-	} else {
-		_m.Edges.namedRoles[name] = append(_m.Edges.namedRoles[name], edges...)
 	}
 }
 
@@ -478,54 +346,6 @@ func (_m *User) appendNamedOidcIdentities(name string, edges ...*OIDCIdentity) {
 		_m.Edges.namedOidcIdentities[name] = []*OIDCIdentity{}
 	} else {
 		_m.Edges.namedOidcIdentities[name] = append(_m.Edges.namedOidcIdentities[name], edges...)
-	}
-}
-
-// NamedProjectUsers returns the ProjectUsers named value or an error if the edge was not
-// loaded in eager-loading with this name.
-func (_m *User) NamedProjectUsers(name string) ([]*UserProject, error) {
-	if _m.Edges.namedProjectUsers == nil {
-		return nil, &NotLoadedError{edge: name}
-	}
-	nodes, ok := _m.Edges.namedProjectUsers[name]
-	if !ok {
-		return nil, &NotLoadedError{edge: name}
-	}
-	return nodes, nil
-}
-
-func (_m *User) appendNamedProjectUsers(name string, edges ...*UserProject) {
-	if _m.Edges.namedProjectUsers == nil {
-		_m.Edges.namedProjectUsers = make(map[string][]*UserProject)
-	}
-	if len(edges) == 0 {
-		_m.Edges.namedProjectUsers[name] = []*UserProject{}
-	} else {
-		_m.Edges.namedProjectUsers[name] = append(_m.Edges.namedProjectUsers[name], edges...)
-	}
-}
-
-// NamedUserRoles returns the UserRoles named value or an error if the edge was not
-// loaded in eager-loading with this name.
-func (_m *User) NamedUserRoles(name string) ([]*UserRole, error) {
-	if _m.Edges.namedUserRoles == nil {
-		return nil, &NotLoadedError{edge: name}
-	}
-	nodes, ok := _m.Edges.namedUserRoles[name]
-	if !ok {
-		return nil, &NotLoadedError{edge: name}
-	}
-	return nodes, nil
-}
-
-func (_m *User) appendNamedUserRoles(name string, edges ...*UserRole) {
-	if _m.Edges.namedUserRoles == nil {
-		_m.Edges.namedUserRoles = make(map[string][]*UserRole)
-	}
-	if len(edges) == 0 {
-		_m.Edges.namedUserRoles[name] = []*UserRole{}
-	} else {
-		_m.Edges.namedUserRoles[name] = append(_m.Edges.namedUserRoles[name], edges...)
 	}
 }
 

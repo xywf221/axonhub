@@ -31,16 +31,6 @@ const (
 	// ScopeWriteSettings manage the settings of the project.
 	ScopeWriteSettings ScopeSlug = "write_settings"
 
-	// ScopeReadRoles read the roles of the system or project.
-	ScopeReadRoles ScopeSlug = "read_roles"
-	// ScopeWriteRoles manage the roles of the system or project.
-	ScopeWriteRoles ScopeSlug = "write_roles"
-
-	// ScopeReadProjects read the projects of the system.
-	ScopeReadProjects ScopeSlug = "read_projects"
-	// ScopeWriteProjects manage the projects of the system.
-	ScopeWriteProjects ScopeSlug = "write_projects"
-
 	// ScopeReadAPIKeys read the api keys of the project.
 	//nolint:gosec // False positive.
 	ScopeReadAPIKeys ScopeSlug = "read_api_keys"
@@ -122,26 +112,6 @@ var scopeConfigs = []Scope{
 		Slug:        ScopeWriteUsers,
 		Description: "Manage users (create, edit, delete)",
 		Levels:      []ScopeLevel{ScopeLevelSystem, ScopeLevelProject},
-	},
-	{
-		Slug:        ScopeReadRoles,
-		Description: "View role information",
-		Levels:      []ScopeLevel{ScopeLevelSystem, ScopeLevelProject},
-	},
-	{
-		Slug:        ScopeWriteRoles,
-		Description: "Manage roles (create, edit, delete)",
-		Levels:      []ScopeLevel{ScopeLevelSystem, ScopeLevelProject},
-	},
-	{
-		Slug:        ScopeReadProjects,
-		Description: "View project information",
-		Levels:      []ScopeLevel{ScopeLevelSystem},
-	},
-	{
-		Slug:        ScopeWriteProjects,
-		Description: "Manage projects (create, edit, delete)",
-		Levels:      []ScopeLevel{ScopeLevelSystem},
 	},
 	{
 		Slug:        ScopeReadAPIKeys,

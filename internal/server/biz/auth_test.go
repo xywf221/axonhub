@@ -8,14 +8,12 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
 	"github.com/looplj/axonhub/internal/authz"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/apikey"
 	"github.com/looplj/axonhub/internal/ent/enttest"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/user"
 	"github.com/looplj/axonhub/internal/pkg/xcache"
 	"github.com/looplj/axonhub/internal/pkg/xredis"
@@ -102,15 +100,10 @@ func setupTestAuthService(t *testing.T, cacheConfig xcache.Config) (*AuthService
 		UserCache: xcache.NewFromConfig[ent.User](cacheConfig),
 	}
 
-	projectService := &ProjectService{
-		ProjectCache: xcache.NewFromConfig[xcache.Entry[ent.Project]](cacheConfig),
-	}
-
 	apiKeyService := NewAPIKeyService(APIKeyServiceParams{
-		CacheConfig:    cacheConfig,
-		Ent:            client,
-		ProjectService: projectService,
-		KeyPrefix:      "ah",
+		CacheConfig: cacheConfig,
+		Ent:         client,
+		KeyPrefix:   "ah",
 	})
 	userService.apiKeyService = apiKeyService
 
@@ -398,22 +391,6 @@ func TestAuthService_AuthenticateAPIKey(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	projectName := uuid.NewString()
-	testProject, err := client.Project.Create().SetName(
-		projectName,
-	).SetDescription(
-		projectName,
-	).SetStatus(
-		project.StatusActive,
-	).SetCreatedAt(
-		time.Now(),
-	).SetUpdatedAt(
-		time.Now(),
-	).Save(
-		ctx,
-	)
-	require.NoError(t, err)
-
 	// Generate API key
 	apiKeyString, err := GenerateAPIKey("ah")
 	require.NoError(t, err)
@@ -423,7 +400,6 @@ func TestAuthService_AuthenticateAPIKey(t *testing.T) {
 		SetKey(apiKeyString).
 		SetName("Test API Key").
 		SetUser(testUser).
-		SetProject(testProject).
 		Save(ctx)
 	require.NoError(t, err)
 
@@ -453,24 +429,6 @@ func TestAuthService_AuthenticateAPIKey(t *testing.T) {
 	_, err = authService.AuthenticateAPIKey(ctx, apiKeyString)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "api key not enabled")
-
-	// Test API key with inactive project
-	// First, re-enable the API key
-	_, err = authService.APIKeyService.UpdateAPIKeyStatus(ctx, apiKey.ID, "enabled")
-	require.NoError(t, err)
-
-	// Synchronously invalidate the cache for testing
-	authService.APIKeyService.APIKeyCache.Invalidate(buildAPIKeyCacheKey(apiKeyString))
-
-	// Then archive the project (making it inactive)
-	_, err = client.Project.UpdateOneID(testProject.ID).
-		SetStatus(project.StatusArchived).
-		Save(ctx)
-	require.NoError(t, err)
-
-	_, err = authService.AuthenticateAPIKey(ctx, apiKeyString)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "api key project not valid")
 }
 
 func TestAuthService_AuthenticateNoAuth(t *testing.T) {
@@ -498,18 +456,10 @@ func TestAuthService_AuthenticateNoAuth(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	defaultProject, err := client.Project.Create().
-		SetName(uuid.NewString()).
-		SetDescription("default").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	noAuthKey, err := client.APIKey.Create().
 		SetKey(NoAuthAPIKeyValue).
 		SetName(NoAuthAPIKeyName).
 		SetUserID(owner.ID).
-		SetProjectID(defaultProject.ID).
 		SetType(apikey.TypeNoauth).
 		SetStatus(apikey.StatusEnabled).
 		Save(ctx)
@@ -653,22 +603,6 @@ func TestAuthService_CacheExpiration(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	projectName := uuid.NewString()
-	testProject, err := client.Project.Create().SetName(
-		projectName,
-	).SetDescription(
-		projectName,
-	).SetStatus(
-		project.StatusActive,
-	).SetCreatedAt(
-		time.Now(),
-	).SetUpdatedAt(
-		time.Now(),
-	).Save(
-		ctx,
-	)
-	require.NoError(t, err)
-
 	// Generate API key
 	apiKeyString, err := GenerateAPIKey("ah")
 	require.NoError(t, err)
@@ -677,7 +611,6 @@ func TestAuthService_CacheExpiration(t *testing.T) {
 		SetKey(apiKeyString).
 		SetName("Test API Key").
 		SetUser(testUser).
-		SetProject(testProject).
 		Save(ctx)
 	require.NoError(t, err)
 

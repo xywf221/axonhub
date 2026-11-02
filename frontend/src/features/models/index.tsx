@@ -3,12 +3,10 @@ import { SortingState } from '@tanstack/react-table';
 import { IconPlus, IconSettings, IconAlertCircle } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useDebounce } from '@/hooks/use-debounce';
-import { usePermissions } from '@/hooks/usePermissions';
 import { revealFocusedHorizontalButton, useHorizontalScroll } from '@/hooks/use-horizontal-scroll';
 import { Button } from '@/components/ui/button';
 import { Main } from '@/components/layout/main';
 import { PageHeader } from '@/components/layout/page-header';
-import { PermissionGuard } from '@/components/permission-guard';
 import { useOnboardingInfo } from '@/features/system/data/system';
 import { createColumns } from './components/models-columns';
 import { ModelsDialogs } from './components/models-dialogs';
@@ -22,7 +20,6 @@ import { useDevelopersData } from './data/providers';
 function ModelsContent() {
   useDevelopersData();
   const { t } = useTranslation();
-  const { modelPermissions } = usePermissions();
   const [nameFilter, setNameFilter] = useState<string>('');
   const [sorting, setSorting] = useState<SortingState>(() => {
     const stored = localStorage.getItem('models-table-sorting');
@@ -62,7 +59,7 @@ function ModelsContent() {
     [setNameFilter]
   );
 
-  const columns = useMemo(() => createColumns(t, modelPermissions.canWrite), [t, modelPermissions.canWrite]);
+  const columns = useMemo(() => createColumns(t, true), [t]);
 
   return (
     <div className='flex flex-1 flex-col overflow-hidden'>
@@ -75,7 +72,7 @@ function ModelsContent() {
         sorting={sorting}
         onSortingChange={setSorting}
         onNameFilterChange={handleNameFilterChange}
-        canWrite={modelPermissions.canWrite}
+        canWrite={true}
       />
     </div>
   );
@@ -133,14 +130,10 @@ function ActionButtons() {
   const scrollRef = useHorizontalScroll<HTMLDivElement>();
   return (
     <div ref={scrollRef} onFocusCapture={revealFocusedHorizontalButton} data-testid='model-actions-scroller' className='flex min-w-0 max-w-full gap-2 overflow-x-auto p-1'>
-      <PermissionGuard requiredScope='write_channels'>
-        <>
-          <DetectUnassociatedButton />
-          <SettingsButton />
-          <BulkAddButton />
-          <CreateButton />
-        </>
-      </PermissionGuard>
+      <DetectUnassociatedButton />
+      <SettingsButton />
+      <BulkAddButton />
+      <CreateButton />
     </div>
   );
 }

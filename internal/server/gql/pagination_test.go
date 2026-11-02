@@ -91,23 +91,9 @@ func TestQueryResolversRequirePagination(t *testing.T) {
 			},
 		},
 		{
-			name: "Projects",
-			fn: func() error {
-				_, err := r.Projects(t.Context(), nil, nil, nil, nil, nil, nil)
-				return err
-			},
-		},
-		{
 			name: "Requests",
 			fn: func() error {
 				_, err := r.Requests(t.Context(), nil, nil, nil, nil, nil, nil)
-				return err
-			},
-		},
-		{
-			name: "Roles",
-			fn: func() error {
-				_, err := r.Roles(t.Context(), nil, nil, nil, nil, nil, nil)
 				return err
 			},
 		},

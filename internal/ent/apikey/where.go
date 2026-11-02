@@ -75,11 +75,6 @@ func UserID(v int) predicate.APIKey {
 	return predicate.APIKey(sql.FieldEQ(FieldUserID, v))
 }
 
-// ProjectID applies equality check predicate on the "project_id" field. It's identical to ProjectIDEQ.
-func ProjectID(v int) predicate.APIKey {
-	return predicate.APIKey(sql.FieldEQ(FieldProjectID, v))
-}
-
 // Key applies equality check predicate on the "key" field. It's identical to KeyEQ.
 func Key(v string) predicate.APIKey {
 	return predicate.APIKey(sql.FieldEQ(FieldKey, v))
@@ -238,26 +233,6 @@ func UserIDIsNil() predicate.APIKey {
 // UserIDNotNil applies the NotNil predicate on the "user_id" field.
 func UserIDNotNil() predicate.APIKey {
 	return predicate.APIKey(sql.FieldNotNull(FieldUserID))
-}
-
-// ProjectIDEQ applies the EQ predicate on the "project_id" field.
-func ProjectIDEQ(v int) predicate.APIKey {
-	return predicate.APIKey(sql.FieldEQ(FieldProjectID, v))
-}
-
-// ProjectIDNEQ applies the NEQ predicate on the "project_id" field.
-func ProjectIDNEQ(v int) predicate.APIKey {
-	return predicate.APIKey(sql.FieldNEQ(FieldProjectID, v))
-}
-
-// ProjectIDIn applies the In predicate on the "project_id" field.
-func ProjectIDIn(vs ...int) predicate.APIKey {
-	return predicate.APIKey(sql.FieldIn(FieldProjectID, vs...))
-}
-
-// ProjectIDNotIn applies the NotIn predicate on the "project_id" field.
-func ProjectIDNotIn(vs ...int) predicate.APIKey {
-	return predicate.APIKey(sql.FieldNotIn(FieldProjectID, vs...))
 }
 
 // KeyEQ applies the EQ predicate on the "key" field.
@@ -450,16 +425,6 @@ func ProfilesNotNil() predicate.APIKey {
 	return predicate.APIKey(sql.FieldNotNull(FieldProfiles))
 }
 
-// AllowedIpsIsNil applies the IsNil predicate on the "allowed_ips" field.
-func AllowedIpsIsNil() predicate.APIKey {
-	return predicate.APIKey(sql.FieldIsNull(FieldAllowedIps))
-}
-
-// AllowedIpsNotNil applies the NotNil predicate on the "allowed_ips" field.
-func AllowedIpsNotNil() predicate.APIKey {
-	return predicate.APIKey(sql.FieldNotNull(FieldAllowedIps))
-}
-
 // HasUser applies the HasEdge predicate on the "user" edge.
 func HasUser() predicate.APIKey {
 	return predicate.APIKey(func(s *sql.Selector) {
@@ -475,29 +440,6 @@ func HasUser() predicate.APIKey {
 func HasUserWith(preds ...predicate.User) predicate.APIKey {
 	return predicate.APIKey(func(s *sql.Selector) {
 		step := newUserStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasProject applies the HasEdge predicate on the "project" edge.
-func HasProject() predicate.APIKey {
-	return predicate.APIKey(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, ProjectTable, ProjectColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasProjectWith applies the HasEdge predicate on the "project" edge with a given conditions (other predicates).
-func HasProjectWith(preds ...predicate.Project) predicate.APIKey {
-	return predicate.APIKey(func(s *sql.Selector) {
-		step := newProjectStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

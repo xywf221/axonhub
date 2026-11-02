@@ -4,7 +4,6 @@ import (
 	"entgo.io/contrib/entgql"
 	"entgo.io/ent"
 	"entgo.io/ent/schema"
-	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
@@ -26,8 +25,8 @@ func (APIKeyProfileTemplate) Mixin() []ent.Mixin {
 
 func (APIKeyProfileTemplate) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("project_id", "name", "deleted_at").
-			StorageKey("api_key_profile_templates_by_project_name").
+		index.Fields("name", "deleted_at").
+			StorageKey("api_key_profile_templates_by_name").
 			Unique(),
 	}
 }
@@ -39,12 +38,6 @@ func (APIKeyProfileTemplate) Fields() []ent.Field {
 		field.String("description").
 			Default("").
 			Comment("Template description"),
-		field.Int("project_id").
-			Immutable().
-			Comment("Project ID, set via project edge").
-			Annotations(
-				entgql.Skip(entgql.SkipMutationUpdateInput),
-			),
 		field.JSON("profile", &objects.APIKeyProfile{}).
 			Default(&objects.APIKeyProfile{}).
 			Optional().
@@ -55,16 +48,7 @@ func (APIKeyProfileTemplate) Fields() []ent.Field {
 }
 
 func (APIKeyProfileTemplate) Edges() []ent.Edge {
-	return []ent.Edge{
-		edge.From("project", Project.Type).
-			Unique().
-			Immutable().
-			Required().
-			Annotations(
-				entgql.Skip(entgql.SkipMutationUpdateInput),
-			).
-			Ref("api_key_profile_templates").Field("project_id"),
-	}
+	return nil
 }
 
 func (APIKeyProfileTemplate) Annotations() []schema.Annotation {
@@ -78,12 +62,12 @@ func (APIKeyProfileTemplate) Annotations() []schema.Annotation {
 func (APIKeyProfileTemplate) Policy() ent.Policy {
 	return scopes.Policy{
 		Query: scopes.QueryPolicy{
-			scopes.UserProjectScopeReadRule(scopes.ScopeReadAPIKeys),
-			scopes.APIKeyProjectScopeReadRule(scopes.ScopeReadAPIKeys), // OpenAPI service account 加载模板
+			scopes.UserReadScopeRule(scopes.ScopeReadAPIKeys),
+			scopes.APIKeyScopeQueryRule(scopes.ScopeReadAPIKeys),
 			scopes.OwnerRule(),
 		},
 		Mutation: scopes.MutationPolicy{
-			scopes.UserProjectScopeWriteRule(scopes.ScopeWriteAPIKeys),
+			scopes.UserWriteScopeRule(scopes.ScopeWriteAPIKeys),
 			scopes.OwnerRule(),
 		},
 	}

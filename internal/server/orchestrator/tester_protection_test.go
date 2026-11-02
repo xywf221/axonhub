@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/looplj/axonhub/internal/contexts"
 	"github.com/looplj/axonhub/internal/ent/channel"
 	"github.com/looplj/axonhub/internal/ent/promptprotectionrule"
 	"github.com/looplj/axonhub/internal/objects"
@@ -32,7 +31,6 @@ func TestSystemOneChannelTestPromptProtection(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Given an enabled role-scoped rule and a native System One channel.
 			ctx, client := setupTest(t)
-			ctx = contexts.WithProjectID(ctx, createTestProject(t, ctx, client).ID)
 			_, err := client.PromptProtectionRule.Create().SetName(tt.name).SetPattern("secret").
 				SetStatus(promptprotectionrule.StatusEnabled).SetSettings(&objects.PromptProtectionSettings{
 				Action: tt.action, Replacement: "masked", Scopes: []objects.PromptProtectionScope{tt.scope},

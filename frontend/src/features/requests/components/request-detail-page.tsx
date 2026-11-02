@@ -5,7 +5,6 @@ import { ArrowLeft, Copy, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { getTokenFromStorage } from '@/stores/authStore';
-import { useSelectedProjectId } from '@/stores/projectStore';
 import { ensureFreshAccessToken } from '@/lib/auth-session';
 import { copyTextToClipboard } from '@/lib/clipboard';
 import { extractNumberID } from '@/lib/utils';
@@ -122,12 +121,11 @@ async function readPreviewStream(
 /** Request detail page with live preview streaming. */
 export default function RequestDetailPage() {
   const { t } = useTranslation();
-  const { requestId } = useParams({ from: '/_authenticated/project/requests/$requestId' });
+  const { requestId } = useParams({ from: '/_authenticated/requests/$requestId' });
   const navigate = useNavigate();
   const currentSearch = useRouterState({
     select: (state) => (state.location.search ?? {}) as Record<string, unknown>,
   });
-  const selectedProjectId = useSelectedProjectId();
   const { data: storagePolicy } = useStoragePolicy();
   const isLivePreviewEnabled = storagePolicy?.livePreview ?? false;
   const [previewRequest, setPreviewRequest] = useState<Request | null>(null);
@@ -138,7 +136,6 @@ export default function RequestDetailPage() {
   const previousRequestIdRef = useRef<string | null>(null);
 
   const { data: requestData, refetch: refetchRequest } = useRequest(requestId, {
-    projectId: selectedProjectId,
     disableAutoRefresh: isPreviewStreaming,
   });
 
@@ -191,10 +188,6 @@ export default function RequestDetailPage() {
     }
 
     if (previewFallbackActive) {
-      return;
-    }
-
-    if (!selectedProjectId) {
       return;
     }
 
@@ -262,7 +255,6 @@ export default function RequestDetailPage() {
         const response = await fetch(`/admin/requests/${encodeURIComponent(requestIdNumber)}/preview`, {
           headers: {
             Authorization: `Bearer ${currentToken}`,
-            'X-Project-ID': selectedProjectId,
           },
           signal: controller.signal,
         });
@@ -365,11 +357,11 @@ export default function RequestDetailPage() {
       clearReconnectTimer();
       controller.abort();
     };
-  }, [isLivePreviewEnabled, previewFallbackActive, requestData, refetchRequest, selectedProjectId]);
+  }, [isLivePreviewEnabled, previewFallbackActive, requestData, refetchRequest]);
 
   const handleBack = () => {
     navigate({
-      to: '/project/requests',
+      to: '/requests',
       search: currentSearch,
     });
   };
@@ -433,7 +425,6 @@ export default function RequestDetailPage() {
         <div className='container mx-auto max-w-7xl p-6'>
           <RequestDetailContent
             requestId={requestId}
-            projectId={selectedProjectId}
             previewRequest={previewRequest}
             isPreviewStreaming={isPreviewStreaming}
           />

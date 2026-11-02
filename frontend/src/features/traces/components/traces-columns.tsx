@@ -89,7 +89,7 @@ export function useTracesColumns(): ColumnDef<Trace>[] {
       cell: ({ row }) => {
         const handleClick = useCallback(() => {
           navigateWithSearch({
-            to: '/project/traces/$traceId',
+            to: '/traces/$traceId',
             params: { traceId: row.original.id },
           });
         }, [row.original.id, navigateWithSearch]);
@@ -103,16 +103,6 @@ export function useTracesColumns(): ColumnDef<Trace>[] {
       enableSorting: true,
       enableHiding: false,
     },
-
-    // {
-    //   id: 'project',
-    //   header: ({ column }) => <DataTableColumnHeader column={column} title={t('traces.columns.project')} />,
-    //   enableSorting: false,
-    //   cell: ({ row }) => {
-    //     const project = row.original.project
-    //     return <div className='font-mono text-xs'>{project?.name || t('traces.columns.unknown')}</div>
-    //   },
-    // },
     {
       accessorKey: 'firstUserQuery',
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('traces.columns.userQuery')} />,
@@ -151,7 +141,7 @@ export function useTracesColumns(): ColumnDef<Trace>[] {
 
         const handleNavigate = () => {
           navigateWithSearch({
-            to: '/project/threads/$threadId',
+            to: '/threads/$threadId',
             params: { threadId: thread.id },
           });
         };
@@ -180,7 +170,7 @@ export function useTracesColumns(): ColumnDef<Trace>[] {
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('traces.columns.details')} />,
       cell: ({ row }) => {
         const handleViewDetails = () => {
-          navigateWithSearch({ to: '/project/traces/$traceId', params: { traceId: row.original.id } });
+          navigateWithSearch({ to: '/traces/$traceId', params: { traceId: row.original.id } });
         };
 
         return (

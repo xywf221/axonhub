@@ -31,7 +31,6 @@ func TestRequestServiceCreateRequestAssignsPlaygroundUser(t *testing.T) {
 	})
 	requestService := NewRequestService(client, systemService.CacheConfig, systemService, usageLogService, dataStorageService, NewLiveStreamRegistry())
 
-	ctx = contexts.WithProjectID(ctx, 100)
 	ctx = contexts.WithUser(ctx, &ent.User{ID: 42})
 	playgroundRequest, err := requestService.CreateRequest(
 		contexts.WithSource(ctx, request.SourcePlayground),

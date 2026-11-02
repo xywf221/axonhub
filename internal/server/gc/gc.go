@@ -282,7 +282,6 @@ func (w *Worker) cleanupOldRequestExecutions(ctx context.Context, cutoffTime tim
 		executions, err := w.Ent.RequestExecution.Query().
 			Select(
 				requestexecution.FieldID,
-				requestexecution.FieldProjectID,
 				requestexecution.FieldDataStorageID,
 				requestexecution.FieldRequestID,
 			).
@@ -336,7 +335,6 @@ func (w *Worker) cleanupOldRequestsRecords(ctx context.Context, cutoffTime time.
 		reqs, err := w.Ent.Request.Query().
 			Select(
 				request.FieldID,
-				request.FieldProjectID,
 				request.FieldDataStorageID,
 			).
 			Where(
@@ -392,16 +390,16 @@ func (w *Worker) cleanupExecutionExternalStorage(ctx context.Context, exec *ent.
 	}
 
 	keys := []string{
-		biz.GenerateExecutionRequestBodyKey(exec.ProjectID, exec.RequestID, exec.ID),
-		biz.GenerateExecutionResponseBodyKey(exec.ProjectID, exec.RequestID, exec.ID),
-		biz.GenerateExecutionResponseChunksKey(exec.ProjectID, exec.RequestID, exec.ID),
+		biz.GenerateExecutionRequestBodyKey(exec.RequestID, exec.ID),
+		biz.GenerateExecutionResponseBodyKey(exec.RequestID, exec.ID),
+		biz.GenerateExecutionResponseChunksKey(exec.RequestID, exec.ID),
 	}
 
 	// Directory-marker keys only exist as real directories on filesystem-like
 	// backends. On object stores (S3/GCS) they were never created, so deleting
 	// them only wastes a ListObjectsV2 (Class A); skip them there.
 	if hasRealDirectories(ds.Type) {
-		keys = append(keys, biz.GenerateExecutionRequestDirKey(exec.ProjectID, exec.RequestID, exec.ID))
+		keys = append(keys, biz.GenerateExecutionRequestDirKey(exec.RequestID, exec.ID))
 	}
 
 	for _, key := range keys {
@@ -435,17 +433,17 @@ func (w *Worker) cleanupRequestExternalStorage(ctx context.Context, req *ent.Req
 	}
 
 	keys := []string{
-		biz.GenerateRequestBodyKey(req.ProjectID, req.ID),
-		biz.GenerateResponseBodyKey(req.ProjectID, req.ID),
-		biz.GenerateResponseChunksKey(req.ProjectID, req.ID),
+		biz.GenerateRequestBodyKey(req.ID),
+		biz.GenerateResponseBodyKey(req.ID),
+		biz.GenerateResponseChunksKey(req.ID),
 	}
 
 	// See cleanupExecutionExternalStorage: object stores have no real
 	// directories, so only attempt directory-marker deletes on FS/WebDAV.
 	if hasRealDirectories(ds.Type) {
 		keys = append(keys,
-			biz.GenerateRequestExecutionsDirKey(req.ProjectID, req.ID),
-			biz.GenerateRequestDirKey(req.ProjectID, req.ID),
+			biz.GenerateRequestExecutionsDirKey(req.ID),
+			biz.GenerateRequestDirKey(req.ID),
 		)
 	}
 

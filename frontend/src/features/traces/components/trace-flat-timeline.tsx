@@ -242,7 +242,7 @@ function SegmentRow({
     e.stopPropagation();
     if (segment.source.type === 'segment') {
       const requestId = segment.source.trace.id;
-      const url = `/project/requests/${encodeURIComponent(buildGUID('Request', requestId))}`;
+      const url = `/requests/${encodeURIComponent(buildGUID('Request', requestId))}`;
       window.open(url, '_blank', 'noopener,noreferrer');
     }
   };

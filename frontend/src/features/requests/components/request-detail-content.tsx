@@ -36,12 +36,11 @@ const JSON_VIEWER_EXPAND_DEPTH = 2;
 
 interface RequestDetailContentProps {
   requestId: string;
-  projectId?: string | null;
   previewRequest?: Request | null;
   isPreviewStreaming?: boolean;
 }
 
-export function RequestDetailContent({ requestId, projectId, previewRequest, isPreviewStreaming = false }: RequestDetailContentProps) {
+export function RequestDetailContent({ requestId, previewRequest, isPreviewStreaming = false }: RequestDetailContentProps) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'zh' ? zhCN : enUS;
 
@@ -59,7 +58,7 @@ export function RequestDetailContent({ requestId, projectId, previewRequest, isP
   const [requestBodyView, setRequestBodyView] = useState<'conversation' | 'json'>('conversation');
 
   const { data: settings } = useGeneralSettings();
-  const { data: requestData, isLoading } = useRequest(requestId, { projectId, disableAutoRefresh: isPreviewStreaming });
+  const { data: requestData, isLoading } = useRequest(requestId, { disableAutoRefresh: isPreviewStreaming });
   const request = previewRequest ?? requestData;
 
   // Auto-select the appropriate request-body view once data is available:
@@ -83,8 +82,7 @@ export function RequestDetailContent({ requestId, projectId, previewRequest, isP
     {
       first: 10,
       orderBy: { field: 'CREATED_AT', direction: 'DESC' },
-    },
-    { projectId }
+    }
   );
   const { data: usageLogs } = useUsageLogs(
     {
@@ -92,7 +90,7 @@ export function RequestDetailContent({ requestId, projectId, previewRequest, isP
       where: { requestID: requestId },
       orderBy: { field: 'CREATED_AT', direction: 'DESC' },
     },
-    { projectId, enabled: true }
+    { enabled: true }
   );
 
   const parsedResponse = useMemo(() => {
@@ -159,7 +157,7 @@ export function RequestDetailContent({ requestId, projectId, previewRequest, isP
   // fetchStoredContent downloads the binary artifact (video/audio) saved to external storage
   // via the content-type-agnostic /admin/requests/:id/content endpoint.
   const fetchStoredContent = useCallback(async (): Promise<{ blob: Blob; filename: string } | null> => {
-    if (!request?.contentSaved || !request?.contentStorageKey || !projectId) return null;
+    if (!request?.contentSaved || !request?.contentStorageKey) return null;
 
     const requestIdNumber = extractNumberID(request.id);
     if (!requestIdNumber) return null;
@@ -174,7 +172,6 @@ export function RequestDetailContent({ requestId, projectId, previewRequest, isP
     const resp = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
-        'X-Project-ID': projectId,
       },
     });
 
@@ -191,10 +188,10 @@ export function RequestDetailContent({ requestId, projectId, previewRequest, isP
     const blob = await resp.blob();
 
     return { blob, filename };
-  }, [request, projectId, t]);
+  }, [request, t]);
 
   const downloadVideo = async () => {
-    if (!hasStoredContent || !projectId) return;
+    if (!hasStoredContent) return;
 
     const requestIdNumber = extractNumberID(request.id);
     if (!requestIdNumber) return;
@@ -223,7 +220,7 @@ export function RequestDetailContent({ requestId, projectId, previewRequest, isP
   };
 
   const downloadAudio = async () => {
-    if (!hasStoredContent || !projectId) return;
+    if (!hasStoredContent) return;
 
     const requestIdNumber = extractNumberID(request.id);
     if (!requestIdNumber) return;

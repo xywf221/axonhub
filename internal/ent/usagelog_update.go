@@ -460,9 +460,6 @@ func (_u *UsageLogUpdate) check() error {
 	if _u.mutation.RequestCleared() && len(_u.mutation.RequestIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "UsageLog.request"`)
 	}
-	if _u.mutation.ProjectCleared() && len(_u.mutation.ProjectIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "UsageLog.project"`)
-	}
 	return nil
 }
 
@@ -1078,9 +1075,6 @@ func (_u *UsageLogUpdateOne) defaults() error {
 func (_u *UsageLogUpdateOne) check() error {
 	if _u.mutation.RequestCleared() && len(_u.mutation.RequestIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "UsageLog.request"`)
-	}
-	if _u.mutation.ProjectCleared() && len(_u.mutation.ProjectIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "UsageLog.project"`)
 	}
 	return nil
 }

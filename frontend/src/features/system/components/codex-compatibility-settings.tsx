@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { AlertCircle, Info, Loader2, Save } from 'lucide-react';
+import { AlertCircle, Loader2, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { usePermissions } from '@/hooks/usePermissions';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,9 +38,7 @@ const STATUS_BADGE_CLASS: Record<CodexChannelStatus, string> = {
 
 export function CodexCompatibilitySettings() {
   const { t } = useTranslation();
-  const { hasSystemScope } = usePermissions();
-  const canReadSettings = hasSystemScope('read_settings');
-  const access = codexAccess(hasSystemScope);
+  const access = codexAccess();
   const settingsQuery = useCodexCompatibilitySettings();
   const channelsQuery = useCodexCatalogChannels();
   const update = useUpdateCodexCompatibilitySettings();
@@ -58,19 +55,9 @@ export function CodexCompatibilitySettings() {
   const test = useCodexCatalogTest(form?.channelID ?? null);
 
   const viewState = codexSettingsViewState({
-    canReadSettings,
     isLoading: settingsQuery.isLoading || channelsQuery.isLoading,
     hasData: Boolean(saved && resolved && form),
   });
-
-  if (viewState === 'permission') {
-    return (
-      <Alert data-testid='codex-compat-read-permission'>
-        <Info />
-        <AlertDescription>{t('common.routeGuard.noPermission')}</AlertDescription>
-      </Alert>
-    );
-  }
 
   if (viewState === 'loading') {
     return (
@@ -100,8 +87,6 @@ export function CodexCompatibilitySettings() {
   }
 
   const controls = codexFormControls({ access, form, saved, saving: update.isPending, test: test.state });
-  const missingWrite = !hasSystemScope('write_settings');
-  const missingChannels = !hasSystemScope('read_channels');
   const listedSelection = form.channelID !== null && channels?.some((channel) => channel.id === form.channelID);
 
   return (
@@ -111,16 +96,6 @@ export function CodexCompatibilitySettings() {
         <CardDescription>{t('system.codex.description')}</CardDescription>
       </CardHeader>
       <CardContent className='space-y-6'>
-        {!access.canEdit && (
-          <Alert data-testid='codex-compat-permission-notice'>
-            <Info />
-            <AlertDescription>
-              {missingWrite && <p>{t('system.codex.permissions.write', { scope: t('scopes.write_settings') })}</p>}
-              {missingChannels && <p>{t('system.codex.permissions.channels', { scope: t('scopes.read_channels') })}</p>}
-            </AlertDescription>
-          </Alert>
-        )}
-
         <div className='flex items-center justify-between gap-4 rounded-lg border p-4'>
           <div className='space-y-1'>
             <Label htmlFor='codex-compat-enabled'>{t('system.codex.enabled.label')}</Label>

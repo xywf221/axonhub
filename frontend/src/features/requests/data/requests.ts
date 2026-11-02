@@ -1,9 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { graphqlRequest } from '@/gql/graphql';
 import { useTranslation } from 'react-i18next';
-import { useSelectedProjectId } from '@/stores/projectStore';
 import { useErrorHandler } from '@/hooks/use-error-handler';
-import { useRequestPermissions } from '../../../hooks/useRequestPermissions';
 import {
   Request,
   RequestConnection,
@@ -14,36 +12,7 @@ import {
 } from './schema';
 
 // Dynamic GraphQL query builder
-function buildRequestsQuery(permissions: { canViewApiKeys: boolean; canViewChannels: boolean; canViewCallerUser: boolean }) {
-  const apiKeyFields = permissions.canViewApiKeys
-    ? `
-          apiKey {
-            id
-            name${permissions.canViewCallerUser ? `
-            user {
-              firstName
-              lastName
-            }` : ''}
-          }`
-    : '';
-
-  const requestChannelFields = permissions.canViewChannels
-    ? `
-                channel {
-                  id
-                  name
-                }`
-    : '';
-
-  const executionChannelFields = permissions.canViewChannels
-    ? `
-                  channel {
-                    id
-                    name
-                  }
-                  channelAPIKeyIndex`
-    : '';
-
+function buildRequestsQuery() {
   return `
     query GetRequests(
       $first: Int
@@ -58,7 +27,19 @@ function buildRequestsQuery(permissions: { canViewApiKeys: boolean; canViewChann
           node {
             id
             createdAt
-            updatedAt${apiKeyFields}${requestChannelFields}
+            updatedAt
+            apiKey {
+              id
+              name
+              user {
+                firstName
+                lastName
+              }
+            }
+            channel {
+              id
+              name
+            }
             source
             modelID
             format
@@ -80,7 +61,12 @@ function buildRequestsQuery(permissions: { canViewApiKeys: boolean; canViewChann
                   format
                   status
                   reasoningEffort
-                  passThroughApplied${executionChannelFields}
+                  passThroughApplied
+                  channel {
+                    id
+                    name
+                  }
+                  channelAPIKeyIndex
                 }
                 cursor
               }
@@ -114,39 +100,30 @@ function buildRequestsQuery(permissions: { canViewApiKeys: boolean; canViewChann
   `;
 }
 
-function buildRequestDetailQuery(permissions: { canViewApiKeys: boolean; canViewChannels: boolean; canViewCallerUser: boolean }) {
-  const apiKeyFields = permissions.canViewApiKeys
-    ? `
-          apiKey {
-            id
-            name${permissions.canViewCallerUser ? `
-            user {
-              firstName
-              lastName
-            }` : ''}
-        }`
-    : '';
-
-  const requestChannelFields = permissions.canViewChannels
-    ? `
-          channel {
-            id
-            name
-          }`
-    : '';
-
+function buildRequestDetailQuery() {
   return `
     query GetRequestDetail($id: ID!) {
       node(id: $id) {
         ... on Request {
           id
           createdAt
-          updatedAt${apiKeyFields}${requestChannelFields}
+          updatedAt
+          apiKey {
+            id
+            name
+            user {
+              firstName
+              lastName
+            }
+          }
+          channel {
+            id
+            name
+          }
           source
           modelID
           stream
           clientIP
-          projectID
           dataStorageID
           contentSaved
           contentStorageKey
@@ -179,39 +156,30 @@ function buildRequestDetailQuery(permissions: { canViewApiKeys: boolean; canView
   `;
 }
 
-function buildRequestDetailPollingQuery(permissions: { canViewApiKeys: boolean; canViewChannels: boolean; canViewCallerUser: boolean }) {
-  const apiKeyFields = permissions.canViewApiKeys
-    ? `
-          apiKey {
-            id
-            name${permissions.canViewCallerUser ? `
-            user {
-              firstName
-              lastName
-            }` : ''}
-        }`
-    : '';
-
-  const requestChannelFields = permissions.canViewChannels
-    ? `
-          channel {
-            id
-            name
-          }`
-    : '';
-
+function buildRequestDetailPollingQuery() {
   return `
     query GetRequestDetailPolling($id: ID!) {
       node(id: $id) {
         ... on Request {
           id
           createdAt
-          updatedAt${apiKeyFields}${requestChannelFields}
+          updatedAt
+          apiKey {
+            id
+            name
+            user {
+              firstName
+              lastName
+            }
+          }
+          channel {
+            id
+            name
+          }
           source
           modelID
           stream
           clientIP
-          projectID
           dataStorageID
           contentSaved
           contentStorageKey
@@ -225,19 +193,7 @@ function buildRequestDetailPollingQuery(permissions: { canViewApiKeys: boolean; 
   `;
 }
 
-function buildRequestExecutionsQuery(permissions: { canViewChannels: boolean }) {
-  const channelFields = permissions.canViewChannels
-    ? `
-              channel {
-                  id
-                  name
-                  type
-                  baseURL
-              }
-              channelAPIKeySuffix
-              channelAPIKeyIndex`
-    : '';
-
+function buildRequestExecutionsQuery() {
   return `
     query GetRequestExecutions(
       $requestID: ID!
@@ -254,10 +210,17 @@ function buildRequestExecutionsQuery(permissions: { canViewChannels: boolean }) 
                 id
                 createdAt
                 updatedAt
-                requestID${channelFields}
+                requestID
+                channel {
+                    id
+                    name
+                    type
+                    baseURL
+                }
+                channelAPIKeySuffix
+                channelAPIKeyIndex
                 modelID
                 upstreamModelID
-                projectID
                 dataStorageID
                 requestHeaders
                 responseHeaders
@@ -305,35 +268,19 @@ export function useRequests(variables?: {
     channelIDIn?: string[];
     statusIn?: string[];
     sourceIn?: string[];
-    projectID?: string;
     [key: string]: any;
   };
-}, options?: { projectId?: string | null; scopeToSelectedProject?: boolean; enabled?: boolean }) {
+}, options?: { enabled?: boolean }) {
   const { handleError } = useErrorHandler();
   const { t } = useTranslation();
-  const permissions = useRequestPermissions();
-  const selectedProjectId = useSelectedProjectId();
-  const scopeToSelectedProject = options?.scopeToSelectedProject ?? true;
-  const projectId = options?.projectId !== undefined ? options.projectId : selectedProjectId;
   const enabled = options?.enabled ?? true;
 
   return useQuery({
-    queryKey: ['requests', variables, permissions, projectId, scopeToSelectedProject],
+    queryKey: ['requests', variables],
     queryFn: async () => {
       try {
-        const query = buildRequestsQuery(permissions);
-        const headers = projectId ? { 'X-Project-ID': projectId } : undefined;
-
-        // Add project filter if project scoping is enabled
-        const finalVariables = {
-          ...variables,
-          where: {
-            ...variables?.where,
-            ...(scopeToSelectedProject && projectId && { projectID: projectId }),
-          },
-        };
-
-        const data = await graphqlRequest<{ requests: RequestConnection }>(query, finalVariables, headers);
+        const query = buildRequestsQuery();
+        const data = await graphqlRequest<{ requests: RequestConnection }>(query, variables);
         return requestConnectionSchema.parse(data?.requests);
       } catch (error) {
         handleError(error, t('common.errors.internalServerError'));
@@ -348,34 +295,29 @@ export function useRequests(variables?: {
 export function useRequest(
   id: string,
   options?: {
-    projectId?: string | null;
     enabled?: boolean;
     disableAutoRefresh?: boolean;
   }
 ) {
   const { handleError } = useErrorHandler();
   const { t } = useTranslation();
-  const permissions = useRequestPermissions();
-  const selectedProjectId = useSelectedProjectId();
   const queryClient = useQueryClient();
-  const projectId = options?.projectId !== undefined ? options.projectId : selectedProjectId;
   const enabled = options?.enabled ?? true;
 
-  const queryKey = ['request', id, permissions, projectId] as const;
+  const queryKey = ['request', id] as const;
 
   return useQuery({
     queryKey,
     queryFn: async () => {
       try {
-        const headers = projectId ? { 'X-Project-ID': projectId } : undefined;
         const previousRequest = queryClient.getQueryData<Request>(queryKey);
         const shouldUseLightweightPolling = previousRequest?.status === 'processing';
 
         const query = shouldUseLightweightPolling
-          ? buildRequestDetailPollingQuery(permissions)
-          : buildRequestDetailQuery(permissions);
+          ? buildRequestDetailPollingQuery()
+          : buildRequestDetailQuery();
 
-        const data = await graphqlRequest<{ node: Request }>(query, { id }, headers);
+        const data = await graphqlRequest<{ node: Request }>(query, { id });
         if (!data.node) {
           throw new Error('Request not found');
         }
@@ -387,7 +329,7 @@ export function useRequest(
         }
 
         if (parsedRequest.status !== 'processing') {
-          const fullData = await graphqlRequest<{ node: Request }>(buildRequestDetailQuery(permissions), { id }, headers);
+          const fullData = await graphqlRequest<{ node: Request }>(buildRequestDetailQuery(), { id });
           if (!fullData.node) {
             throw new Error('Request not found');
           }
@@ -429,23 +371,18 @@ export async function fetchAdjacentRequestPage(params: {
   direction: 'older' | 'newer';
   pageSize: number;
   where?: Record<string, any>;
-  permissions: { canViewApiKeys: boolean; canViewChannels: boolean; canViewCallerUser: boolean };
-  projectId?: string | null;
 }): Promise<{ requests: Request[]; pageInfo: RequestConnection['pageInfo'] }> {
-  const query = buildRequestsQuery(params.permissions);
+  const query = buildRequestsQuery();
   const variables =
     params.direction === 'older'
       ? { first: params.pageSize, after: params.cursor }
       : { last: params.pageSize, before: params.cursor };
 
   const where: Record<string, any> = { ...params.where };
-  if (params.projectId) where.projectID = params.projectId;
 
-  const headers = params.projectId ? { 'X-Project-ID': params.projectId } : undefined;
   const data = await graphqlRequest<{ requests: RequestConnection }>(
     query,
-    { ...variables, where: Object.keys(where).length > 0 ? where : undefined, orderBy: { field: 'CREATED_AT', direction: 'DESC' } },
-    headers
+    { ...variables, where: Object.keys(where).length > 0 ? where : undefined, orderBy: { field: 'CREATED_AT', direction: 'DESC' } }
   );
   const result = requestConnectionSchema.parse(data?.requests);
   return { requests: result.edges.map((e) => e.node), pageInfo: result.pageInfo };
@@ -458,26 +395,21 @@ export function useRequestExecutions(
     after?: string;
     orderBy?: { field: 'CREATED_AT'; direction: 'ASC' | 'DESC' };
     where?: Record<string, any>;
-  },
-  options?: { projectId?: string | null }
+  }
 ) {
   const { handleError } = useErrorHandler();
   const { t } = useTranslation();
-  const permissions = useRequestPermissions();
-  const selectedProjectId = useSelectedProjectId();
-  const projectId = options?.projectId !== undefined ? options.projectId : selectedProjectId;
 
   return useQuery({
-    queryKey: ['request-executions', requestID, variables, permissions, projectId],
+    queryKey: ['request-executions', requestID, variables],
     queryFn: async () => {
       try {
-        const query = buildRequestExecutionsQuery(permissions);
-        const headers = projectId ? { 'X-Project-ID': projectId } : undefined;
+        const query = buildRequestExecutionsQuery();
         const finalVariables = {
           requestID,
           ...variables,
         };
-        const data = await graphqlRequest<{ node: { executions: RequestExecutionConnection } }>(query, finalVariables, headers);
+        const data = await graphqlRequest<{ node: { executions: RequestExecutionConnection } }>(query, finalVariables);
         return requestExecutionConnectionSchema.parse(data?.node?.executions);
       } catch (error) {
         handleError(error, t('common.errors.internalServerError'));

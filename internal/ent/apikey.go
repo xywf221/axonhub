@@ -11,7 +11,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/looplj/axonhub/internal/ent/apikey"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/user"
 	"github.com/looplj/axonhub/internal/objects"
 )
@@ -29,8 +28,6 @@ type APIKey struct {
 	DeletedAt int `json:"deleted_at,omitempty"`
 	// The creator of the API key
 	UserID int `json:"user_id,omitempty"`
-	// Project ID, default to 1 for backward compatibility
-	ProjectID int `json:"project_id,omitempty"`
 	// Key holds the value of the "key" field.
 	Key string `json:"key,omitempty"`
 	// Name holds the value of the "name" field.
@@ -43,8 +40,6 @@ type APIKey struct {
 	Scopes []string `json:"scopes,omitempty"`
 	// Profiles holds the value of the "profiles" field.
 	Profiles *objects.APIKeyProfiles `json:"profiles,omitempty"`
-	// IP CIDR allowlist for this API key. If non-empty, only requests from matching source IPs are accepted.
-	AllowedIps []string `json:"allowed_ips,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the APIKeyQuery when eager-loading is set.
 	Edges        APIKeyEdges `json:"edges"`
@@ -55,15 +50,13 @@ type APIKey struct {
 type APIKeyEdges struct {
 	// User holds the value of the user edge.
 	User *User `json:"user,omitempty"`
-	// Project holds the value of the project edge.
-	Project *Project `json:"project,omitempty"`
 	// Requests holds the value of the requests edge.
 	Requests []*Request `json:"requests,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [2]bool
 	// totalCount holds the count of the edges above.
-	totalCount [3]map[string]int
+	totalCount [2]map[string]int
 
 	namedRequests map[string][]*Request
 }
@@ -79,21 +72,10 @@ func (e APIKeyEdges) UserOrErr() (*User, error) {
 	return nil, &NotLoadedError{edge: "user"}
 }
 
-// ProjectOrErr returns the Project value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e APIKeyEdges) ProjectOrErr() (*Project, error) {
-	if e.Project != nil {
-		return e.Project, nil
-	} else if e.loadedTypes[1] {
-		return nil, &NotFoundError{label: project.Label}
-	}
-	return nil, &NotLoadedError{edge: "project"}
-}
-
 // RequestsOrErr returns the Requests value or an error if the edge
 // was not loaded in eager-loading.
 func (e APIKeyEdges) RequestsOrErr() ([]*Request, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[1] {
 		return e.Requests, nil
 	}
 	return nil, &NotLoadedError{edge: "requests"}
@@ -104,9 +86,9 @@ func (*APIKey) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case apikey.FieldScopes, apikey.FieldProfiles, apikey.FieldAllowedIps:
+		case apikey.FieldScopes, apikey.FieldProfiles:
 			values[i] = new([]byte)
-		case apikey.FieldID, apikey.FieldDeletedAt, apikey.FieldUserID, apikey.FieldProjectID:
+		case apikey.FieldID, apikey.FieldDeletedAt, apikey.FieldUserID:
 			values[i] = new(sql.NullInt64)
 		case apikey.FieldKey, apikey.FieldName, apikey.FieldType, apikey.FieldStatus:
 			values[i] = new(sql.NullString)
@@ -157,12 +139,6 @@ func (_m *APIKey) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.UserID = int(value.Int64)
 			}
-		case apikey.FieldProjectID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field project_id", values[i])
-			} else if value.Valid {
-				_m.ProjectID = int(value.Int64)
-			}
 		case apikey.FieldKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field key", values[i])
@@ -203,14 +179,6 @@ func (_m *APIKey) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field profiles: %w", err)
 				}
 			}
-		case apikey.FieldAllowedIps:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field allowed_ips", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.AllowedIps); err != nil {
-					return fmt.Errorf("unmarshal field allowed_ips: %w", err)
-				}
-			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -227,11 +195,6 @@ func (_m *APIKey) Value(name string) (ent.Value, error) {
 // QueryUser queries the "user" edge of the APIKey entity.
 func (_m *APIKey) QueryUser() *UserQuery {
 	return NewAPIKeyClient(_m.config).QueryUser(_m)
-}
-
-// QueryProject queries the "project" edge of the APIKey entity.
-func (_m *APIKey) QueryProject() *ProjectQuery {
-	return NewAPIKeyClient(_m.config).QueryProject(_m)
 }
 
 // QueryRequests queries the "requests" edge of the APIKey entity.
@@ -274,9 +237,6 @@ func (_m *APIKey) String() string {
 	builder.WriteString("user_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.UserID))
 	builder.WriteString(", ")
-	builder.WriteString("project_id=")
-	builder.WriteString(fmt.Sprintf("%v", _m.ProjectID))
-	builder.WriteString(", ")
 	builder.WriteString("key=")
 	builder.WriteString(_m.Key)
 	builder.WriteString(", ")
@@ -294,9 +254,6 @@ func (_m *APIKey) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("profiles=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Profiles))
-	builder.WriteString(", ")
-	builder.WriteString("allowed_ips=")
-	builder.WriteString(fmt.Sprintf("%v", _m.AllowedIps))
 	builder.WriteByte(')')
 	return builder.String()
 }

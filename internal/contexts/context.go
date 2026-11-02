@@ -136,24 +136,6 @@ func GetChannelAPIKey(ctx context.Context) (string, bool) {
 	return "", false
 }
 
-// WithProjectID stores the project ID in the context.
-func WithProjectID(ctx context.Context, projectID int) context.Context {
-	container := getContainer(ctx)
-	container.ProjectID = &projectID
-
-	return withContainer(ctx, container)
-}
-
-// GetProjectID retrieves the project ID from the context.
-func GetProjectID(ctx context.Context) (int, bool) {
-	container := getContainer(ctx)
-	if container.ProjectID != nil {
-		return *container.ProjectID, true
-	}
-
-	return 0, false
-}
-
 // AddError appends an error to the context's error list.
 // Will do nothing if the context is not initialized.
 // But in real world, it should be initialized.

@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/looplj/axonhub/internal/authz"
-	"github.com/looplj/axonhub/internal/contexts"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/channel"
 	"github.com/looplj/axonhub/internal/ent/datastorage"
@@ -135,9 +134,7 @@ func newStreamDeliveryE2EFixture(t *testing.T, format llm.APIFormat, payload str
 	client := enttest.NewEntClient(t, "sqlite3", "file:stream-delivery-e2e-"+dbName+"?mode=memory&_fk=0")
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
 	ctx := authz.WithTestBypass(ent.NewContext(t.Context(), client))
-	project, err := client.Project.Create().SetName("stream-delivery-e2e").Save(ctx)
-	require.NoError(t, err)
-	_, err = client.DataStorage.Create().SetName("stream-delivery-e2e-storage").SetDescription("stream delivery test storage").SetPrimary(true).SetType(datastorage.TypeDatabase).SetSettings(&objects.DataStorageSettings{}).SetStatus(datastorage.StatusActive).Save(ctx)
+	_, err := client.DataStorage.Create().SetName("stream-delivery-e2e-storage").SetDescription("stream delivery test storage").SetPrimary(true).SetType(datastorage.TypeDatabase).SetSettings(&objects.DataStorageSettings{}).SetStatus(datastorage.StatusActive).Save(ctx)
 	require.NoError(t, err)
 	upstreamStarted := make(chan struct{})
 	upstreamRelease := make(chan struct{})
@@ -172,7 +169,7 @@ func newStreamDeliveryE2EFixture(t *testing.T, format llm.APIFormat, payload str
 	}
 	channelRow, err := client.Channel.Create().SetType(channelType).SetName("stream-delivery-e2e-channel").SetBaseURL(upstream.URL).SetCredentials(objects.ChannelCredentials{APIKey: "synthetic"}).SetSupportedModels([]string{"gpt-test"}).SetDefaultTestModel("gpt-test").SetStatus(channel.StatusEnabled).SetEndpoints([]objects.ChannelEndpoint{{APIFormat: format.String(), BaseURL: upstream.URL, Transport: objects.ChannelEndpointTransportHTTP}}).Save(ctx)
 	require.NoError(t, err)
-	return &streamDeliveryE2EFixture{ctx: contexts.WithProjectID(ctx, project.ID), client: client, channel: channelRow, format: format, heartbeat: heartbeat, upstreamStarted: upstreamStarted, upstreamRelease: upstreamRelease}
+	return &streamDeliveryE2EFixture{ctx: ctx, client: client, channel: channelRow, format: format, heartbeat: heartbeat, upstreamStarted: upstreamStarted, upstreamRelease: upstreamRelease}
 }
 
 func (f *streamDeliveryE2EFixture) handler(t *testing.T) *ChatCompletionHandlers {
@@ -195,7 +192,7 @@ func (f *streamDeliveryE2EFixture) handler(t *testing.T) *ChatCompletionHandlers
 	channelService.SetEnabledChannelsForTest([]*biz.Channel{built})
 	selector := &streamDeliveryE2ESelector{candidates: []*orchestrator.ChannelModelsCandidate{{Channel: built, Models: []biz.ChannelModelEntry{{RequestModel: "gpt-test", ActualModel: "gpt-test", Source: "direct"}}}}}
 	inbound := openai.NewInboundTransformer()
-	orch := orchestrator.NewChatCompletionOrchestrator(channelService, nil, requestService, httpclient.NewHttpClient(), inbound, systemService, usageService, promptService, nil, promptProtection, biz.NewLiveStreamRegistry(), orchestrator.NewChannelLimiterManager(), nil).WithChannelSelector(selector)
+	orch := orchestrator.NewChatCompletionOrchestrator(channelService, nil, requestService, httpclient.NewHttpClient(), inbound, systemService, usageService, promptService, promptProtection, biz.NewLiveStreamRegistry(), orchestrator.NewChannelLimiterManager(), nil).WithChannelSelector(selector)
 	h := NewChatCompletionHandlers(orch)
 	if f.format == llm.APIFormatOpenAIResponse {
 		h.streamAdapterFactory = newResponsesStreamAdapter
@@ -253,12 +250,6 @@ func (f *streamDeliveryE2EFixture) runHTTPUntil(t *testing.T, path string, first
 func (f *streamDeliveryE2EFixture) testContext(c *gin.Context) {
 	ctx := authz.WithTestBypass(c.Request.Context())
 	ctx = ent.NewContext(ctx, f.client)
-	projectID, ok := contexts.GetProjectID(f.ctx)
-	if !ok {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-	ctx = contexts.WithProjectID(ctx, projectID)
 	c.Request = c.Request.WithContext(ctx)
 	c.Next()
 }

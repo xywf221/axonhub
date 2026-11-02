@@ -33,14 +33,6 @@ func (r *aPIKeyResolver) UserID(ctx context.Context, obj *ent.APIKey) (*objects.
 	}, nil
 }
 
-// ProjectID is the resolver for the projectID field.
-func (r *aPIKeyResolver) ProjectID(ctx context.Context, obj *ent.APIKey) (*objects.GUID, error) {
-	return &objects.GUID{
-		Type: ent.TypeProject,
-		ID:   obj.ProjectID,
-	}, nil
-}
-
 // User is the resolver for the user field.
 // Returns nil if the user has been soft-deleted.
 func (r *aPIKeyResolver) User(ctx context.Context, obj *ent.APIKey) (*ent.User, error) {
@@ -52,14 +44,6 @@ func (r *aPIKeyProfileTemplateResolver) ID(ctx context.Context, obj *ent.APIKeyP
 	return &objects.GUID{
 		Type: ent.TypeAPIKeyProfileTemplate,
 		ID:   obj.ID,
-	}, nil
-}
-
-// ProjectID is the resolver for the projectID field.
-func (r *aPIKeyProfileTemplateResolver) ProjectID(ctx context.Context, obj *ent.APIKeyProfileTemplate) (*objects.GUID, error) {
-	return &objects.GUID{
-		Type: ent.TypeProject,
-		ID:   obj.ProjectID,
 	}, nil
 }
 
@@ -269,31 +253,10 @@ func (r *oIDCIdentityResolver) UserID(ctx context.Context, obj *ent.OIDCIdentity
 }
 
 // ID is the resolver for the id field.
-func (r *projectResolver) ID(ctx context.Context, obj *ent.Project) (*objects.GUID, error) {
-	return &objects.GUID{
-		Type: ent.TypeProject,
-		ID:   obj.ID,
-	}, nil
-}
-
-// ProjectUsers is the resolver for the projectUsers field.
-func (r *projectResolver) ProjectUsers(ctx context.Context, obj *ent.Project) ([]*ent.UserProject, error) {
-	return obj.QueryProjectUsers().All(ctx)
-}
-
-// ID is the resolver for the id field.
 func (r *promptResolver) ID(ctx context.Context, obj *ent.Prompt) (*objects.GUID, error) {
 	return &objects.GUID{
 		Type: ent.TypePrompt,
 		ID:   obj.ID,
-	}, nil
-}
-
-// ProjectID is the resolver for the projectID field.
-func (r *promptResolver) ProjectID(ctx context.Context, obj *ent.Prompt) (*objects.GUID, error) {
-	return &objects.GUID{
-		Type: ent.TypeProject,
-		ID:   obj.ProjectID,
 	}, nil
 }
 
@@ -435,22 +398,6 @@ func (r *queryResolver) OidcIdentities(ctx context.Context, after *entgql.Cursor
 	)
 }
 
-// Projects is the resolver for the projects field.
-func (r *queryResolver) Projects(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.ProjectOrder, where *ent.ProjectWhereInput) (*ent.ProjectConnection, error) {
-	if err := validatePaginationArgs(first, last); err != nil {
-		return nil, err
-	}
-
-	if orderBy != nil && orderBy.Field.String() == "CREATED_AT" {
-		orderBy.Field = ent.DefaultProjectOrder.Field
-	}
-
-	return r.client.Project.Query().Paginate(ctx, after, first, before, last,
-		ent.WithProjectOrder(orderBy),
-		ent.WithProjectFilter(where.Filter),
-	)
-}
-
 // Prompts is the resolver for the prompts field.
 func (r *queryResolver) Prompts(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.PromptOrder, where *ent.PromptWhereInput) (*ent.PromptConnection, error) {
 	if err := validatePaginationArgs(first, last); err != nil {
@@ -496,22 +443,6 @@ func (r *queryResolver) Requests(ctx context.Context, after *entgql.Cursor[int],
 	return r.client.Request.Query().Paginate(ctx, after, first, before, last,
 		ent.WithRequestOrder(orderBy),
 		ent.WithRequestFilter(where.Filter),
-	)
-}
-
-// Roles is the resolver for the roles field.
-func (r *queryResolver) Roles(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.RoleOrder, where *ent.RoleWhereInput) (*ent.RoleConnection, error) {
-	if err := validatePaginationArgs(first, last); err != nil {
-		return nil, err
-	}
-
-	if orderBy != nil && orderBy.Field.String() == "CREATED_AT" {
-		orderBy.Field = ent.DefaultRoleOrder.Field
-	}
-
-	return r.client.Role.Query().Paginate(ctx, after, first, before, last,
-		ent.WithRoleOrder(orderBy),
-		ent.WithRoleFilter(where.Filter),
 	)
 }
 
@@ -604,14 +535,6 @@ func (r *requestResolver) APIKeyID(ctx context.Context, obj *ent.Request) (*obje
 	return &objects.GUID{
 		Type: ent.TypeAPIKey,
 		ID:   obj.APIKeyID,
-	}, nil
-}
-
-// ProjectID is the resolver for the projectID field.
-func (r *requestResolver) ProjectID(ctx context.Context, obj *ent.Request) (*objects.GUID, error) {
-	return &objects.GUID{
-		Type: ent.TypeProject,
-		ID:   obj.ProjectID,
 	}, nil
 }
 
@@ -809,32 +732,6 @@ func (r *requestExecutionResolver) Channel(ctx context.Context, obj *ent.Request
 }
 
 // ID is the resolver for the id field.
-func (r *roleResolver) ID(ctx context.Context, obj *ent.Role) (*objects.GUID, error) {
-	return &objects.GUID{
-		Type: ent.TypeRole,
-		ID:   obj.ID,
-	}, nil
-}
-
-// ProjectID is the resolver for the projectID field.
-func (r *roleResolver) ProjectID(ctx context.Context, obj *ent.Role) (*objects.GUID, error) {
-	if obj.ProjectID == nil {
-		//nolint:nilnil // Checked.
-		return nil, nil
-	}
-
-	return &objects.GUID{
-		Type: ent.TypeProject,
-		ID:   *obj.ProjectID,
-	}, nil
-}
-
-// UserRoles is the resolver for the userRoles field.
-func (r *roleResolver) UserRoles(ctx context.Context, obj *ent.Role) ([]*ent.UserRole, error) {
-	return obj.QueryUserRoles().All(ctx)
-}
-
-// ID is the resolver for the id field.
 func (r *systemResolver) ID(ctx context.Context, obj *ent.System) (*objects.GUID, error) {
 	return &objects.GUID{
 		Type: ent.TypeSystem,
@@ -850,27 +747,11 @@ func (r *threadResolver) ID(ctx context.Context, obj *ent.Thread) (*objects.GUID
 	}, nil
 }
 
-// ProjectID is the resolver for the projectID field.
-func (r *threadResolver) ProjectID(ctx context.Context, obj *ent.Thread) (*objects.GUID, error) {
-	return &objects.GUID{
-		Type: ent.TypeProject,
-		ID:   obj.ProjectID,
-	}, nil
-}
-
 // ID is the resolver for the id field.
 func (r *traceResolver) ID(ctx context.Context, obj *ent.Trace) (*objects.GUID, error) {
 	return &objects.GUID{
 		Type: ent.TypeTrace,
 		ID:   obj.ID,
-	}, nil
-}
-
-// ProjectID is the resolver for the projectID field.
-func (r *traceResolver) ProjectID(ctx context.Context, obj *ent.Trace) (*objects.GUID, error) {
-	return &objects.GUID{
-		Type: ent.TypeProject,
-		ID:   obj.ProjectID,
 	}, nil
 }
 
@@ -898,14 +779,6 @@ func (r *usageLogResolver) RequestID(ctx context.Context, obj *ent.UsageLog) (*o
 	}, nil
 }
 
-// ProjectID is the resolver for the projectID field.
-func (r *usageLogResolver) ProjectID(ctx context.Context, obj *ent.UsageLog) (*objects.GUID, error) {
-	return &objects.GUID{
-		Type: ent.TypeProject,
-		ID:   obj.ProjectID,
-	}, nil
-}
-
 // ChannelID is the resolver for the channelID field.
 func (r *usageLogResolver) ChannelID(ctx context.Context, obj *ent.UsageLog) (*objects.GUID, error) {
 	return &objects.GUID{
@@ -924,64 +797,6 @@ func (r *userResolver) ID(ctx context.Context, obj *ent.User) (*objects.GUID, er
 	return &objects.GUID{
 		Type: ent.TypeUser,
 		ID:   obj.ID,
-	}, nil
-}
-
-// ProjectUsers is the resolver for the projectUsers field.
-func (r *userResolver) ProjectUsers(ctx context.Context, obj *ent.User) ([]*ent.UserProject, error) {
-	return obj.QueryProjectUsers().All(ctx)
-}
-
-// UserRoles is the resolver for the userRoles field.
-func (r *userResolver) UserRoles(ctx context.Context, obj *ent.User) ([]*ent.UserRole, error) {
-	return obj.QueryUserRoles().All(ctx)
-}
-
-// ID is the resolver for the id field.
-func (r *userProjectResolver) ID(ctx context.Context, obj *ent.UserProject) (*objects.GUID, error) {
-	return &objects.GUID{
-		Type: ent.TypeUserProject,
-		ID:   obj.ID,
-	}, nil
-}
-
-// UserID is the resolver for the userID field.
-func (r *userProjectResolver) UserID(ctx context.Context, obj *ent.UserProject) (*objects.GUID, error) {
-	return &objects.GUID{
-		Type: ent.TypeUser,
-		ID:   obj.UserID,
-	}, nil
-}
-
-// ProjectID is the resolver for the projectID field.
-func (r *userProjectResolver) ProjectID(ctx context.Context, obj *ent.UserProject) (*objects.GUID, error) {
-	return &objects.GUID{
-		Type: ent.TypeProject,
-		ID:   obj.ProjectID,
-	}, nil
-}
-
-// ID is the resolver for the id field.
-func (r *userRoleResolver) ID(ctx context.Context, obj *ent.UserRole) (*objects.GUID, error) {
-	return &objects.GUID{
-		Type: ent.TypeUserRole,
-		ID:   obj.ID,
-	}, nil
-}
-
-// UserID is the resolver for the userID field.
-func (r *userRoleResolver) UserID(ctx context.Context, obj *ent.UserRole) (*objects.GUID, error) {
-	return &objects.GUID{
-		Type: ent.TypeUser,
-		ID:   obj.UserID,
-	}, nil
-}
-
-// RoleID is the resolver for the roleID field.
-func (r *userRoleResolver) RoleID(ctx context.Context, obj *ent.UserRole) (*objects.GUID, error) {
-	return &objects.GUID{
-		Type: ent.TypeRole,
-		ID:   obj.RoleID,
 	}, nil
 }
 
@@ -1023,9 +838,6 @@ func (r *Resolver) Model() ModelResolver { return &modelResolver{r} }
 // OIDCIdentity returns OIDCIdentityResolver implementation.
 func (r *Resolver) OIDCIdentity() OIDCIdentityResolver { return &oIDCIdentityResolver{r} }
 
-// Project returns ProjectResolver implementation.
-func (r *Resolver) Project() ProjectResolver { return &projectResolver{r} }
-
 // Prompt returns PromptResolver implementation.
 func (r *Resolver) Prompt() PromptResolver { return &promptResolver{r} }
 
@@ -1048,9 +860,6 @@ func (r *Resolver) Request() RequestResolver { return &requestResolver{r} }
 // RequestExecution returns RequestExecutionResolver implementation.
 func (r *Resolver) RequestExecution() RequestExecutionResolver { return &requestExecutionResolver{r} }
 
-// Role returns RoleResolver implementation.
-func (r *Resolver) Role() RoleResolver { return &roleResolver{r} }
-
 // System returns SystemResolver implementation.
 func (r *Resolver) System() SystemResolver { return &systemResolver{r} }
 
@@ -1066,12 +875,6 @@ func (r *Resolver) UsageLog() UsageLogResolver { return &usageLogResolver{r} }
 // User returns UserResolver implementation.
 func (r *Resolver) User() UserResolver { return &userResolver{r} }
 
-// UserProject returns UserProjectResolver implementation.
-func (r *Resolver) UserProject() UserProjectResolver { return &userProjectResolver{r} }
-
-// UserRole returns UserRoleResolver implementation.
-func (r *Resolver) UserRole() UserRoleResolver { return &userRoleResolver{r} }
-
 type aPIKeyResolver struct{ *Resolver }
 type aPIKeyProfileTemplateResolver struct{ *Resolver }
 type channelResolver struct{ *Resolver }
@@ -1082,18 +885,14 @@ type channelProbeResolver struct{ *Resolver }
 type dataStorageResolver struct{ *Resolver }
 type modelResolver struct{ *Resolver }
 type oIDCIdentityResolver struct{ *Resolver }
-type projectResolver struct{ *Resolver }
 type promptResolver struct{ *Resolver }
 type promptProtectionRuleResolver struct{ *Resolver }
 type providerQuotaStatusResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type requestResolver struct{ *Resolver }
 type requestExecutionResolver struct{ *Resolver }
-type roleResolver struct{ *Resolver }
 type systemResolver struct{ *Resolver }
 type threadResolver struct{ *Resolver }
 type traceResolver struct{ *Resolver }
 type usageLogResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
-type userProjectResolver struct{ *Resolver }
-type userRoleResolver struct{ *Resolver }

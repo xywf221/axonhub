@@ -306,7 +306,7 @@ Failover handling implements circuit breakers to prevent cascading failures when
 ### Authentication & Authorization
 
 1. **API Key Validation**: Validate API keys and associated permissions
-2. **Role-Based Access Control**: Fine-grained permission system
+2. **API Key Scopes**: Limit each key to the operations it needs
 3. **Request Scoping**: Limit requests to authorized resources
 4. **Audit Logging**: Record all authentication events
 

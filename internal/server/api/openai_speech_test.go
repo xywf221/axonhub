@@ -195,7 +195,6 @@ func TestOpenAIHandlers_CreateSpeech_AudioStreamEndToEnd(t *testing.T) {
 		systemService,
 		usageLogService,
 		nil,
-		nil,
 		promptProtectionService,
 		biz.NewLiveStreamRegistry(),
 		orchestrator.NewChannelLimiterManager(),

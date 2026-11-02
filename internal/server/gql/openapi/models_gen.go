@@ -3,10 +3,7 @@
 package openapi
 
 import (
-	"time"
-
 	"github.com/looplj/axonhub/internal/objects"
-	"github.com/shopspring/decimal"
 )
 
 type APIKey struct {
@@ -15,24 +12,6 @@ type APIKey struct {
 	Name     string                  `json:"name"`
 	Scopes   []string                `json:"scopes,omitempty"`
 	Profiles *objects.APIKeyProfiles `json:"profiles,omitempty"`
-}
-
-type APIKeyProfileQuotaUsage struct {
-	ProfileName string               `json:"profileName"`
-	Quota       *objects.APIKeyQuota `json:"quota"`
-	Window      *APIKeyQuotaWindow   `json:"window"`
-	Usage       *APIKeyQuotaUsage    `json:"usage"`
-}
-
-type APIKeyQuotaUsage struct {
-	RequestCount int             `json:"requestCount"`
-	TotalTokens  int             `json:"totalTokens"`
-	TotalCost    decimal.Decimal `json:"totalCost"`
-}
-
-type APIKeyQuotaWindow struct {
-	Start *time.Time `json:"start,omitempty"`
-	End   *time.Time `json:"end,omitempty"`
 }
 
 type LoadAPIKeyProfileTemplateInput struct {

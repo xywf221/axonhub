@@ -139,11 +139,6 @@ var defaultQuotaRoutingSettings = QuotaRoutingSettings{
 	DefaultMode: objects.QuotaRoutingModeRemoveOnExhausted,
 }
 
-var defaultSecuritySettings = SecuritySettings{
-	BlockedIPs:              []string{},
-	ShowRequestLogIPBanIcon: true,
-}
-
 var defaultWebSearchSettings = WebSearchSettings{
 	Enabled: false,
 }

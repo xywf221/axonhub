@@ -33,7 +33,6 @@ import {
   useSaveProxyPreset,
   useUserAgentPassThroughSettings,
 } from '@/features/system/data/system';
-import { usePermissions } from '@/hooks/usePermissions';
 import { antigravityOAuthExchange, antigravityOAuthStart } from '../data/antigravity';
 import {
   useCreateChannel,
@@ -456,11 +455,9 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
   const { data: allTags = [], isLoading: isLoadingTags } = useAllChannelTags();
   const { data: proxyPresets = [] } = useProxyPresets();
   const saveProxyPreset = useSaveProxyPreset();
-  const { hasSystemScope } = usePermissions();
   const { data: quotaRoutingSettings } = useQuotaRoutingSettings();
-  const canReadSystemSettings = hasSystemScope('read_settings');
-  const { data: userAgentPassThroughSettings } = useUserAgentPassThroughSettings({ enabled: canReadSystemSettings });
-  const { data: passThroughSettings } = usePassThroughSettings({ enabled: canReadSystemSettings });
+  const { data: userAgentPassThroughSettings } = useUserAgentPassThroughSettings({ enabled: true });
+  const { data: passThroughSettings } = usePassThroughSettings({ enabled: true });
   const [supportedModels, setSupportedModels] = useState<string[]>(() => initialRow?.supportedModels || []);
   const [manualModels, setManualModels] = useState<string[]>(() => initialRow?.manualModels || []);
   const [newModel, setNewModel] = useState('');
@@ -1637,7 +1634,7 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
         }
 
         // Auto-save proxy preset (preserve existing name if available)
-        if (hasSystemScope('write_settings') && proxyType === ProxyType.URL && proxyUrl) {
+        if (proxyType === ProxyType.URL && proxyUrl) {
           const existingPreset = proxyPresets.find((p) => p.url === proxyUrl);
           saveProxyPreset.mutate({
             name: existingPreset?.name,

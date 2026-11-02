@@ -16,14 +16,6 @@ func (_m *APIKey) User(ctx context.Context) (*User, error) {
 	return result, MaskNotFound(err)
 }
 
-func (_m *APIKey) Project(ctx context.Context) (*Project, error) {
-	result, err := _m.Edges.ProjectOrErr()
-	if IsNotLoaded(err) {
-		result, err = _m.QueryProject().Only(ctx)
-	}
-	return result, err
-}
-
 func (_m *APIKey) Requests(
 	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *RequestOrder, where *RequestWhereInput,
 ) (*RequestConnection, error) {
@@ -32,7 +24,7 @@ func (_m *APIKey) Requests(
 		WithRequestFilter(where.Filter),
 	}
 	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[2][alias]
+	totalCount, hasTotalCount := _m.Edges.totalCount[1][alias]
 	if nodes, err := _m.NamedRequests(alias); err == nil || hasTotalCount {
 		pager, err := newRequestPager(opts, last != nil)
 		if err != nil {
@@ -43,14 +35,6 @@ func (_m *APIKey) Requests(
 		return conn, nil
 	}
 	return _m.QueryRequests().Paginate(ctx, after, first, before, last, opts...)
-}
-
-func (_m *APIKeyProfileTemplate) Project(ctx context.Context) (*Project, error) {
-	result, err := _m.Edges.ProjectOrErr()
-	if IsNotLoaded(err) {
-		result, err = _m.QueryProject().Only(ctx)
-	}
-	return result, err
 }
 
 func (_m *Channel) Requests(
@@ -242,224 +226,6 @@ func (_m *OIDCIdentity) User(ctx context.Context) (*User, error) {
 	return result, err
 }
 
-func (_m *Project) Users(
-	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *UserOrder, where *UserWhereInput,
-) (*UserConnection, error) {
-	opts := []UserPaginateOption{
-		WithUserOrder(orderBy),
-		WithUserFilter(where.Filter),
-	}
-	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[0][alias]
-	if nodes, err := _m.NamedUsers(alias); err == nil || hasTotalCount {
-		pager, err := newUserPager(opts, last != nil)
-		if err != nil {
-			return nil, err
-		}
-		conn := &UserConnection{Edges: []*UserEdge{}, TotalCount: totalCount}
-		conn.build(nodes, pager, after, first, before, last)
-		return conn, nil
-	}
-	return _m.QueryUsers().Paginate(ctx, after, first, before, last, opts...)
-}
-
-func (_m *Project) Roles(
-	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *RoleOrder, where *RoleWhereInput,
-) (*RoleConnection, error) {
-	opts := []RolePaginateOption{
-		WithRoleOrder(orderBy),
-		WithRoleFilter(where.Filter),
-	}
-	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[1][alias]
-	if nodes, err := _m.NamedRoles(alias); err == nil || hasTotalCount {
-		pager, err := newRolePager(opts, last != nil)
-		if err != nil {
-			return nil, err
-		}
-		conn := &RoleConnection{Edges: []*RoleEdge{}, TotalCount: totalCount}
-		conn.build(nodes, pager, after, first, before, last)
-		return conn, nil
-	}
-	return _m.QueryRoles().Paginate(ctx, after, first, before, last, opts...)
-}
-
-func (_m *Project) APIKeys(
-	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *APIKeyOrder, where *APIKeyWhereInput,
-) (*APIKeyConnection, error) {
-	opts := []APIKeyPaginateOption{
-		WithAPIKeyOrder(orderBy),
-		WithAPIKeyFilter(where.Filter),
-	}
-	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[2][alias]
-	if nodes, err := _m.NamedAPIKeys(alias); err == nil || hasTotalCount {
-		pager, err := newAPIKeyPager(opts, last != nil)
-		if err != nil {
-			return nil, err
-		}
-		conn := &APIKeyConnection{Edges: []*APIKeyEdge{}, TotalCount: totalCount}
-		conn.build(nodes, pager, after, first, before, last)
-		return conn, nil
-	}
-	return _m.QueryAPIKeys().Paginate(ctx, after, first, before, last, opts...)
-}
-
-func (_m *Project) Requests(
-	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *RequestOrder, where *RequestWhereInput,
-) (*RequestConnection, error) {
-	opts := []RequestPaginateOption{
-		WithRequestOrder(orderBy),
-		WithRequestFilter(where.Filter),
-	}
-	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[3][alias]
-	if nodes, err := _m.NamedRequests(alias); err == nil || hasTotalCount {
-		pager, err := newRequestPager(opts, last != nil)
-		if err != nil {
-			return nil, err
-		}
-		conn := &RequestConnection{Edges: []*RequestEdge{}, TotalCount: totalCount}
-		conn.build(nodes, pager, after, first, before, last)
-		return conn, nil
-	}
-	return _m.QueryRequests().Paginate(ctx, after, first, before, last, opts...)
-}
-
-func (_m *Project) UsageLogs(
-	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *UsageLogOrder, where *UsageLogWhereInput,
-) (*UsageLogConnection, error) {
-	opts := []UsageLogPaginateOption{
-		WithUsageLogOrder(orderBy),
-		WithUsageLogFilter(where.Filter),
-	}
-	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[4][alias]
-	if nodes, err := _m.NamedUsageLogs(alias); err == nil || hasTotalCount {
-		pager, err := newUsageLogPager(opts, last != nil)
-		if err != nil {
-			return nil, err
-		}
-		conn := &UsageLogConnection{Edges: []*UsageLogEdge{}, TotalCount: totalCount}
-		conn.build(nodes, pager, after, first, before, last)
-		return conn, nil
-	}
-	return _m.QueryUsageLogs().Paginate(ctx, after, first, before, last, opts...)
-}
-
-func (_m *Project) Threads(
-	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *ThreadOrder, where *ThreadWhereInput,
-) (*ThreadConnection, error) {
-	opts := []ThreadPaginateOption{
-		WithThreadOrder(orderBy),
-		WithThreadFilter(where.Filter),
-	}
-	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[5][alias]
-	if nodes, err := _m.NamedThreads(alias); err == nil || hasTotalCount {
-		pager, err := newThreadPager(opts, last != nil)
-		if err != nil {
-			return nil, err
-		}
-		conn := &ThreadConnection{Edges: []*ThreadEdge{}, TotalCount: totalCount}
-		conn.build(nodes, pager, after, first, before, last)
-		return conn, nil
-	}
-	return _m.QueryThreads().Paginate(ctx, after, first, before, last, opts...)
-}
-
-func (_m *Project) Traces(
-	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *TraceOrder, where *TraceWhereInput,
-) (*TraceConnection, error) {
-	opts := []TracePaginateOption{
-		WithTraceOrder(orderBy),
-		WithTraceFilter(where.Filter),
-	}
-	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[6][alias]
-	if nodes, err := _m.NamedTraces(alias); err == nil || hasTotalCount {
-		pager, err := newTracePager(opts, last != nil)
-		if err != nil {
-			return nil, err
-		}
-		conn := &TraceConnection{Edges: []*TraceEdge{}, TotalCount: totalCount}
-		conn.build(nodes, pager, after, first, before, last)
-		return conn, nil
-	}
-	return _m.QueryTraces().Paginate(ctx, after, first, before, last, opts...)
-}
-
-func (_m *Project) Prompts(
-	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *PromptOrder, where *PromptWhereInput,
-) (*PromptConnection, error) {
-	opts := []PromptPaginateOption{
-		WithPromptOrder(orderBy),
-		WithPromptFilter(where.Filter),
-	}
-	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[7][alias]
-	if nodes, err := _m.NamedPrompts(alias); err == nil || hasTotalCount {
-		pager, err := newPromptPager(opts, last != nil)
-		if err != nil {
-			return nil, err
-		}
-		conn := &PromptConnection{Edges: []*PromptEdge{}, TotalCount: totalCount}
-		conn.build(nodes, pager, after, first, before, last)
-		return conn, nil
-	}
-	return _m.QueryPrompts().Paginate(ctx, after, first, before, last, opts...)
-}
-
-func (_m *Project) APIKeyProfileTemplates(
-	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *APIKeyProfileTemplateOrder, where *APIKeyProfileTemplateWhereInput,
-) (*APIKeyProfileTemplateConnection, error) {
-	opts := []APIKeyProfileTemplatePaginateOption{
-		WithAPIKeyProfileTemplateOrder(orderBy),
-		WithAPIKeyProfileTemplateFilter(where.Filter),
-	}
-	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[8][alias]
-	if nodes, err := _m.NamedAPIKeyProfileTemplates(alias); err == nil || hasTotalCount {
-		pager, err := newAPIKeyProfileTemplatePager(opts, last != nil)
-		if err != nil {
-			return nil, err
-		}
-		conn := &APIKeyProfileTemplateConnection{Edges: []*APIKeyProfileTemplateEdge{}, TotalCount: totalCount}
-		conn.build(nodes, pager, after, first, before, last)
-		return conn, nil
-	}
-	return _m.QueryAPIKeyProfileTemplates().Paginate(ctx, after, first, before, last, opts...)
-}
-
-func (_m *Project) ProjectUsers(
-	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *UserProjectOrder, where *UserProjectWhereInput,
-) (*UserProjectConnection, error) {
-	opts := []UserProjectPaginateOption{
-		WithUserProjectOrder(orderBy),
-		WithUserProjectFilter(where.Filter),
-	}
-	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[9][alias]
-	if nodes, err := _m.NamedProjectUsers(alias); err == nil || hasTotalCount {
-		pager, err := newUserProjectPager(opts, last != nil)
-		if err != nil {
-			return nil, err
-		}
-		conn := &UserProjectConnection{Edges: []*UserProjectEdge{}, TotalCount: totalCount}
-		conn.build(nodes, pager, after, first, before, last)
-		return conn, nil
-	}
-	return _m.QueryProjectUsers().Paginate(ctx, after, first, before, last, opts...)
-}
-
-func (_m *Prompt) Project(ctx context.Context) (*Project, error) {
-	result, err := _m.Edges.ProjectOrErr()
-	if IsNotLoaded(err) {
-		result, err = _m.QueryProject().Only(ctx)
-	}
-	return result, err
-}
-
 func (_m *ProviderQuotaStatus) Channel(ctx context.Context) (*Channel, error) {
 	result, err := _m.Edges.ChannelOrErr()
 	if IsNotLoaded(err) {
@@ -474,14 +240,6 @@ func (_m *Request) APIKey(ctx context.Context) (*APIKey, error) {
 		result, err = _m.QueryAPIKey().Only(ctx)
 	}
 	return result, MaskNotFound(err)
-}
-
-func (_m *Request) Project(ctx context.Context) (*Project, error) {
-	result, err := _m.Edges.ProjectOrErr()
-	if IsNotLoaded(err) {
-		result, err = _m.QueryProject().Only(ctx)
-	}
-	return result, err
 }
 
 func (_m *Request) Trace(ctx context.Context) (*Trace, error) {
@@ -508,7 +266,7 @@ func (_m *Request) Executions(
 		WithRequestExecutionFilter(where.Filter),
 	}
 	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[4][alias]
+	totalCount, hasTotalCount := _m.Edges.totalCount[3][alias]
 	if nodes, err := _m.NamedExecutions(alias); err == nil || hasTotalCount {
 		pager, err := newRequestExecutionPager(opts, last != nil)
 		if err != nil {
@@ -537,7 +295,7 @@ func (_m *Request) UsageLogs(
 		WithUsageLogFilter(where.Filter),
 	}
 	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[6][alias]
+	totalCount, hasTotalCount := _m.Edges.totalCount[5][alias]
 	if nodes, err := _m.NamedUsageLogs(alias); err == nil || hasTotalCount {
 		pager, err := newUsageLogPager(opts, last != nil)
 		if err != nil {
@@ -574,64 +332,6 @@ func (_m *RequestExecution) DataStorage(ctx context.Context) (*DataStorage, erro
 	return result, MaskNotFound(err)
 }
 
-func (_m *Role) Users(
-	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *UserOrder, where *UserWhereInput,
-) (*UserConnection, error) {
-	opts := []UserPaginateOption{
-		WithUserOrder(orderBy),
-		WithUserFilter(where.Filter),
-	}
-	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[0][alias]
-	if nodes, err := _m.NamedUsers(alias); err == nil || hasTotalCount {
-		pager, err := newUserPager(opts, last != nil)
-		if err != nil {
-			return nil, err
-		}
-		conn := &UserConnection{Edges: []*UserEdge{}, TotalCount: totalCount}
-		conn.build(nodes, pager, after, first, before, last)
-		return conn, nil
-	}
-	return _m.QueryUsers().Paginate(ctx, after, first, before, last, opts...)
-}
-
-func (_m *Role) Project(ctx context.Context) (*Project, error) {
-	result, err := _m.Edges.ProjectOrErr()
-	if IsNotLoaded(err) {
-		result, err = _m.QueryProject().Only(ctx)
-	}
-	return result, MaskNotFound(err)
-}
-
-func (_m *Role) UserRoles(
-	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *UserRoleOrder, where *UserRoleWhereInput,
-) (*UserRoleConnection, error) {
-	opts := []UserRolePaginateOption{
-		WithUserRoleOrder(orderBy),
-		WithUserRoleFilter(where.Filter),
-	}
-	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[2][alias]
-	if nodes, err := _m.NamedUserRoles(alias); err == nil || hasTotalCount {
-		pager, err := newUserRolePager(opts, last != nil)
-		if err != nil {
-			return nil, err
-		}
-		conn := &UserRoleConnection{Edges: []*UserRoleEdge{}, TotalCount: totalCount}
-		conn.build(nodes, pager, after, first, before, last)
-		return conn, nil
-	}
-	return _m.QueryUserRoles().Paginate(ctx, after, first, before, last, opts...)
-}
-
-func (_m *Thread) Project(ctx context.Context) (*Project, error) {
-	result, err := _m.Edges.ProjectOrErr()
-	if IsNotLoaded(err) {
-		result, err = _m.QueryProject().Only(ctx)
-	}
-	return result, err
-}
-
 func (_m *Thread) Traces(
 	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *TraceOrder, where *TraceWhereInput,
 ) (*TraceConnection, error) {
@@ -640,7 +340,7 @@ func (_m *Thread) Traces(
 		WithTraceFilter(where.Filter),
 	}
 	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[1][alias]
+	totalCount, hasTotalCount := _m.Edges.totalCount[0][alias]
 	if nodes, err := _m.NamedTraces(alias); err == nil || hasTotalCount {
 		pager, err := newTracePager(opts, last != nil)
 		if err != nil {
@@ -651,14 +351,6 @@ func (_m *Thread) Traces(
 		return conn, nil
 	}
 	return _m.QueryTraces().Paginate(ctx, after, first, before, last, opts...)
-}
-
-func (_m *Trace) Project(ctx context.Context) (*Project, error) {
-	result, err := _m.Edges.ProjectOrErr()
-	if IsNotLoaded(err) {
-		result, err = _m.QueryProject().Only(ctx)
-	}
-	return result, err
 }
 
 func (_m *Trace) Thread(ctx context.Context) (*Thread, error) {
@@ -677,7 +369,7 @@ func (_m *Trace) Requests(
 		WithRequestFilter(where.Filter),
 	}
 	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[2][alias]
+	totalCount, hasTotalCount := _m.Edges.totalCount[1][alias]
 	if nodes, err := _m.NamedRequests(alias); err == nil || hasTotalCount {
 		pager, err := newRequestPager(opts, last != nil)
 		if err != nil {
@@ -698,41 +390,12 @@ func (_m *UsageLog) Request(ctx context.Context) (*Request, error) {
 	return result, err
 }
 
-func (_m *UsageLog) Project(ctx context.Context) (*Project, error) {
-	result, err := _m.Edges.ProjectOrErr()
-	if IsNotLoaded(err) {
-		result, err = _m.QueryProject().Only(ctx)
-	}
-	return result, err
-}
-
 func (_m *UsageLog) Channel(ctx context.Context) (*Channel, error) {
 	result, err := _m.Edges.ChannelOrErr()
 	if IsNotLoaded(err) {
 		result, err = _m.QueryChannel().Only(ctx)
 	}
 	return result, MaskNotFound(err)
-}
-
-func (_m *User) Projects(
-	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *ProjectOrder, where *ProjectWhereInput,
-) (*ProjectConnection, error) {
-	opts := []ProjectPaginateOption{
-		WithProjectOrder(orderBy),
-		WithProjectFilter(where.Filter),
-	}
-	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[0][alias]
-	if nodes, err := _m.NamedProjects(alias); err == nil || hasTotalCount {
-		pager, err := newProjectPager(opts, last != nil)
-		if err != nil {
-			return nil, err
-		}
-		conn := &ProjectConnection{Edges: []*ProjectEdge{}, TotalCount: totalCount}
-		conn.build(nodes, pager, after, first, before, last)
-		return conn, nil
-	}
-	return _m.QueryProjects().Paginate(ctx, after, first, before, last, opts...)
 }
 
 func (_m *User) APIKeys(
@@ -743,7 +406,7 @@ func (_m *User) APIKeys(
 		WithAPIKeyFilter(where.Filter),
 	}
 	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[1][alias]
+	totalCount, hasTotalCount := _m.Edges.totalCount[0][alias]
 	if nodes, err := _m.NamedAPIKeys(alias); err == nil || hasTotalCount {
 		pager, err := newAPIKeyPager(opts, last != nil)
 		if err != nil {
@@ -756,27 +419,6 @@ func (_m *User) APIKeys(
 	return _m.QueryAPIKeys().Paginate(ctx, after, first, before, last, opts...)
 }
 
-func (_m *User) Roles(
-	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *RoleOrder, where *RoleWhereInput,
-) (*RoleConnection, error) {
-	opts := []RolePaginateOption{
-		WithRoleOrder(orderBy),
-		WithRoleFilter(where.Filter),
-	}
-	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[2][alias]
-	if nodes, err := _m.NamedRoles(alias); err == nil || hasTotalCount {
-		pager, err := newRolePager(opts, last != nil)
-		if err != nil {
-			return nil, err
-		}
-		conn := &RoleConnection{Edges: []*RoleEdge{}, TotalCount: totalCount}
-		conn.build(nodes, pager, after, first, before, last)
-		return conn, nil
-	}
-	return _m.QueryRoles().Paginate(ctx, after, first, before, last, opts...)
-}
-
 func (_m *User) ChannelOverrideTemplates(
 	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *ChannelOverrideTemplateOrder, where *ChannelOverrideTemplateWhereInput,
 ) (*ChannelOverrideTemplateConnection, error) {
@@ -785,7 +427,7 @@ func (_m *User) ChannelOverrideTemplates(
 		WithChannelOverrideTemplateFilter(where.Filter),
 	}
 	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[3][alias]
+	totalCount, hasTotalCount := _m.Edges.totalCount[1][alias]
 	if nodes, err := _m.NamedChannelOverrideTemplates(alias); err == nil || hasTotalCount {
 		pager, err := newChannelOverrideTemplatePager(opts, last != nil)
 		if err != nil {
@@ -806,7 +448,7 @@ func (_m *User) OidcIdentities(
 		WithOIDCIdentityFilter(where.Filter),
 	}
 	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[4][alias]
+	totalCount, hasTotalCount := _m.Edges.totalCount[2][alias]
 	if nodes, err := _m.NamedOidcIdentities(alias); err == nil || hasTotalCount {
 		pager, err := newOIDCIdentityPager(opts, last != nil)
 		if err != nil {
@@ -817,78 +459,4 @@ func (_m *User) OidcIdentities(
 		return conn, nil
 	}
 	return _m.QueryOidcIdentities().Paginate(ctx, after, first, before, last, opts...)
-}
-
-func (_m *User) ProjectUsers(
-	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *UserProjectOrder, where *UserProjectWhereInput,
-) (*UserProjectConnection, error) {
-	opts := []UserProjectPaginateOption{
-		WithUserProjectOrder(orderBy),
-		WithUserProjectFilter(where.Filter),
-	}
-	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[5][alias]
-	if nodes, err := _m.NamedProjectUsers(alias); err == nil || hasTotalCount {
-		pager, err := newUserProjectPager(opts, last != nil)
-		if err != nil {
-			return nil, err
-		}
-		conn := &UserProjectConnection{Edges: []*UserProjectEdge{}, TotalCount: totalCount}
-		conn.build(nodes, pager, after, first, before, last)
-		return conn, nil
-	}
-	return _m.QueryProjectUsers().Paginate(ctx, after, first, before, last, opts...)
-}
-
-func (_m *User) UserRoles(
-	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *UserRoleOrder, where *UserRoleWhereInput,
-) (*UserRoleConnection, error) {
-	opts := []UserRolePaginateOption{
-		WithUserRoleOrder(orderBy),
-		WithUserRoleFilter(where.Filter),
-	}
-	alias := graphql.GetFieldContext(ctx).Field.Alias
-	totalCount, hasTotalCount := _m.Edges.totalCount[6][alias]
-	if nodes, err := _m.NamedUserRoles(alias); err == nil || hasTotalCount {
-		pager, err := newUserRolePager(opts, last != nil)
-		if err != nil {
-			return nil, err
-		}
-		conn := &UserRoleConnection{Edges: []*UserRoleEdge{}, TotalCount: totalCount}
-		conn.build(nodes, pager, after, first, before, last)
-		return conn, nil
-	}
-	return _m.QueryUserRoles().Paginate(ctx, after, first, before, last, opts...)
-}
-
-func (_m *UserProject) User(ctx context.Context) (*User, error) {
-	result, err := _m.Edges.UserOrErr()
-	if IsNotLoaded(err) {
-		result, err = _m.QueryUser().Only(ctx)
-	}
-	return result, err
-}
-
-func (_m *UserProject) Project(ctx context.Context) (*Project, error) {
-	result, err := _m.Edges.ProjectOrErr()
-	if IsNotLoaded(err) {
-		result, err = _m.QueryProject().Only(ctx)
-	}
-	return result, err
-}
-
-func (_m *UserRole) User(ctx context.Context) (*User, error) {
-	result, err := _m.Edges.UserOrErr()
-	if IsNotLoaded(err) {
-		result, err = _m.QueryUser().Only(ctx)
-	}
-	return result, err
-}
-
-func (_m *UserRole) Role(ctx context.Context) (*Role, error) {
-	result, err := _m.Edges.RoleOrErr()
-	if IsNotLoaded(err) {
-		result, err = _m.QueryRole().Only(ctx)
-	}
-	return result, err
 }

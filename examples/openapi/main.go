@@ -21,8 +21,7 @@ func main() {
 	}
 
 	// 你的 API Key
-	// 注意: 必须是 Service Account 类型。createLLMAPIKey 需要 write_api_keys；
-	// 末尾可选的 apiKeyQuotaUsages 查询额外需要 read_api_keys。
+	// 注意: 必须是 Service Account 类型。createLLMAPIKey 需要 write_api_keys。
 	apiKey := os.Getenv("AXONHUB_API_KEY")
 	if apiKey == "" {
 		fmt.Println("请设置 AXONHUB_API_KEY 环境变量 (需要 Service Account Key)")
@@ -71,10 +70,6 @@ func main() {
 	// 这是 name 与 id 并存能力的核心用法——手里只有名称时，先解析出 id/key，
 	// 再去调用其他接口。需要 read_api_keys 权限。
 	lookupAPIKeyByName(context.Background(), client, name)
-
-	// 可选: 查询某个 Key 的模版额度用量。
-	// 需要 Service Account Key 拥有 read_api_keys 权限，且目标 Key 在同一项目内。
-	queryQuotaUsage(context.Background(), client)
 }
 
 // lookupAPIKeyByName 演示 apiKey 查询: 按 id / key / name 三选一定位一把 Key。
@@ -96,68 +91,6 @@ func lookupAPIKeyByName(ctx context.Context, client graphql.Client, name string)
 
 	fmt.Printf("解析结果: id=%s name=%s scopes=%v\n",
 		resp.ApiKey.Id, resp.ApiKey.Name, resp.ApiKey.Scopes)
-}
-
-// queryQuotaUsage 演示 apiKeyQuotaUsages 查询。通过环境变量三选一指定目标 Key:
-//   - AXONHUB_QUERY_KEY_ID:   目标 Key 的 GUID (形如 gid://axonhub/APIKey/123)
-//   - AXONHUB_QUERY_KEY:      目标 Key 的明文字符串
-//   - AXONHUB_QUERY_KEY_NAME: 目标 Key 的名称 (项目内唯一)
-//
-// 都未设置时跳过本演示。注意: 该查询应使用 POST，避免明文 Key 落入 URL。
-func queryQuotaUsage(ctx context.Context, client graphql.Client) {
-	keyID := os.Getenv("AXONHUB_QUERY_KEY_ID")
-	keyVal := os.Getenv("AXONHUB_QUERY_KEY")
-	keyName := os.Getenv("AXONHUB_QUERY_KEY_NAME")
-
-	if keyID == "" && keyVal == "" && keyName == "" {
-		fmt.Println("\n(设置 AXONHUB_QUERY_KEY_ID / AXONHUB_QUERY_KEY / AXONHUB_QUERY_KEY_NAME 之一可查询某个 Key 的额度用量)")
-		return
-	}
-
-	var (
-		apiKeyID *string
-		key      *string
-		name     *string
-	)
-
-	switch {
-	case keyID != "":
-		apiKeyID = &keyID
-	case keyVal != "":
-		key = &keyVal
-	case keyName != "":
-		name = &keyName
-	}
-
-	fmt.Println("\n正在查询额度用量...")
-
-	resp, err := openapigraphql.APIKeyQuotaUsages(ctx, client, apiKeyID, key, name)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "查询失败: %v\n", err)
-		fmt.Println("可能的原因: 缺少 read_api_keys 权限 / 目标 Key 不在当前项目 / 参数无效")
-		return
-	}
-
-	if len(resp.ApiKeyQuotaUsages) == 0 {
-		fmt.Println("该 Key 没有启用额度的 profile。")
-		return
-	}
-
-	for _, usage := range resp.ApiKeyQuotaUsages {
-		// usage is non-null per the schema, but it is a pointer in the generated
-		// client (use_struct_references), so guard against a malformed response.
-		if usage.Usage == nil {
-			fmt.Printf("- profile=%s (响应缺少 usage)\n", usage.ProfileName)
-			continue
-		}
-
-		fmt.Printf("- profile=%s requests=%d totalTokens=%d totalCost=%s\n",
-			usage.ProfileName,
-			usage.Usage.RequestCount,
-			usage.Usage.TotalTokens,
-			usage.Usage.TotalCost,
-		)
-	}
 }
 
 // headerTransport 用于在每个请求中自动注入 Authorization 头

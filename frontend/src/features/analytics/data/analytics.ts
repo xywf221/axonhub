@@ -7,7 +7,6 @@ import { graphqlRequest } from '@/gql/graphql';
 export const analyticsFilterSchema = z.object({
   startTime: z.string().nullable().optional(), // 'YYYY-MM-DD' 或 ISO timestamp
   endTime: z.string().nullable().optional(),
-  projectIDs: z.array(z.string()).optional(),
   channelIDs: z.array(z.string()).optional(),
   modelIDs: z.array(z.string()).optional(),
   apiKeyIDs: z.array(z.string()).optional(),
@@ -128,7 +127,6 @@ export function toGraphQLFilter(filter: AnalyticsFilter | null): Record<string, 
 
   if (filter.startTime) result.startTime = filter.startTime;
   if (filter.endTime) result.endTime = filter.endTime;
-  if (filter.projectIDs && filter.projectIDs.length > 0) result.projectIDs = filter.projectIDs;
   if (filter.channelIDs && filter.channelIDs.length > 0) result.channelIDs = filter.channelIDs;
   if (filter.modelIDs && filter.modelIDs.length > 0) result.modelIDs = filter.modelIDs;
   if (filter.apiKeyIDs && filter.apiKeyIDs.length > 0) result.apiKeyIDs = filter.apiKeyIDs;

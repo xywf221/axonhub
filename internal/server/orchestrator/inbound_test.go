@@ -236,11 +236,9 @@ func TestInboundPersistentStream_Close_ErrorAfterTerminalKeepsRequestCompleted(t
 	defer client.Close()
 
 	ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
-	project := createTestProject(t, ctx, client)
 	ch := createTestChannel(t, ctx, client)
 	_, requestService, _, _ := setupTestServices(t, client)
 	req, err := client.Request.Create().
-		SetProjectID(project.ID).
 		SetChannelID(ch.ID).
 		SetModelID("gpt-5").
 		SetStatus(request.StatusProcessing).
@@ -291,11 +289,9 @@ func TestInboundPersistentStream_Close_CompleteAggregateAfterStreamErrorComplete
 	defer client.Close()
 
 	ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
-	project := createTestProject(t, ctx, client)
 	ch := createTestChannel(t, ctx, client)
 	_, requestService, _, _ := setupTestServices(t, client)
 	req, err := client.Request.Create().
-		SetProjectID(project.ID).
 		SetChannelID(ch.ID).
 		SetModelID("claude-opus-5-5").
 		SetFormat("anthropic/messages").
@@ -346,11 +342,9 @@ func TestInboundPersistentStream_Close_UsageWithoutCompletionAfterStreamErrorFai
 	defer client.Close()
 
 	ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
-	project := createTestProject(t, ctx, client)
 	ch := createTestChannel(t, ctx, client)
 	_, requestService, _, _ := setupTestServices(t, client)
 	req, err := client.Request.Create().
-		SetProjectID(project.ID).
 		SetChannelID(ch.ID).
 		SetModelID("claude-opus-5-5").
 		SetStatus(request.StatusProcessing).
@@ -402,11 +396,9 @@ func TestInboundPersistentStream_Close_AnthropicStopReasonAfterStreamErrorComple
 	defer client.Close()
 
 	ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
-	project := createTestProject(t, ctx, client)
 	ch := createTestChannel(t, ctx, client)
 	_, requestService, _, _ := setupTestServices(t, client)
 	req, err := client.Request.Create().
-		SetProjectID(project.ID).
 		SetChannelID(ch.ID).
 		SetModelID("claude-opus-5-5").
 		SetFormat("anthropic/messages").
@@ -487,7 +479,6 @@ func TestInboundPersistentStream_Close_ResponsesFailureTerminalPersistsOutcome(t
 			defer client.Close()
 
 			ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
-			project := createTestProject(t, ctx, client)
 			ch := createTestChannel(t, ctx, client)
 			_, requestService, systemService, _ := setupTestServices(t, client)
 			require.NoError(t, systemService.SetStoragePolicy(ctx, &biz.StoragePolicy{
@@ -497,7 +488,6 @@ func TestInboundPersistentStream_Close_ResponsesFailureTerminalPersistsOutcome(t
 			}))
 
 			req, err := client.Request.Create().
-				SetProjectID(project.ID).
 				SetChannelID(ch.ID).
 				SetModelID("gpt-5").
 				SetStatus(request.StatusProcessing).
@@ -608,7 +598,6 @@ func TestInboundPersistentStream_Close_IncompleteStillPersistsChunks(t *testing.
 	defer client.Close()
 
 	ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
-	project := createTestProject(t, ctx, client)
 	ch := createTestChannel(t, ctx, client)
 	_, requestService, systemService, _ := setupTestServices(t, client)
 	require.NoError(t, systemService.SetStoragePolicy(ctx, &biz.StoragePolicy{
@@ -618,7 +607,6 @@ func TestInboundPersistentStream_Close_IncompleteStillPersistsChunks(t *testing.
 	}))
 
 	req, err := client.Request.Create().
-		SetProjectID(project.ID).
 		SetChannelID(ch.ID).
 		SetModelID("gpt-4").
 		SetStatus(request.StatusProcessing).
@@ -768,16 +756,15 @@ func TestPersistentStreams_StandaloneErrorPersistsFailure(t *testing.T) {
 					client := enttest.NewEntClient(t, "sqlite3", "file:ent?mode=memory&_fk=0")
 					defer client.Close()
 					ctx := authz.WithTestBypass(ent.NewContext(t.Context(), client))
-					project := createTestProject(t, ctx, client)
 					channel := createTestChannel(t, ctx, client)
 					_, service, systemService, usageService := setupTestServices(t, client)
 					require.NoError(t, systemService.SetStoragePolicy(ctx, &biz.StoragePolicy{StoreChunks: true, StoreResponseBody: true}))
-					req, err := client.Request.Create().SetProjectID(project.ID).SetChannelID(channel.ID).
+					req, err := client.Request.Create().SetChannelID(channel.ID).
 						SetModelID("gpt-5").SetStatus(request.StatusProcessing).
 						SetRequestBody([]byte(`{"stream":true}`)).SetStream(true).Save(ctx)
 					require.NoError(t, err)
 					execution, err := client.RequestExecution.Create().SetRequestID(req.ID).
-						SetProjectID(project.ID).SetChannelID(channel.ID).SetModelID("gpt-5").
+						SetChannelID(channel.ID).SetModelID("gpt-5").
 						SetFormat(llm.APIFormatOpenAIResponse.String()).SetStatus(requestexecution.StatusProcessing).
 						SetRequestBody([]byte(`{"stream":true}`)).SetStream(true).Save(ctx)
 					require.NoError(t, err)

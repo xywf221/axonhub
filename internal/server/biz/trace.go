@@ -57,9 +57,9 @@ type TraceService struct {
 	requestService *RequestService
 }
 
-// GetOrCreateTrace retrieves an existing trace by trace_id and project_id,
+// GetOrCreateTrace retrieves an existing trace by trace_id,
 // or creates a new one if it doesn't exist.
-func (s *TraceService) GetOrCreateTrace(ctx context.Context, projectID int, traceID string, threadID *int) (*ent.Trace, error) {
+func (s *TraceService) GetOrCreateTrace(ctx context.Context, traceID string, threadID *int) (*ent.Trace, error) {
 	client := s.entFromContext(ctx)
 	if client == nil {
 		return nil, fmt.Errorf("ent client not found in context")
@@ -67,10 +67,7 @@ func (s *TraceService) GetOrCreateTrace(ctx context.Context, projectID int, trac
 
 	// Try to find existing trace
 	existingTrace, err := client.Trace.Query().
-		Where(
-			trace.TraceIDEQ(traceID),
-			trace.ProjectIDEQ(projectID),
-		).
+		Where(trace.TraceIDEQ(traceID)).
 		Only(ctx)
 	if err == nil {
 		// Trace found
@@ -85,16 +82,12 @@ func (s *TraceService) GetOrCreateTrace(ctx context.Context, projectID int, trac
 	// Trace not found, create new one
 	newTrace, err := client.Trace.Create().
 		SetTraceID(traceID).
-		SetProjectID(projectID).
 		SetNillableThreadID(threadID).
 		Save(ctx)
 	if err != nil {
 		if ent.IsConstraintError(err) {
 			return client.Trace.Query().
-				Where(
-					trace.TraceIDEQ(traceID),
-					trace.ProjectIDEQ(projectID),
-				).
+				Where(trace.TraceIDEQ(traceID)).
 				Only(ctx)
 		}
 
@@ -104,18 +97,15 @@ func (s *TraceService) GetOrCreateTrace(ctx context.Context, projectID int, trac
 	return newTrace, nil
 }
 
-// GetTraceByID retrieves a trace by its trace_id and project_id.
-func (s *TraceService) GetTraceByID(ctx context.Context, traceID string, projectID int) (*ent.Trace, error) {
+// GetTraceByID retrieves a trace by its trace_id.
+func (s *TraceService) GetTraceByID(ctx context.Context, traceID string) (*ent.Trace, error) {
 	client := s.entFromContext(ctx)
 	if client == nil {
 		return nil, fmt.Errorf("ent client not found in context")
 	}
 
 	trace, err := client.Trace.Query().
-		Where(
-			trace.TraceIDEQ(traceID),
-			trace.ProjectIDEQ(projectID),
-		).
+		Where(trace.TraceIDEQ(traceID)).
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get trace: %w", err)

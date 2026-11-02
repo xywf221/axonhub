@@ -5,7 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { IconPlus, IconTrash } from '@tabler/icons-react';
 import { useQueryModels } from '@/gql/models';
 import { useTranslation } from 'react-i18next';
-import { useSelectedProjectId } from '@/stores/projectStore';
 import { extractNumberIDAsNumber, buildGUID } from '@/lib/utils';
 import { useDebounce } from '@/hooks/use-debounce';
 import { Button } from '@/components/ui/button';
@@ -265,7 +264,6 @@ export function PromptsActionDialog() {
   const { open, setOpen, currentRow } = usePrompts();
   const createPrompt = useCreatePrompt();
   const updatePrompt = useUpdatePrompt();
-  const selectedProjectId = useSelectedProjectId();
   const { data: availableModels, mutateAsync: fetchModels } = useQueryModels();
   const dialogContentRef = useRef<HTMLDivElement>(null);
 

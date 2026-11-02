@@ -15,6 +15,7 @@ import (
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/enttest"
 	"github.com/looplj/axonhub/internal/ent/hook"
+	"github.com/looplj/axonhub/internal/ent/user"
 	"github.com/looplj/axonhub/internal/objects"
 	"github.com/looplj/axonhub/internal/pkg/xcache"
 	"github.com/looplj/axonhub/internal/pkg/xerrors"
@@ -254,46 +255,6 @@ func TestSystemService_StoragePolicy(t *testing.T) {
 	storeChunks, err := service.StoreChunks(ctx)
 	require.NoError(t, err)
 	require.True(t, storeChunks)
-}
-
-func TestSystemService_WebhookNotifierConfig(t *testing.T) {
-	cacheConfig := xcache.Config{Mode: xcache.ModeMemory}
-
-	service, client := setupTestSystemService(t, cacheConfig)
-	defer client.Close()
-
-	ctx := context.Background()
-	ctx = ent.NewContext(ctx, client)
-	ctx = authz.WithTestBypass(ctx)
-
-	cfg, err := service.WebhookNotifierConfig(ctx)
-	require.NoError(t, err)
-	require.NotNil(t, cfg)
-	require.Empty(t, cfg.Targets)
-	require.Empty(t, cfg.Subscriptions)
-
-	customCfg := &WebhookNotifierConfig{
-		Targets: []WebhookTarget{
-			{
-				Name:      "default",
-				Enabled:   true,
-				URL:       "https://example.com/webhook",
-				TimeoutMs: 3000,
-				Headers:   []objects.HeaderEntry{{Key: "Content-Type", Value: "application/json"}},
-				Body:      `{"event":"{{.Event}}"}`,
-			},
-		},
-		Subscriptions: []WebhookSubscription{
-			{Event: EventChannelAutoDisabled, TargetNames: []string{"default"}},
-		},
-	}
-
-	err = service.SetWebhookNotifierConfig(ctx, customCfg)
-	require.NoError(t, err)
-
-	retrievedCfg, err := service.WebhookNotifierConfig(ctx)
-	require.NoError(t, err)
-	require.Equal(t, customCfg, retrievedCfg)
 }
 
 func TestSystemService_ChannelSetting_DefaultModelAutoSyncFrequency(t *testing.T) {
@@ -1041,7 +1002,7 @@ func TestSystemService_Initialize_DataMigrationIdempotency(t *testing.T) {
 	require.Equal(t, 1, count)
 }
 
-func TestSystemService_Initialize_CreatesDefaultProject(t *testing.T) {
+func TestSystemService_Initialize_CreatesOwner(t *testing.T) {
 	client := enttest.NewEntClient(t, "sqlite3", "file:ent?mode=memory&_fk=1")
 	defer client.Close()
 
@@ -1061,20 +1022,10 @@ func TestSystemService_Initialize_CreatesDefaultProject(t *testing.T) {
 
 	ctx = authz.WithTestBypass(ctx)
 
-	// Verify default project was created
-	project, err := client.Project.Query().First(ctx)
+	// Verify the owner user was created.
+	owner, err := client.User.Query().Where(user.EmailEQ("owner@example.com")).Only(ctx)
 	require.NoError(t, err)
-	require.Equal(t, "Default", project.Name)
-
-	// Verify owner is assigned to the project
-	userProject, err := client.UserProject.Query().First(ctx)
-	require.NoError(t, err)
-	require.True(t, userProject.IsOwner)
-
-	// Verify default roles were created
-	roles, err := client.Role.Query().All(ctx)
-	require.NoError(t, err)
-	require.Len(t, roles, 3) // Admin, Developer, Viewer
+	require.True(t, owner.IsOwner)
 }
 
 func TestSystemService_Initialize_SetsAllSystemKeys(t *testing.T) {
@@ -1174,7 +1125,6 @@ func TestSystemService_Initialize_TransactionRollback(t *testing.T) {
 		SetFirstName("Existing").
 		SetLastName("User").
 		SetIsOwner(false).
-		SetScopes([]string{}).
 		Save(ctx)
 	require.NoError(t, err)
 
@@ -1202,11 +1152,6 @@ func TestSystemService_Initialize_TransactionRollback(t *testing.T) {
 	user, err := client.User.Query().First(ctx)
 	require.NoError(t, err)
 	require.False(t, user.IsOwner)
-
-	// Verify no projects were created
-	projectCount, err := client.Project.Query().Count(ctx)
-	require.NoError(t, err)
-	require.Equal(t, 0, projectCount)
 
 	// Verify no data storages were created
 	dsCount, err := client.DataStorage.Query().Count(ctx)

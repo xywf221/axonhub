@@ -255,7 +255,7 @@ func TestBypassWithNonSystemPrincipal(t *testing.T) {
 
 	// APIKey principal should fail
 	t.Run("apikey principal", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), principalKey{}, Principal{Type: PrincipalTypeAPIKey, APIKeyID: lo.ToPtr(456), ProjectID: lo.ToPtr(789)})
+		ctx := context.WithValue(context.Background(), principalKey{}, Principal{Type: PrincipalTypeAPIKey, APIKeyID: lo.ToPtr(456)})
 
 		_, err := WithBypassPrivacy(ctx, "apikey-operation")
 		if err == nil {

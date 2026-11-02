@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebounce } from '@/hooks/use-debounce';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
-import { usePermissions } from '@/hooks/usePermissions';
 import { Main } from '@/components/layout/main';
 import { PageHeader } from '@/components/layout/page-header';
 import { createColumns } from './components/users-columns';
@@ -14,7 +13,6 @@ import { useUsers } from './data/users';
 
 function UsersContent() {
   const { t } = useTranslation();
-  const { userPermissions } = usePermissions();
   const { pageSize, setCursors, setPageSize, resetCursor, paginationArgs } = usePaginationSearch({
     defaultPageSize: 20,
     pageSizeStorageKey: 'users-table-page-size',
@@ -23,12 +21,11 @@ function UsersContent() {
   // Filter states
   const [nameFilter, setNameFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
-  const [roleFilter, setRoleFilter] = useState<string[]>([]);
 
   const debouncedNameFilter = useDebounce(nameFilter, 300);
 
   // Memoize columns to prevent infinite re-renders
-  const columns = useMemo(() => createColumns(t, userPermissions.canWrite), [t, userPermissions.canWrite]);
+  const columns = useMemo(() => createColumns(t), [t]);
 
   // Build where clause for API filtering
   const whereClause = (() => {
@@ -38,10 +35,6 @@ function UsersContent() {
     }
     if (statusFilter.length > 0) {
       where.statusIn = statusFilter;
-    }
-    if (roleFilter.length > 0) {
-      // Note: This would need to be implemented based on the actual user role relationship
-      // For now, we'll leave it as a placeholder
     }
     return Object.keys(where).length > 0 ? where : undefined;
   })();
@@ -59,7 +52,7 @@ function UsersContent() {
   React.useEffect(() => {
     resetCursor();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedNameFilter, statusFilter, roleFilter]);
+  }, [debouncedNameFilter, statusFilter]);
 
   const handleNextPage = () => {
     if (data?.pageInfo?.hasNextPage && data?.pageInfo?.endCursor) {
@@ -90,10 +83,8 @@ function UsersContent() {
         onPageSizeChange={handlePageSizeChange}
         nameFilter={nameFilter}
         statusFilter={statusFilter}
-        roleFilter={roleFilter}
         onNameFilterChange={setNameFilter}
         onStatusFilterChange={setStatusFilter}
-        onRoleFilterChange={setRoleFilter}
       />
     </div>
   );

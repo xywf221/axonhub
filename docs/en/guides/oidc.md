@@ -48,41 +48,7 @@ oidc:
 | `sync_user_info` | Updates user profile (name, avatar) from IdP claims. |
 | `button_color` | Hex color code for the login button. |
 | `icon_url` | Icon URL or local path for the login button (supports base64). |
-| `default_roles` | List of roles to assign to new JIT users (e.g., `["Viewer"]`). |
 | `oidc_login_only` | If true, forces users of this provider to only use SSO login. |
-
-## Advanced Configuration
-
-### Role Mapping
-
-You can automatically assign AxonHub roles or specific permission scopes to users based on groups or claims returned by the OIDC provider.
-
-```yaml
-oidc:
-  providers:
-    - id: "logto"
-      # ... base configuration
-      group_claims: ["groups", "roles"] # Claim keys to look for group info
-      role_mappings:
-        - match_group: "admin-group"    # Group name from OIDC
-          db_role: "system:owner"       # Mapped AxonHub role (System Owner)
-          priority: 100
-        - match_group: "viewer-*"       # Supports wildcard matching
-          db_role: "Viewer"
-          priority: 10
-        - match_group: "api-users"
-          db_role: "scope:chat:create"  # Directly map to a specific scope
-          priority: 5
-```
-
-| Mapping Option | Description |
-|---|---|
-| `group_claims` | List of claim names in the OIDC token containing group info (default: `["groups", "roles"]`). |
-| `role_mappings` | List of mapping rules. |
-| `match_group` | Group name to match, supports wildcard `*`. |
-| `is_regex` | Whether to treat `match_group` as a regular expression. |
-| `db_role` | Target role name (e.g., `Viewer`) or scope prefixed with `scope:` (e.g., `scope:chat:create`). |
-| `priority` | Priority used when multiple rules match and `role_precedence_mode` is set to `highest`. |
 
 ## Setup Examples
 

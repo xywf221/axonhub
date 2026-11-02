@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/looplj/axonhub/internal/ent/apikey"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/request"
 	"github.com/looplj/axonhub/internal/ent/user"
 	"github.com/looplj/axonhub/internal/objects"
@@ -82,20 +81,6 @@ func (_c *APIKeyCreate) SetNillableUserID(v *int) *APIKeyCreate {
 	return _c
 }
 
-// SetProjectID sets the "project_id" field.
-func (_c *APIKeyCreate) SetProjectID(v int) *APIKeyCreate {
-	_c.mutation.SetProjectID(v)
-	return _c
-}
-
-// SetNillableProjectID sets the "project_id" field if the given value is not nil.
-func (_c *APIKeyCreate) SetNillableProjectID(v *int) *APIKeyCreate {
-	if v != nil {
-		_c.SetProjectID(*v)
-	}
-	return _c
-}
-
 // SetKey sets the "key" field.
 func (_c *APIKeyCreate) SetKey(v string) *APIKeyCreate {
 	_c.mutation.SetKey(v)
@@ -148,20 +133,9 @@ func (_c *APIKeyCreate) SetProfiles(v *objects.APIKeyProfiles) *APIKeyCreate {
 	return _c
 }
 
-// SetAllowedIps sets the "allowed_ips" field.
-func (_c *APIKeyCreate) SetAllowedIps(v []string) *APIKeyCreate {
-	_c.mutation.SetAllowedIps(v)
-	return _c
-}
-
 // SetUser sets the "user" edge to the User entity.
 func (_c *APIKeyCreate) SetUser(v *User) *APIKeyCreate {
 	return _c.SetUserID(v.ID)
-}
-
-// SetProject sets the "project" edge to the Project entity.
-func (_c *APIKeyCreate) SetProject(v *Project) *APIKeyCreate {
-	return _c.SetProjectID(v.ID)
 }
 
 // AddRequestIDs adds the "requests" edge to the Request entity by IDs.
@@ -234,10 +208,6 @@ func (_c *APIKeyCreate) defaults() error {
 		v := apikey.DefaultDeletedAt
 		_c.mutation.SetDeletedAt(v)
 	}
-	if _, ok := _c.mutation.ProjectID(); !ok {
-		v := apikey.DefaultProjectID
-		_c.mutation.SetProjectID(v)
-	}
 	if _, ok := _c.mutation.GetType(); !ok {
 		v := apikey.DefaultType
 		_c.mutation.SetType(v)
@@ -254,10 +224,6 @@ func (_c *APIKeyCreate) defaults() error {
 		v := apikey.DefaultProfiles
 		_c.mutation.SetProfiles(v)
 	}
-	if _, ok := _c.mutation.AllowedIps(); !ok {
-		v := apikey.DefaultAllowedIps
-		_c.mutation.SetAllowedIps(v)
-	}
 	return nil
 }
 
@@ -265,9 +231,6 @@ func (_c *APIKeyCreate) defaults() error {
 func (_c *APIKeyCreate) check() error {
 	if _, ok := _c.mutation.DeletedAt(); !ok {
 		return &ValidationError{Name: "deleted_at", err: errors.New(`ent: missing required field "APIKey.deleted_at"`)}
-	}
-	if _, ok := _c.mutation.ProjectID(); !ok {
-		return &ValidationError{Name: "project_id", err: errors.New(`ent: missing required field "APIKey.project_id"`)}
 	}
 	if _, ok := _c.mutation.Key(); !ok {
 		return &ValidationError{Name: "key", err: errors.New(`ent: missing required field "APIKey.key"`)}
@@ -290,9 +253,6 @@ func (_c *APIKeyCreate) check() error {
 		if err := apikey.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "APIKey.status": %w`, err)}
 		}
-	}
-	if len(_c.mutation.ProjectIDs()) == 0 {
-		return &ValidationError{Name: "project", err: errors.New(`ent: missing required edge "APIKey.project"`)}
 	}
 	return nil
 }
@@ -357,10 +317,6 @@ func (_c *APIKeyCreate) createSpec() (*APIKey, *sqlgraph.CreateSpec) {
 		_spec.SetField(apikey.FieldProfiles, field.TypeJSON, value)
 		_node.Profiles = value
 	}
-	if value, ok := _c.mutation.AllowedIps(); ok {
-		_spec.SetField(apikey.FieldAllowedIps, field.TypeJSON, value)
-		_node.AllowedIps = value
-	}
 	if nodes := _c.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -376,23 +332,6 @@ func (_c *APIKeyCreate) createSpec() (*APIKey, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.UserID = nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.ProjectIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   apikey.ProjectTable,
-			Columns: []string{apikey.ProjectColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.ProjectID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.RequestsIDs(); len(nodes) > 0 {
@@ -577,24 +516,6 @@ func (u *APIKeyUpsert) ClearProfiles() *APIKeyUpsert {
 	return u
 }
 
-// SetAllowedIps sets the "allowed_ips" field.
-func (u *APIKeyUpsert) SetAllowedIps(v []string) *APIKeyUpsert {
-	u.Set(apikey.FieldAllowedIps, v)
-	return u
-}
-
-// UpdateAllowedIps sets the "allowed_ips" field to the value that was provided on create.
-func (u *APIKeyUpsert) UpdateAllowedIps() *APIKeyUpsert {
-	u.SetExcluded(apikey.FieldAllowedIps)
-	return u
-}
-
-// ClearAllowedIps clears the value of the "allowed_ips" field.
-func (u *APIKeyUpsert) ClearAllowedIps() *APIKeyUpsert {
-	u.SetNull(apikey.FieldAllowedIps)
-	return u
-}
-
 // UpdateNewValues updates the mutable fields using the new values that were set on create.
 // Using this option is equivalent to using:
 //
@@ -611,9 +532,6 @@ func (u *APIKeyUpsertOne) UpdateNewValues() *APIKeyUpsertOne {
 		}
 		if _, exists := u.create.mutation.UserID(); exists {
 			s.SetIgnore(apikey.FieldUserID)
-		}
-		if _, exists := u.create.mutation.ProjectID(); exists {
-			s.SetIgnore(apikey.FieldProjectID)
 		}
 	}))
 	return u
@@ -776,27 +694,6 @@ func (u *APIKeyUpsertOne) UpdateProfiles() *APIKeyUpsertOne {
 func (u *APIKeyUpsertOne) ClearProfiles() *APIKeyUpsertOne {
 	return u.Update(func(s *APIKeyUpsert) {
 		s.ClearProfiles()
-	})
-}
-
-// SetAllowedIps sets the "allowed_ips" field.
-func (u *APIKeyUpsertOne) SetAllowedIps(v []string) *APIKeyUpsertOne {
-	return u.Update(func(s *APIKeyUpsert) {
-		s.SetAllowedIps(v)
-	})
-}
-
-// UpdateAllowedIps sets the "allowed_ips" field to the value that was provided on create.
-func (u *APIKeyUpsertOne) UpdateAllowedIps() *APIKeyUpsertOne {
-	return u.Update(func(s *APIKeyUpsert) {
-		s.UpdateAllowedIps()
-	})
-}
-
-// ClearAllowedIps clears the value of the "allowed_ips" field.
-func (u *APIKeyUpsertOne) ClearAllowedIps() *APIKeyUpsertOne {
-	return u.Update(func(s *APIKeyUpsert) {
-		s.ClearAllowedIps()
 	})
 }
 
@@ -982,9 +879,6 @@ func (u *APIKeyUpsertBulk) UpdateNewValues() *APIKeyUpsertBulk {
 			if _, exists := b.mutation.UserID(); exists {
 				s.SetIgnore(apikey.FieldUserID)
 			}
-			if _, exists := b.mutation.ProjectID(); exists {
-				s.SetIgnore(apikey.FieldProjectID)
-			}
 		}
 	}))
 	return u
@@ -1147,27 +1041,6 @@ func (u *APIKeyUpsertBulk) UpdateProfiles() *APIKeyUpsertBulk {
 func (u *APIKeyUpsertBulk) ClearProfiles() *APIKeyUpsertBulk {
 	return u.Update(func(s *APIKeyUpsert) {
 		s.ClearProfiles()
-	})
-}
-
-// SetAllowedIps sets the "allowed_ips" field.
-func (u *APIKeyUpsertBulk) SetAllowedIps(v []string) *APIKeyUpsertBulk {
-	return u.Update(func(s *APIKeyUpsert) {
-		s.SetAllowedIps(v)
-	})
-}
-
-// UpdateAllowedIps sets the "allowed_ips" field to the value that was provided on create.
-func (u *APIKeyUpsertBulk) UpdateAllowedIps() *APIKeyUpsertBulk {
-	return u.Update(func(s *APIKeyUpsert) {
-		s.UpdateAllowedIps()
-	})
-}
-
-// ClearAllowedIps clears the value of the "allowed_ips" field.
-func (u *APIKeyUpsertBulk) ClearAllowedIps() *APIKeyUpsertBulk {
-	return u.Update(func(s *APIKeyUpsert) {
-		s.ClearAllowedIps()
 	})
 }
 

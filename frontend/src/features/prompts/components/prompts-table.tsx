@@ -19,7 +19,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
-import { PermissionGuard } from '@/components/permission-guard';
 import { ServerSidePagination } from '@/components/server-side-pagination';
 import { usePrompts } from '../context/prompts-context';
 import { Prompt, PromptConnection } from '../data/schema';
@@ -228,37 +227,33 @@ export function PromptsTable({
               <span className='text-muted-foreground text-sm'>{t('common.selected')}</span>
             </div>
             <div className='bg-border mx-2 h-6 w-px' />
-            <PermissionGuard requiredScope='write_prompts'>
-              <>
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  className='h-8 w-8 text-green-600 hover:bg-green-100 hover:text-green-700'
-                  onClick={() => setOpen('bulkEnable')}
-                  title={t('common.buttons.enable')}
-                >
-                  <IconCheck className='h-4 w-4' />
-                </Button>
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  className='h-8 w-8 text-amber-600 hover:bg-amber-100 hover:text-amber-700'
-                  onClick={() => setOpen('bulkDisable')}
-                  title={t('common.buttons.disable')}
-                >
-                  <IconBan className='h-4 w-4' />
-                </Button>
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  className='text-destructive h-8 w-8 hover:bg-red-100 hover:text-red-700'
-                  onClick={() => setOpen('bulkDelete')}
-                  title={t('common.buttons.delete')}
-                >
-                  <IconTrash className='h-4 w-4' />
-                </Button>
-              </>
-            </PermissionGuard>
+            <Button
+              variant='ghost'
+              size='icon'
+              className='h-8 w-8 text-green-600 hover:bg-green-100 hover:text-green-700'
+              onClick={() => setOpen('bulkEnable')}
+              title={t('common.buttons.enable')}
+            >
+              <IconCheck className='h-4 w-4' />
+            </Button>
+            <Button
+              variant='ghost'
+              size='icon'
+              className='h-8 w-8 text-amber-600 hover:bg-amber-100 hover:text-amber-700'
+              onClick={() => setOpen('bulkDisable')}
+              title={t('common.buttons.disable')}
+            >
+              <IconBan className='h-4 w-4' />
+            </Button>
+            <Button
+              variant='ghost'
+              size='icon'
+              className='text-destructive h-8 w-8 hover:bg-red-100 hover:text-red-700'
+              onClick={() => setOpen('bulkDelete')}
+              title={t('common.buttons.delete')}
+            >
+              <IconTrash className='h-4 w-4' />
+            </Button>
           </div>
         </div>
       )}

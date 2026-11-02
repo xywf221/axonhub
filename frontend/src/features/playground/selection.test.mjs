@@ -16,21 +16,20 @@ function storage() {
   return values;
 }
 
-test('stores only the selection for its project', () => {
+test('stores the selection', () => {
   const values = storage();
   const selected = { modelSource: 'channel', selectedChannel: 'second', model: 'model-b' };
-  writeSelection('project-a', selected);
-  assert.deepEqual(readSelection('project-a'), selected);
-  assert.deepEqual(readSelection('project-b'), defaultSelection);
-  assert.deepEqual(JSON.parse(values.get('axonhub_playground_selection_project-a')), selected);
+  writeSelection(selected);
+  assert.deepEqual(readSelection(), selected);
+  assert.deepEqual(JSON.parse(values.get('axonhub_playground_selection')), selected);
 });
 
 test('corrupt and unavailable storage fall back without throwing', () => {
   const values = storage();
-  values.set('axonhub_playground_selection_project-a', '{broken');
-  assert.deepEqual(readSelection('project-a'), defaultSelection);
-  values.set('axonhub_playground_selection_project-a', JSON.stringify({ modelSource: 'unknown', model: 'a' }));
-  assert.deepEqual(readSelection('project-a'), defaultSelection);
+  values.set('axonhub_playground_selection', '{broken');
+  assert.deepEqual(readSelection(), defaultSelection);
+  values.set('axonhub_playground_selection', JSON.stringify({ modelSource: 'unknown', model: 'a' }));
+  assert.deepEqual(readSelection(), defaultSelection);
   globalThis.localStorage = {
     getItem: () => {
       throw new Error('denied');
@@ -39,8 +38,8 @@ test('corrupt and unavailable storage fall back without throwing', () => {
       throw new Error('denied');
     },
   };
-  assert.deepEqual(readSelection('project-a'), defaultSelection);
-  assert.doesNotThrow(() => writeSelection('project-a', defaultSelection));
+  assert.deepEqual(readSelection(), defaultSelection);
+  assert.doesNotThrow(() => writeSelection(defaultSelection));
 });
 
 const channels = [

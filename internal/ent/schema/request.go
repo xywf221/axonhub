@@ -26,10 +26,8 @@ func (Request) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("api_key_id", "created_at").
 			StorageKey("requests_by_api_key_id_created_at"),
-		index.Fields("project_id", "created_at").
-			StorageKey("requests_by_project_id_created_at"),
-		index.Fields("project_id", "user_id", "created_at").
-			StorageKey("requests_by_project_id_user_id_created_at"),
+		index.Fields("user_id", "created_at").
+			StorageKey("requests_by_user_id_created_at"),
 		index.Fields("channel_id", "created_at").
 			StorageKey("requests_by_channel_id_created_at"),
 		index.Fields("trace_id", "created_at").
@@ -59,10 +57,6 @@ func (Request) Fields() []ent.Field {
 				entgql.SkipMutationUpdateInput,
 			)).
 			Comment("User ID of the Playground request creator"),
-		field.Int("project_id").
-			Immutable().
-			Default(1).
-			Comment("Project ID, default to 1 for backward compatibility"),
 		field.Int("trace_id").
 			Optional().
 			Immutable().
@@ -146,12 +140,6 @@ func (Request) Fields() []ent.Field {
 func (Request) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("api_key", APIKey.Type).Ref("requests").Field("api_key_id").Immutable().Unique(),
-		edge.From("project", Project.Type).
-			Ref("requests").
-			Field("project_id").
-			Immutable().
-			Required().
-			Unique(),
 		edge.From("trace", Trace.Type).
 			Ref("requests").
 			Immutable().
@@ -195,13 +183,11 @@ func (Request) Policy() ent.Policy {
 	return scopes.Policy{
 		Query: scopes.QueryPolicy{
 			scopes.APIKeyScopeQueryRule(scopes.ScopeWriteRequests),
-			scopes.UserProjectScopeReadRequestsRule(scopes.ScopeReadRequests),
 			scopes.OwnerRule(),
 			scopes.UserReadScopeRule(scopes.ScopeReadRequests),
 		},
 		Mutation: scopes.MutationPolicy{
 			scopes.APIKeyScopeMutationRule(scopes.ScopeWriteRequests),
-			scopes.UserProjectScopeWriteRule(scopes.ScopeWriteRequests),
 			scopes.OwnerRule(),
 			scopes.UserWriteScopeRule(scopes.ScopeWriteRequests),
 		},

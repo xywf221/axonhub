@@ -14,10 +14,8 @@ import (
 	"github.com/looplj/axonhub/internal/ent/apikey"
 	"github.com/looplj/axonhub/internal/ent/apikeyprofiletemplate"
 	"github.com/looplj/axonhub/internal/ent/enttest"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/user"
 	"github.com/looplj/axonhub/internal/objects"
-	"github.com/looplj/axonhub/internal/scopes"
 )
 
 func setupTestTemplateService(t *testing.T) (*APIKeyProfileTemplateService, *ent.Client) {
@@ -54,18 +52,7 @@ func TestAPIKeyProfileTemplate(t *testing.T) {
 	require.NoError(t, err)
 	_ = testUser
 
-	// Create test project
-	projectName := fmt.Sprintf("test-project-%d", time.Now().UnixNano())
-	testProject, err := client.Project.Create().
-		SetName(projectName).
-		SetDescription(projectName).
-		SetStatus(project.StatusActive).
-		SetCreatedAt(time.Now()).
-		SetUpdatedAt(time.Now()).
-		Save(ctx)
-	require.NoError(t, err)
-
-	// Test 1: Create ApiKeyProfileTemplate with name, description, project_id, profile JSON
+	// Test 1: Create ApiKeyProfileTemplate with name, description, and profile JSON
 	t.Run("Create ApiKeyProfileTemplate", func(t *testing.T) {
 		profile := &objects.APIKeyProfile{
 			Name: "test-profile",
@@ -77,14 +64,12 @@ func TestAPIKeyProfileTemplate(t *testing.T) {
 		template, err := client.APIKeyProfileTemplate.Create().
 			SetName("my-template").
 			SetDescription("A test template").
-			SetProject(testProject).
 			SetProfile(profile).
 			Save(ctx)
 		require.NoError(t, err)
 		require.NotNil(t, template)
 		require.Equal(t, "my-template", template.Name)
 		require.Equal(t, "A test template", template.Description)
-		require.Equal(t, testProject.ID, template.ProjectID)
 
 		// Verify profile was stored correctly
 		require.NotNil(t, template.Profile)
@@ -101,45 +86,15 @@ func TestAPIKeyProfileTemplate(t *testing.T) {
 		require.Equal(t, "A test template", template.Description)
 	})
 
-	// Test 3: Unique index - duplicate name+project_id should fail
-	t.Run("Unique index on name+project_id", func(t *testing.T) {
+	// Test 3: Unique index - duplicate name should fail
+	t.Run("Unique index on name", func(t *testing.T) {
 		// Try to create duplicate
 		_, err := client.APIKeyProfileTemplate.Create().
 			SetName("my-template").
 			SetDescription("Duplicate").
-			SetProject(testProject).
 			SetProfile(&objects.APIKeyProfile{Name: "dup"}).
 			Save(ctx)
 		require.Error(t, err)
-	})
-
-	// Test 4: Same name in different project should succeed
-	t.Run("Same name in different project", func(t *testing.T) {
-		// Create another project
-		project2, err := client.Project.Create().
-			SetName(fmt.Sprintf("test-project-2-%d", time.Now().UnixNano())).
-			SetDescription("project 2").
-			SetStatus(project.StatusActive).
-			Save(ctx)
-		require.NoError(t, err)
-
-		template2, err := client.APIKeyProfileTemplate.Create().
-			SetName("my-template").
-			SetDescription("Different project").
-			SetProject(project2).
-			SetProfile(&objects.APIKeyProfile{Name: "profile2"}).
-			Save(ctx)
-		require.NoError(t, err)
-		require.NotNil(t, template2)
-		require.Equal(t, project2.ID, template2.ProjectID)
-	})
-
-	// Test 5: Query templates via project edge
-	t.Run("Query via project edge", func(t *testing.T) {
-		templates, err := testProject.QueryAPIKeyProfileTemplates().All(ctx)
-		require.NoError(t, err)
-		require.Len(t, templates, 1)
-		require.Equal(t, "my-template", templates[0].Name)
 	})
 }
 
@@ -166,14 +121,6 @@ func TestLoadTemplate_HappyPath(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	// Create test project
-	testProject, err := client.Project.Create().
-		SetName(fmt.Sprintf("test-project-%d", time.Now().UnixNano())).
-		SetDescription("test").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	// Create API key with existing profiles
 	existingProfiles := &objects.APIKeyProfiles{
 		ActiveProfile: "Default",
@@ -191,7 +138,6 @@ func TestLoadTemplate_HappyPath(t *testing.T) {
 		SetName("test-api-key").
 		SetKey(fmt.Sprintf("ah-test-%d", time.Now().UnixNano())).
 		SetUserID(testUser.ID).
-		SetProjectID(testProject.ID).
 		SetType(apikey.TypeUser).
 		SetProfiles(existingProfiles).
 		Save(ctx)
@@ -208,7 +154,6 @@ func TestLoadTemplate_HappyPath(t *testing.T) {
 	template, err := client.APIKeyProfileTemplate.Create().
 		SetName("prod-template").
 		SetDescription("Production template").
-		SetProject(testProject).
 		SetProfile(templateProfile).
 		Save(ctx)
 	require.NoError(t, err)
@@ -242,16 +187,9 @@ func TestUpdateTemplatePublishesToLinkedAndUnchangedLegacyProfiles(t *testing.T)
 	defer client.Close()
 
 	ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
-	projectEntity, err := client.Project.Create().
-		SetName(fmt.Sprintf("publish-project-%d", time.Now().UnixNano())).
-		SetDescription("publish test").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	template, err := client.APIKeyProfileTemplate.Create().
 		SetName("Production").
-		SetProject(projectEntity).
 		SetProfile(&objects.APIKeyProfile{
 			Name:          "Production",
 			ModelMappings: []objects.ModelMapping{{From: "claude", To: "old-model"}},
@@ -264,7 +202,6 @@ func TestUpdateTemplatePublishesToLinkedAndUnchangedLegacyProfiles(t *testing.T)
 		key, createErr := client.APIKey.Create().
 			SetName(name).
 			SetKey(fmt.Sprintf("ah-%s-%d", name, time.Now().UnixNano())).
-			SetProjectID(projectEntity.ID).
 			SetType(apikey.TypeUser).
 			SetProfiles(&objects.APIKeyProfiles{ActiveProfile: profile.Name, Profiles: []objects.APIKeyProfile{profile}}).
 			Save(ctx)
@@ -384,14 +321,6 @@ func TestLoadTemplate_NameConflict(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	// Create test project
-	testProject, err := client.Project.Create().
-		SetName(fmt.Sprintf("test-project-%d", time.Now().UnixNano())).
-		SetDescription("test").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	// Create API key with a profile named "Production"
 	existingProfiles := &objects.APIKeyProfiles{
 		ActiveProfile: "Production",
@@ -409,7 +338,6 @@ func TestLoadTemplate_NameConflict(t *testing.T) {
 		SetName("test-api-key").
 		SetKey(fmt.Sprintf("ah-test-%d", time.Now().UnixNano())).
 		SetUserID(testUser.ID).
-		SetProjectID(testProject.ID).
 		SetType(apikey.TypeUser).
 		SetProfiles(existingProfiles).
 		Save(ctx)
@@ -426,7 +354,6 @@ func TestLoadTemplate_NameConflict(t *testing.T) {
 	template, err := client.APIKeyProfileTemplate.Create().
 		SetName("prod-template").
 		SetDescription("Production template").
-		SetProject(testProject).
 		SetProfile(templateProfile).
 		Save(ctx)
 	require.NoError(t, err)
@@ -473,14 +400,6 @@ func TestLoadTemplate_MultipleConflicts(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	// Create test project
-	testProject, err := client.Project.Create().
-		SetName(fmt.Sprintf("test-project-%d", time.Now().UnixNano())).
-		SetDescription("test").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	// Create API key with "Production" and "Production (1)"
 	existingProfiles := &objects.APIKeyProfiles{
 		ActiveProfile: "Production",
@@ -504,7 +423,6 @@ func TestLoadTemplate_MultipleConflicts(t *testing.T) {
 		SetName("test-api-key").
 		SetKey(fmt.Sprintf("ah-test-%d", time.Now().UnixNano())).
 		SetUserID(testUser.ID).
-		SetProjectID(testProject.ID).
 		SetType(apikey.TypeUser).
 		SetProfiles(existingProfiles).
 		Save(ctx)
@@ -521,7 +439,6 @@ func TestLoadTemplate_MultipleConflicts(t *testing.T) {
 	template, err := client.APIKeyProfileTemplate.Create().
 		SetName("prod-template").
 		SetDescription("Production template").
-		SetProject(testProject).
 		SetProfile(templateProfile).
 		Save(ctx)
 	require.NoError(t, err)
@@ -565,20 +482,11 @@ func TestLoadTemplate_TemplateNotFound(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	// Create test project
-	testProject, err := client.Project.Create().
-		SetName(fmt.Sprintf("test-project-%d", time.Now().UnixNano())).
-		SetDescription("test").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	// Create API key
 	apiKey, err := client.APIKey.Create().
 		SetName("test-api-key").
 		SetKey(fmt.Sprintf("ah-test-%d", time.Now().UnixNano())).
 		SetUserID(testUser.ID).
-		SetProjectID(testProject.ID).
 		SetType(apikey.TypeUser).
 		Save(ctx)
 	require.NoError(t, err)
@@ -597,14 +505,6 @@ func TestLoadTemplate_APIKeyNotFound(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 	ctx = authz.WithTestBypass(ctx)
 
-	// Create test project
-	testProject, err := client.Project.Create().
-		SetName(fmt.Sprintf("test-project-%d", time.Now().UnixNano())).
-		SetDescription("test").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	// Create template
 	templateProfile := &objects.APIKeyProfile{
 		Name: "Production",
@@ -613,7 +513,6 @@ func TestLoadTemplate_APIKeyNotFound(t *testing.T) {
 	template, err := client.APIKeyProfileTemplate.Create().
 		SetName("prod-template").
 		SetDescription("Production template").
-		SetProject(testProject).
 		SetProfile(templateProfile).
 		Save(ctx)
 	require.NoError(t, err)
@@ -623,89 +522,15 @@ func TestLoadTemplate_APIKeyNotFound(t *testing.T) {
 	require.Error(t, err)
 }
 
-// TestLoadTemplate_DifferentProject tests that loading a template from a different project fails.
-func TestLoadTemplate_DifferentProject(t *testing.T) {
-	svc, client := setupTestTemplateService(t)
-	defer client.Close()
-
-	ctx := context.Background()
-	ctx = ent.NewContext(ctx, client)
-	ctx = authz.WithTestBypass(ctx)
-
-	// Create test user
-	hashedPassword, err := HashPassword("test-password")
-	require.NoError(t, err)
-
-	testUser, err := client.User.Create().
-		SetEmail(fmt.Sprintf("test-%d@example.com", time.Now().UnixNano())).
-		SetPassword(hashedPassword).
-		SetFirstName("Test").
-		SetLastName("User").
-		SetStatus(user.StatusActivated).
-		Save(ctx)
-	require.NoError(t, err)
-
-	// Create project 1
-	project1, err := client.Project.Create().
-		SetName(fmt.Sprintf("project-1-%d", time.Now().UnixNano())).
-		SetDescription("project 1").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
-	// Create project 2
-	project2, err := client.Project.Create().
-		SetName(fmt.Sprintf("project-2-%d", time.Now().UnixNano())).
-		SetDescription("project 2").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
-	// Create API key in project 1
-	apiKey, err := client.APIKey.Create().
-		SetName("test-api-key").
-		SetKey(fmt.Sprintf("ah-test-%d", time.Now().UnixNano())).
-		SetUserID(testUser.ID).
-		SetProjectID(project1.ID).
-		SetType(apikey.TypeUser).
-		Save(ctx)
-	require.NoError(t, err)
-
-	// Create template in project 2
-	templateProfile := &objects.APIKeyProfile{
-		Name: "Production",
-	}
-
-	template, err := client.APIKeyProfileTemplate.Create().
-		SetName("prod-template").
-		SetDescription("Production template").
-		SetProject(project2).
-		SetProfile(templateProfile).
-		Save(ctx)
-	require.NoError(t, err)
-
-	// Try to load template from project 2 into API key in project 1
-	_, err = svc.LoadTemplate(ctx, template.ID, apiKey.ID)
-	require.Error(t, err)
-}
-
-// TestLoadTemplate_PersonalKeyGuard runs LoadTemplate under the real privacy
-// policy. A project owner can read another member's personal key but must not
-// load a template into it; the creator and a system owner can.
+// TestLoadTemplate_PersonalKeyGuard verifies that only the creator of a
+// personal API key or a system owner can load a template into it.
 func TestLoadTemplate_PersonalKeyGuard(t *testing.T) {
 	svc, client := setupTestTemplateService(t)
 	defer client.Close()
 
 	setupCtx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
 
-	testProject, err := client.Project.Create().
-		SetName(fmt.Sprintf("test-project-%d", time.Now().UnixNano())).
-		SetDescription("test").
-		SetStatus(project.StatusActive).
-		Save(setupCtx)
-	require.NoError(t, err)
-
-	newUser := func(name string, isSystemOwner bool, membership *ent.UserProjectCreate) *ent.User {
+	newUser := func(name string, isSystemOwner bool) *ent.User {
 		u, err := client.User.Create().
 			SetEmail(fmt.Sprintf("%s-%d@example.com", name, time.Now().UnixNano())).
 			SetPassword("password").
@@ -714,27 +539,17 @@ func TestLoadTemplate_PersonalKeyGuard(t *testing.T) {
 			Save(setupCtx)
 		require.NoError(t, err)
 
-		if membership != nil {
-			_, err = membership.SetUserID(u.ID).SetProjectID(testProject.ID).Save(setupCtx)
-			require.NoError(t, err)
-		}
-
-		u, err = client.User.Query().Where(user.IDEQ(u.ID)).WithProjectUsers().Only(setupCtx)
-		require.NoError(t, err)
-
 		return u
 	}
 
-	creator := newUser("creator", false, client.UserProject.Create().
-		SetScopes([]string{string(scopes.ScopeReadAPIKeys), string(scopes.ScopeWriteAPIKeys)}))
-	projectOwner := newUser("project-owner", false, client.UserProject.Create().SetIsOwner(true))
-	systemOwner := newUser("system-owner", true, nil)
+	creator := newUser("creator", false)
+	otherUser := newUser("other-user", false)
+	systemOwner := newUser("system-owner", true)
 
 	apiKey, err := client.APIKey.Create().
 		SetName("personal-api-key").
 		SetKey(fmt.Sprintf("ah-test-%d", time.Now().UnixNano())).
 		SetUserID(creator.ID).
-		SetProjectID(testProject.ID).
 		SetType(apikey.TypePersonal).
 		Save(setupCtx)
 	require.NoError(t, err)
@@ -742,24 +557,16 @@ func TestLoadTemplate_PersonalKeyGuard(t *testing.T) {
 	template, err := client.APIKeyProfileTemplate.Create().
 		SetName("prod-template").
 		SetDescription("Production template").
-		SetProject(testProject).
 		SetProfile(&objects.APIKeyProfile{Name: "Production"}).
 		Save(setupCtx)
 	require.NoError(t, err)
 
 	userCtx := func(u *ent.User) context.Context {
-		ctx := contexts.WithProjectID(ent.NewContext(context.Background(), client), testProject.ID)
-		return contexts.WithUser(ctx, u)
+		return contexts.WithUser(setupCtx, u)
 	}
 
-	// The project owner can read the personal key through privacy...
-	projectOwnerCtx := userCtx(projectOwner)
-	visible, err := client.APIKey.Get(projectOwnerCtx, apiKey.ID)
-	require.NoError(t, err)
-	require.Equal(t, apiKey.ID, visible.ID)
-
-	// ...but cannot load a template into it.
-	_, err = svc.LoadTemplate(projectOwnerCtx, template.ID, apiKey.ID)
+	// Another regular user cannot load a template into someone else's personal key.
+	_, err = svc.LoadTemplate(userCtx(otherUser), template.ID, apiKey.ID)
 	require.ErrorContains(t, err, "personal API key can only be modified by its creator or a system owner")
 	unchanged, err := client.APIKey.Get(setupCtx, apiKey.ID)
 	require.NoError(t, err)

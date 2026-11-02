@@ -126,13 +126,6 @@ func WithTrace(config tracing.Config, traceService *biz.TraceService) gin.Handle
 			}
 		}
 
-		// Get project ID from context
-		projectID, ok := contexts.GetProjectID(c.Request.Context())
-		if !ok {
-			c.Next()
-			return
-		}
-
 		// Tool endpoints such as embeddings carry a trace ID header from generic API
 		// clients but are not conversation turns: keep the resolved trace ID and
 		// response headers for client correlation, but never persist a trace for them.
@@ -152,7 +145,7 @@ func WithTrace(config tracing.Config, traceService *biz.TraceService) gin.Handle
 		bypassCtx := authz.WithSystemBypass(c.Request.Context(), "trace-middleware")
 
 		// Get or create trace (errors are logged but don't block the request)
-		trace, err := traceService.GetOrCreateTrace(bypassCtx, projectID, traceID, threadID)
+		trace, err := traceService.GetOrCreateTrace(bypassCtx, traceID, threadID)
 		if err != nil {
 			log.Warn(c.Request.Context(), "Failed to get or create trace", log.Cause(err))
 			c.Next()

@@ -33,8 +33,8 @@ func TestCodexCompatibilitySettingsAuthorization(t *testing.T) {
 		{"both non-owner", []string{"write_settings", "read_channels"}, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := authz.NewUserContext(ent.NewContext(t.Context(), db), 123)
-			ctx = contexts.WithUser(ctx, &ent.User{ID: 123, Scopes: tc.scopes})
+			ctx := authz.NewAPIKeyContext(ent.NewContext(t.Context(), db), 123)
+			ctx = contexts.WithAPIKey(ctx, &ent.APIKey{ID: 123, Scopes: tc.scopes})
 			ok, err := r.Mutation().UpdateCodexCompatibilitySettings(ctx, biz.CodexCompatibilitySettings{Enabled: true, ChannelID: &source.ID})
 			if tc.allowed {
 				require.NoError(t, err)
@@ -70,8 +70,8 @@ func TestCodexCatalogTestAuthorization(t *testing.T) {
 		{"non-owner", []string{"write_settings", "read_channels"}, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := authz.NewUserContext(ent.NewContext(t.Context(), db), 123)
-			ctx = contexts.WithUser(ctx, &ent.User{ID: 123, Scopes: tc.scopes})
+			ctx := authz.NewAPIKeyContext(ent.NewContext(t.Context(), db), 123)
+			ctx = contexts.WithAPIKey(ctx, &ent.APIKey{ID: 123, Scopes: tc.scopes})
 			result, err := r.Mutation().TestCodexCatalog(ctx, source.ID)
 			if tc.allowed {
 				require.NoError(t, err)

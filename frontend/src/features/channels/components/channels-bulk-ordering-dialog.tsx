@@ -220,7 +220,7 @@ export function ChannelsBulkOrderingDialog({ open, onOpenChange }: ChannelsBulkO
   const { t } = useTranslation();
 
   // Only fetch channels when dialog is open (lazy loading)
-  const { data: channelsData, isLoading } = useAllChannelSummarys(undefined, { enabled: open });
+  const { data: channelsData, isLoading } = useAllChannelSummarys({ enabled: open });
 
   const bulkUpdateMutation = useBulkUpdateChannelOrdering();
 

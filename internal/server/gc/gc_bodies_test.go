@@ -19,7 +19,6 @@ import (
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/datastorage"
 	"github.com/looplj/axonhub/internal/ent/enttest"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/request"
 	"github.com/looplj/axonhub/internal/ent/requestexecution"
 	"github.com/looplj/axonhub/internal/ent/schema/schematype"
@@ -30,14 +29,14 @@ import (
 )
 
 func TestCleanupRequestBodies_StripsOldPayloadsAndKeepsRows(t *testing.T) {
-	worker, ctx, client, proj := setupBodyCleanupWorker(t)
+	worker, ctx, client := setupBodyCleanupWorker(t)
 
 	oldAt := time.Now().AddDate(0, 0, -10)
 	recentAt := time.Now().Add(-time.Hour)
 
-	oldReq := createBodyTestRequest(t, ctx, client, proj.ID, oldAt, objects.JSONRawMessage(`{"prompt":"old"}`), objects.JSONRawMessage(`{"authorization":"sk"}`))
-	recentReq := createBodyTestRequest(t, ctx, client, proj.ID, recentAt, objects.JSONRawMessage(`{"prompt":"new"}`), objects.JSONRawMessage(`{"authorization":"sk"}`))
-	placeholderReq := createBodyTestRequest(t, ctx, client, proj.ID, oldAt, objects.JSONRawMessage(`{}`), objects.JSONRawMessage(`{}`))
+	oldReq := createBodyTestRequest(t, ctx, client, oldAt, objects.JSONRawMessage(`{"prompt":"old"}`), objects.JSONRawMessage(`{"authorization":"sk"}`))
+	recentReq := createBodyTestRequest(t, ctx, client, recentAt, objects.JSONRawMessage(`{"prompt":"new"}`), objects.JSONRawMessage(`{"authorization":"sk"}`))
+	placeholderReq := createBodyTestRequest(t, ctx, client, oldAt, objects.JSONRawMessage(`{}`), objects.JSONRawMessage(`{}`))
 
 	oldExec := createBodyTestExecution(t, ctx, client, oldReq, oldAt, objects.JSONRawMessage(`{"upstream":true}`), objects.JSONRawMessage(`{"x-api-key":"k"}`))
 
@@ -65,18 +64,16 @@ func TestCleanupRequestBodies_StripsOldPayloadsAndKeepsRows(t *testing.T) {
 }
 
 func TestCleanupRequestBodies_SkipsRetainedTraces(t *testing.T) {
-	worker, ctx, client, proj := setupBodyCleanupWorker(t)
+	worker, ctx, client := setupBodyCleanupWorker(t)
 
 	oldAt := time.Now().AddDate(0, 0, -10)
 	tr, err := client.Trace.Create().
-		SetProjectID(proj.ID).
 		SetTraceID("retained-trace").
 		SetStatus(trace.StatusRetained).
 		Save(ctx)
 	require.NoError(t, err)
 
 	retained, err := client.Request.Create().
-		SetProjectID(proj.ID).
 		SetCreatedAt(oldAt).
 		SetTraceID(tr.ID).
 		SetModelID("gpt-4").
@@ -98,10 +95,10 @@ func TestCleanupRequestBodies_SkipsRetainedTraces(t *testing.T) {
 }
 
 func TestCleanupResponseBodies_DoesNotTouchRequestBodies(t *testing.T) {
-	worker, ctx, client, proj := setupBodyCleanupWorker(t)
+	worker, ctx, client := setupBodyCleanupWorker(t)
 
 	oldAt := time.Now().AddDate(0, 0, -10)
-	req := createBodyTestRequest(t, ctx, client, proj.ID, oldAt, objects.JSONRawMessage(`{"prompt":"keep"}`), objects.JSONRawMessage(`{"h":"1"}`))
+	req := createBodyTestRequest(t, ctx, client, oldAt, objects.JSONRawMessage(`{"prompt":"keep"}`), objects.JSONRawMessage(`{"h":"1"}`))
 	_, err := client.Request.UpdateOneID(req.ID).
 		SetResponseBody(objects.JSONRawMessage(`{"text":"drop"}`)).
 		Save(ctx)
@@ -116,10 +113,10 @@ func TestCleanupResponseBodies_DoesNotTouchRequestBodies(t *testing.T) {
 }
 
 func TestCleanupResponseChunks_StripsOldChunks(t *testing.T) {
-	worker, ctx, client, proj := setupBodyCleanupWorker(t)
+	worker, ctx, client := setupBodyCleanupWorker(t)
 
 	oldAt := time.Now().AddDate(0, 0, -10)
-	req := createBodyTestRequest(t, ctx, client, proj.ID, oldAt, objects.JSONRawMessage(`{}`), objects.JSONRawMessage(`{}`))
+	req := createBodyTestRequest(t, ctx, client, oldAt, objects.JSONRawMessage(`{}`), objects.JSONRawMessage(`{}`))
 	_, err := client.Request.UpdateOneID(req.ID).
 		SetResponseChunks([]objects.JSONRawMessage{objects.JSONRawMessage(`{"delta":"x"}`)}).
 		Save(ctx)
@@ -136,16 +133,9 @@ func TestCleanupRequestBodies_DeletesExternalFilesOnly(t *testing.T) {
 	client := worker.Ent
 	reqSvc := newBodyTestRequestService(worker)
 
-	proj, err := client.Project.Create().
-		SetName("body-cleanup-fs").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	oldAt := time.Now().AddDate(0, 0, -10)
 	// 生产外存形态：DB 占位 {} + headers 仍在 + 正文只在对象存储。
 	req, err := client.Request.Create().
-		SetProjectID(proj.ID).
 		SetCreatedAt(oldAt).
 		SetDataStorageID(fsStorage.ID).
 		SetModelID("gpt-4").
@@ -159,8 +149,8 @@ func TestCleanupRequestBodies_DeletesExternalFilesOnly(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	bodyKey := biz.GenerateRequestBodyKey(req.ProjectID, req.ID)
-	audioKey := biz.GenerateAudioKey(req.ProjectID, req.ID, "audio.mp3")
+	bodyKey := biz.GenerateRequestBodyKey(req.ID)
+	audioKey := biz.GenerateAudioKey(req.ID, "audio.mp3")
 	require.NoError(t, os.MkdirAll(filepath.Dir(pathForKey(baseDir, bodyKey)), 0o755))
 	require.NoError(t, os.WriteFile(pathForKey(baseDir, bodyKey), []byte(`{"prompt":"s3"}`), 0o644))
 	createFileForKey(t, baseDir, audioKey)
@@ -189,11 +179,11 @@ func TestCleanupRequestBodies_DeletesExternalFilesOnly(t *testing.T) {
 }
 
 func TestPreviewBodyCleanup_CountsWindowRowsWithoutReadingPayloads(t *testing.T) {
-	worker, ctx, client, proj := setupBodyCleanupWorker(t)
+	worker, ctx, client := setupBodyCleanupWorker(t)
 
 	oldAt := time.Now().AddDate(0, 0, -10)
-	createBodyTestRequest(t, ctx, client, proj.ID, oldAt, objects.JSONRawMessage(`{"prompt":"old"}`), objects.JSONRawMessage(`{}`))
-	createBodyTestRequest(t, ctx, client, proj.ID, oldAt, objects.JSONRawMessage(`{}`), objects.JSONRawMessage(`{}`))
+	createBodyTestRequest(t, ctx, client, oldAt, objects.JSONRawMessage(`{"prompt":"old"}`), objects.JSONRawMessage(`{}`))
+	createBodyTestRequest(t, ctx, client, oldAt, objects.JSONRawMessage(`{}`), objects.JSONRawMessage(`{}`))
 
 	item, err := worker.previewBodyCleanup(ctx, biz.CleanupResourceRequestBodies, 7, time.Now())
 	require.NoError(t, err)
@@ -201,7 +191,7 @@ func TestPreviewBodyCleanup_CountsWindowRowsWithoutReadingPayloads(t *testing.T)
 	require.Equal(t, biz.CleanupResourceRequestBodies, item.ResourceType)
 }
 
-func setupBodyCleanupWorker(t *testing.T) (*Worker, context.Context, *ent.Client, *ent.Project) {
+func setupBodyCleanupWorker(t *testing.T) (*Worker, context.Context, *ent.Client) {
 	t.Helper()
 
 	client := enttest.NewEntClient(t, "sqlite3", "file:ent?mode=memory&_fk=1")
@@ -221,13 +211,7 @@ func setupBodyCleanupWorker(t *testing.T) (*Worker, context.Context, *ent.Client
 		Client:        client,
 	})
 
-	proj, err := client.Project.Create().
-		SetName("body-cleanup").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
-	_, err = client.DataStorage.Create().
+	_, err := client.DataStorage.Create().
 		SetName("primary").
 		SetDescription("primary database").
 		SetPrimary(true).
@@ -243,21 +227,19 @@ func setupBodyCleanupWorker(t *testing.T) (*Worker, context.Context, *ent.Client
 		Ent:                client,
 	}
 
-	return worker, ctx, client, proj
+	return worker, ctx, client
 }
 
 func createBodyTestRequest(
 	t *testing.T,
 	ctx context.Context,
 	client *ent.Client,
-	projectID int,
 	createdAt time.Time,
 	body, headers objects.JSONRawMessage,
 ) *ent.Request {
 	t.Helper()
 
 	req, err := client.Request.Create().
-		SetProjectID(projectID).
 		SetCreatedAt(createdAt).
 		SetModelID("gpt-4").
 		SetFormat("openai/chat_completions").
@@ -285,7 +267,6 @@ func createBodyTestExecution(
 
 	exec, err := client.RequestExecution.Create().
 		SetRequestID(req.ID).
-		SetProjectID(req.ProjectID).
 		SetCreatedAt(createdAt).
 		SetModelID("gpt-4").
 		SetFormat("openai/chat_completions").
@@ -327,15 +308,8 @@ func TestCleanupResponseBodies_DoesNotTreatExternalNullAsPayload(t *testing.T) {
 	worker, ctx, fsStorage, _ := setupWorkerWithFSStorage(t)
 	client := worker.Ent
 
-	proj, err := client.Project.Create().
-		SetName("null-not-payload").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	oldAt := time.Now().AddDate(0, 0, -10)
-	_, err = client.Request.Create().
-		SetProjectID(proj.ID).
+	_, err := client.Request.Create().
 		SetCreatedAt(oldAt).
 		SetDataStorageID(fsStorage.ID).
 		SetModelID("gpt-4").
@@ -366,15 +340,8 @@ func TestCleanupResponseBodies_StripsExternalMarkerAndHistoricalNull(t *testing.
 	worker, ctx, fsStorage, baseDir := setupWorkerWithFSStorage(t)
 	client := worker.Ent
 
-	proj, err := client.Project.Create().
-		SetName("ext-response").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	oldAt := time.Now().AddDate(0, 0, -10)
 	marked, err := client.Request.Create().
-		SetProjectID(proj.ID).
 		SetCreatedAt(oldAt).
 		SetDataStorageID(fsStorage.ID).
 		SetModelID("gpt-4").
@@ -389,7 +356,6 @@ func TestCleanupResponseBodies_StripsExternalMarkerAndHistoricalNull(t *testing.
 	require.NoError(t, err)
 
 	historical, err := client.Request.Create().
-		SetProjectID(proj.ID).
 		SetCreatedAt(oldAt).
 		SetDataStorageID(fsStorage.ID).
 		SetModelID("gpt-4").
@@ -402,8 +368,8 @@ func TestCleanupResponseBodies_StripsExternalMarkerAndHistoricalNull(t *testing.
 		Save(ctx)
 	require.NoError(t, err)
 
-	markedKey := biz.GenerateResponseBodyKey(proj.ID, marked.ID)
-	histKey := biz.GenerateResponseBodyKey(proj.ID, historical.ID)
+	markedKey := biz.GenerateResponseBodyKey(marked.ID)
+	histKey := biz.GenerateResponseBodyKey(historical.ID)
 	createFileForKey(t, baseDir, markedKey)
 	createFileForKey(t, baseDir, histKey)
 
@@ -419,10 +385,10 @@ func TestCleanupResponseBodies_StripsExternalMarkerAndHistoricalNull(t *testing.
 }
 
 func TestPreviewCleanup_SameDaysShareOneWindowCount(t *testing.T) {
-	worker, ctx, client, proj := setupBodyCleanupWorker(t)
+	worker, ctx, client := setupBodyCleanupWorker(t)
 
 	oldAt := time.Now().AddDate(0, 0, -10)
-	createBodyTestRequest(t, ctx, client, proj.ID, oldAt, objects.JSONRawMessage(`{"prompt":"old"}`), objects.JSONRawMessage(`{}`))
+	createBodyTestRequest(t, ctx, client, oldAt, objects.JSONRawMessage(`{"prompt":"old"}`), objects.JSONRawMessage(`{}`))
 
 	items, err := worker.PreviewCleanup(ctx, TriggerGcCleanupInput{
 		RequestBodiesCleanupDays:  7,
@@ -445,15 +411,8 @@ func TestCleanupRequestBodies_ExternalDeleteFailureLeavesRowRetryable(t *testing
 	worker, ctx, fsStorage, baseDir := setupWorkerWithFSStorage(t)
 	client := worker.Ent
 
-	proj, err := client.Project.Create().
-		SetName("delete-fail").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	oldAt := time.Now().AddDate(0, 0, -10)
 	req, err := client.Request.Create().
-		SetProjectID(proj.ID).
 		SetCreatedAt(oldAt).
 		SetDataStorageID(fsStorage.ID).
 		SetModelID("gpt-4").
@@ -467,7 +426,7 @@ func TestCleanupRequestBodies_ExternalDeleteFailureLeavesRowRetryable(t *testing
 		Save(ctx)
 	require.NoError(t, err)
 
-	bodyKey := biz.GenerateRequestBodyKey(req.ProjectID, req.ID)
+	bodyKey := biz.GenerateRequestBodyKey(req.ID)
 	createDirForKey(t, baseDir, bodyKey)
 	require.NoError(t, os.WriteFile(filepath.Join(pathForKey(baseDir, bodyKey), "child"), []byte("x"), 0o644))
 
@@ -487,15 +446,8 @@ func TestCleanupRequestBodies_SkipsFailedDeleteAndContinues(t *testing.T) {
 	worker, ctx, fsStorage, baseDir := setupWorkerWithFSStorage(t)
 	client := worker.Ent
 
-	proj, err := client.Project.Create().
-		SetName("skip-and-continue").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	oldAt := time.Now().AddDate(0, 0, -10)
 	blocked, err := client.Request.Create().
-		SetProjectID(proj.ID).
 		SetCreatedAt(oldAt).
 		SetDataStorageID(fsStorage.ID).
 		SetModelID("gpt-4").
@@ -510,7 +462,6 @@ func TestCleanupRequestBodies_SkipsFailedDeleteAndContinues(t *testing.T) {
 	require.NoError(t, err)
 
 	okReq, err := client.Request.Create().
-		SetProjectID(proj.ID).
 		SetCreatedAt(oldAt).
 		SetDataStorageID(fsStorage.ID).
 		SetModelID("gpt-4").
@@ -524,8 +475,8 @@ func TestCleanupRequestBodies_SkipsFailedDeleteAndContinues(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	blockedKey := biz.GenerateRequestBodyKey(proj.ID, blocked.ID)
-	okKey := biz.GenerateRequestBodyKey(proj.ID, okReq.ID)
+	blockedKey := biz.GenerateRequestBodyKey(blocked.ID)
+	okKey := biz.GenerateRequestBodyKey(okReq.ID)
 	createDirForKey(t, baseDir, blockedKey)
 	require.NoError(t, os.WriteFile(filepath.Join(pathForKey(baseDir, blockedKey), "child"), []byte("x"), 0o644))
 	createFileForKey(t, baseDir, okKey)
@@ -561,13 +512,7 @@ func TestCleanupRequestBodies_PostgresImmutableJSON(t *testing.T) {
 		Client:        client,
 	})
 
-	proj, err := client.Project.Create().
-		SetName("pg-body-cleanup").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
-	_, err = client.DataStorage.Create().
+	_, err := client.DataStorage.Create().
 		SetName("primary").
 		SetDescription("primary database").
 		SetPrimary(true).
@@ -584,7 +529,7 @@ func TestCleanupRequestBodies_PostgresImmutableJSON(t *testing.T) {
 	}
 
 	oldAt := time.Now().AddDate(0, 0, -10)
-	req := createBodyTestRequest(t, ctx, client, proj.ID, oldAt, objects.JSONRawMessage(`{"prompt":"pg"}`), objects.JSONRawMessage(`{"h":"1"}`))
+	req := createBodyTestRequest(t, ctx, client, oldAt, objects.JSONRawMessage(`{"prompt":"pg"}`), objects.JSONRawMessage(`{"h":"1"}`))
 
 	require.NoError(t, worker.cleanupRequestBodies(ctx, 7))
 

@@ -9,7 +9,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { PermissionGuard } from '@/components/permission-guard';
 import { usePrompts } from '../context/prompts-context';
 import { Prompt } from '../data/schema';
 
@@ -31,30 +30,26 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end' className='w-[160px]'>
-        <PermissionGuard requiredScope='write_prompts'>
-          <>
-            <DropdownMenuItem
-              onClick={() => {
-                setCurrentRow(prompt);
-                setOpen('edit');
-              }}
-            >
-              <IconEdit className='mr-2 h-4 w-4' />
-              {t('common.buttons.edit')}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => {
-                setCurrentRow(prompt);
-                setOpen('delete');
-              }}
-              className='text-destructive focus:text-destructive'
-            >
-              <IconTrash className='mr-2 h-4 w-4' />
-              {t('common.buttons.delete')}
-            </DropdownMenuItem>
-          </>
-        </PermissionGuard>
+        <DropdownMenuItem
+          onClick={() => {
+            setCurrentRow(prompt);
+            setOpen('edit');
+          }}
+        >
+          <IconEdit className='mr-2 h-4 w-4' />
+          {t('common.buttons.edit')}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => {
+            setCurrentRow(prompt);
+            setOpen('delete');
+          }}
+          className='text-destructive focus:text-destructive'
+        >
+          <IconTrash className='mr-2 h-4 w-4' />
+          {t('common.buttons.delete')}
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

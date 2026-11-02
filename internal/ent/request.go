@@ -13,7 +13,6 @@ import (
 	"github.com/looplj/axonhub/internal/ent/apikey"
 	"github.com/looplj/axonhub/internal/ent/channel"
 	"github.com/looplj/axonhub/internal/ent/datastorage"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/request"
 	"github.com/looplj/axonhub/internal/ent/trace"
 	"github.com/looplj/axonhub/internal/objects"
@@ -32,8 +31,6 @@ type Request struct {
 	APIKeyID int `json:"api_key_id,omitempty"`
 	// User ID of the Playground request creator
 	UserID *int `json:"user_id,omitempty"`
-	// Project ID, default to 1 for backward compatibility
-	ProjectID int `json:"project_id,omitempty"`
 	// Trace ID that this request belongs to
 	TraceID int `json:"trace_id,omitempty"`
 	// Data Storage ID that this request belongs to
@@ -92,8 +89,6 @@ type Request struct {
 type RequestEdges struct {
 	// APIKey holds the value of the api_key edge.
 	APIKey *APIKey `json:"api_key,omitempty"`
-	// Project holds the value of the project edge.
-	Project *Project `json:"project,omitempty"`
 	// Trace holds the value of the trace edge.
 	Trace *Trace `json:"trace,omitempty"`
 	// DataStorage holds the value of the data_storage edge.
@@ -106,9 +101,9 @@ type RequestEdges struct {
 	UsageLogs []*UsageLog `json:"usage_logs,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [7]bool
+	loadedTypes [6]bool
 	// totalCount holds the count of the edges above.
-	totalCount [7]map[string]int
+	totalCount [6]map[string]int
 
 	namedExecutions map[string][]*RequestExecution
 	namedUsageLogs  map[string][]*UsageLog
@@ -125,23 +120,12 @@ func (e RequestEdges) APIKeyOrErr() (*APIKey, error) {
 	return nil, &NotLoadedError{edge: "api_key"}
 }
 
-// ProjectOrErr returns the Project value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e RequestEdges) ProjectOrErr() (*Project, error) {
-	if e.Project != nil {
-		return e.Project, nil
-	} else if e.loadedTypes[1] {
-		return nil, &NotFoundError{label: project.Label}
-	}
-	return nil, &NotLoadedError{edge: "project"}
-}
-
 // TraceOrErr returns the Trace value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e RequestEdges) TraceOrErr() (*Trace, error) {
 	if e.Trace != nil {
 		return e.Trace, nil
-	} else if e.loadedTypes[2] {
+	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: trace.Label}
 	}
 	return nil, &NotLoadedError{edge: "trace"}
@@ -152,7 +136,7 @@ func (e RequestEdges) TraceOrErr() (*Trace, error) {
 func (e RequestEdges) DataStorageOrErr() (*DataStorage, error) {
 	if e.DataStorage != nil {
 		return e.DataStorage, nil
-	} else if e.loadedTypes[3] {
+	} else if e.loadedTypes[2] {
 		return nil, &NotFoundError{label: datastorage.Label}
 	}
 	return nil, &NotLoadedError{edge: "data_storage"}
@@ -161,7 +145,7 @@ func (e RequestEdges) DataStorageOrErr() (*DataStorage, error) {
 // ExecutionsOrErr returns the Executions value or an error if the edge
 // was not loaded in eager-loading.
 func (e RequestEdges) ExecutionsOrErr() ([]*RequestExecution, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[3] {
 		return e.Executions, nil
 	}
 	return nil, &NotLoadedError{edge: "executions"}
@@ -172,7 +156,7 @@ func (e RequestEdges) ExecutionsOrErr() ([]*RequestExecution, error) {
 func (e RequestEdges) ChannelOrErr() (*Channel, error) {
 	if e.Channel != nil {
 		return e.Channel, nil
-	} else if e.loadedTypes[5] {
+	} else if e.loadedTypes[4] {
 		return nil, &NotFoundError{label: channel.Label}
 	}
 	return nil, &NotLoadedError{edge: "channel"}
@@ -181,7 +165,7 @@ func (e RequestEdges) ChannelOrErr() (*Channel, error) {
 // UsageLogsOrErr returns the UsageLogs value or an error if the edge
 // was not loaded in eager-loading.
 func (e RequestEdges) UsageLogsOrErr() ([]*UsageLog, error) {
-	if e.loadedTypes[6] {
+	if e.loadedTypes[5] {
 		return e.UsageLogs, nil
 	}
 	return nil, &NotLoadedError{edge: "usage_logs"}
@@ -196,7 +180,7 @@ func (*Request) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case request.FieldStream, request.FieldContentSaved:
 			values[i] = new(sql.NullBool)
-		case request.FieldID, request.FieldAPIKeyID, request.FieldUserID, request.FieldProjectID, request.FieldTraceID, request.FieldDataStorageID, request.FieldChannelID, request.FieldMetricsLatencyMs, request.FieldMetricsFirstTokenLatencyMs, request.FieldMetricsReasoningDurationMs, request.FieldContentStorageID:
+		case request.FieldID, request.FieldAPIKeyID, request.FieldUserID, request.FieldTraceID, request.FieldDataStorageID, request.FieldChannelID, request.FieldMetricsLatencyMs, request.FieldMetricsFirstTokenLatencyMs, request.FieldMetricsReasoningDurationMs, request.FieldContentStorageID:
 			values[i] = new(sql.NullInt64)
 		case request.FieldSource, request.FieldModelID, request.FieldReasoningEffort, request.FieldFormat, request.FieldExternalID, request.FieldStatus, request.FieldClientIP, request.FieldUserAgent, request.FieldContentStorageKey:
 			values[i] = new(sql.NullString)
@@ -247,12 +231,6 @@ func (_m *Request) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.UserID = new(int)
 				*_m.UserID = int(value.Int64)
-			}
-		case request.FieldProjectID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field project_id", values[i])
-			} else if value.Valid {
-				_m.ProjectID = int(value.Int64)
 			}
 		case request.FieldTraceID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -432,11 +410,6 @@ func (_m *Request) QueryAPIKey() *APIKeyQuery {
 	return NewRequestClient(_m.config).QueryAPIKey(_m)
 }
 
-// QueryProject queries the "project" edge of the Request entity.
-func (_m *Request) QueryProject() *ProjectQuery {
-	return NewRequestClient(_m.config).QueryProject(_m)
-}
-
 // QueryTrace queries the "trace" edge of the Request entity.
 func (_m *Request) QueryTrace() *TraceQuery {
 	return NewRequestClient(_m.config).QueryTrace(_m)
@@ -498,9 +471,6 @@ func (_m *Request) String() string {
 		builder.WriteString("user_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
-	builder.WriteString(", ")
-	builder.WriteString("project_id=")
-	builder.WriteString(fmt.Sprintf("%v", _m.ProjectID))
 	builder.WriteString(", ")
 	builder.WriteString("trace_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.TraceID))

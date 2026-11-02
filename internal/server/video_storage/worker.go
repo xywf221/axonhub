@@ -193,7 +193,7 @@ func (w *Worker) processOne(ctx context.Context, ds *ent.DataStorage, req *ent.R
 	const maxBytes = 512 * 1024 * 1024
 	reader := io.LimitReader(resp, maxBytes)
 
-	storageKey := GenerateVideoKey(req.ProjectID, req.ID, filename)
+	storageKey := GenerateVideoKey(req.ID, filename)
 
 	_, n, err := w.dataStorageService.SaveDataFromReader(ctx, ds, storageKey, reader)
 	if err != nil {
@@ -221,13 +221,13 @@ func (w *Worker) processOne(ctx context.Context, ds *ent.DataStorage, req *ent.R
 	return nil
 }
 
-func GenerateVideoKey(projectID, requestID int, filename string) string {
+func GenerateVideoKey(requestID int, filename string) string {
 	name := strings.TrimSpace(filename)
 	if name == "" {
 		name = "video.mp4"
 	}
 	name = filepath.Base(name)
-	return fmt.Sprintf("/%d/requests/%d/video/%s", projectID, requestID, name)
+	return fmt.Sprintf("/requests/%d/video/%s", requestID, name)
 }
 
 func extractVideoURLFromResponseBody(raw []byte) (string, error) {

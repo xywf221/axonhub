@@ -29,8 +29,8 @@ func TestResponsesProtocolIntegrationPartialOutputDoesNotReplay(t *testing.T) {
 		require.NoError(t, err)
 		flusher.Flush()
 	}))
-	client, handlers, project := newResponsesIntegrationFixture(t, upstream.URL)
-	gateway := responsesIntegrationGateway(t, client, handlers, project)
+	client, handlers := newResponsesIntegrationFixture(t, upstream.URL)
+	gateway := responsesIntegrationGateway(t, client, handlers)
 
 	status, body := responsesIntegrationPost(t, gateway, "/v1/responses", `{"model":"synthetic-model","input":"partial-input","stream":true}`)
 
@@ -53,8 +53,8 @@ func TestResponsesProtocolIntegrationDownstreamCancellationDrainsUpstream(t *tes
 		case <-time.After(2 * time.Second):
 		}
 	}))
-	client, handlers, project := newResponsesIntegrationFixture(t, upstream.URL)
-	gateway := responsesIntegrationGateway(t, client, handlers, project)
+	client, handlers := newResponsesIntegrationFixture(t, upstream.URL)
+	gateway := responsesIntegrationGateway(t, client, handlers)
 	conn, response, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(gateway.URL, "http")+"/v1/responses", nil)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusSwitchingProtocols, response.StatusCode)
@@ -85,11 +85,11 @@ func TestResponsesProtocolIntegrationRotatedAuthAndEndpointReachProductionListen
 		_, err := io.WriteString(w, `{"id":"rotated-response","object":"response","status":"completed","output":[{"type":"message","id":"rotated-item"}]}`)
 		require.NoError(t, err)
 	}))
-	client, handlers, project := newResponsesIntegrationFixture(t, upstream.URL, func(create *ent.ChannelCreate) {
+	client, handlers := newResponsesIntegrationFixture(t, upstream.URL, func(create *ent.ChannelCreate) {
 		create.SetCredentials(objects.ChannelCredentials{APIKey: "rotated-key"})
 		create.SetEndpoints([]objects.ChannelEndpoint{{APIFormat: "openai/responses", Path: "/custom/responses"}})
 	})
-	gateway := responsesIntegrationGateway(t, client, handlers, project)
+	gateway := responsesIntegrationGateway(t, client, handlers)
 
 	status, body := responsesIntegrationPost(t, gateway, "/v1/responses", `{"model":"synthetic-model","input":"rotation-canary"}`)
 
@@ -119,14 +119,14 @@ func TestResponsesProtocolIntegrationAdjacentImagesStayNativeHTTP(t *testing.T) 
 		_, err = io.WriteString(w, response)
 		require.NoError(t, err)
 	}))
-	client, handlers, project := newResponsesIntegrationFixture(t, upstream.URL, func(create *ent.ChannelCreate) {
+	client, handlers := newResponsesIntegrationFixture(t, upstream.URL, func(create *ent.ChannelCreate) {
 		create.SetEndpoints([]objects.ChannelEndpoint{
 			{APIFormat: "openai/responses"},
 			{APIFormat: "openai/image_generation"},
 			{APIFormat: "openai/image_edit"},
 		})
 	})
-	gateway := responsesIntegrationGateway(t, client, handlers, project)
+	gateway := responsesIntegrationGateway(t, client, handlers)
 
 	generationStatus, generationBody := responsesIntegrationPost(t, gateway, "/v1/images/generations", `{"model":"synthetic-model","prompt":"red square"}`)
 	editStatus, editBody := responsesIntegrationPost(t, gateway, "/v1/images/edits", `{"model":"synthetic-model","image":"data:image/png;base64,c3ludGhldGljLWltYWdl","prompt":"blue square"}`)

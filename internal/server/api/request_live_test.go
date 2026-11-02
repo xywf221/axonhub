@@ -242,11 +242,7 @@ func newRequestPreviewTestSetup(t *testing.T) requestPreviewTestSetup {
 		LiveStreamRegistry: liveStreamRegistry,
 	})
 
-	project, err := client.Project.Create().SetName("p1").SetDescription("d").Save(ctx)
-	require.NoError(t, err)
-
 	reqRow, err := client.Request.Create().
-		SetProjectID(project.ID).
 		SetModelID("m1").
 		SetFormat("openai/chat.completion").
 		SetSource("api").
@@ -262,7 +258,6 @@ func newRequestPreviewTestSetup(t *testing.T) requestPreviewTestSetup {
 	router.Use(func(c *gin.Context) {
 		requestCtx := ent.NewContext(c.Request.Context(), client)
 		requestCtx = contexts.WithUser(requestCtx, &ent.User{ID: 1, IsOwner: true})
-		requestCtx = contexts.WithProjectID(requestCtx, project.ID)
 		c.Request = c.Request.WithContext(requestCtx)
 		c.Next()
 	})

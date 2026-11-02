@@ -9,7 +9,6 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/thread"
 	"github.com/looplj/axonhub/internal/ent/trace"
 )
@@ -23,8 +22,6 @@ type Trace struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// Project ID that this trace belongs to
-	ProjectID int `json:"project_id,omitempty"`
 	// Unique trace identifier
 	TraceID string `json:"trace_id,omitempty"`
 	// Thread ID that this trace belongs to
@@ -39,30 +36,17 @@ type Trace struct {
 
 // TraceEdges holds the relations/edges for other nodes in the graph.
 type TraceEdges struct {
-	// Project holds the value of the project edge.
-	Project *Project `json:"project,omitempty"`
 	// Thread holds the value of the thread edge.
 	Thread *Thread `json:"thread,omitempty"`
 	// Requests holds the value of the requests edge.
 	Requests []*Request `json:"requests,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [2]bool
 	// totalCount holds the count of the edges above.
-	totalCount [3]map[string]int
+	totalCount [2]map[string]int
 
 	namedRequests map[string][]*Request
-}
-
-// ProjectOrErr returns the Project value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e TraceEdges) ProjectOrErr() (*Project, error) {
-	if e.Project != nil {
-		return e.Project, nil
-	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: project.Label}
-	}
-	return nil, &NotLoadedError{edge: "project"}
 }
 
 // ThreadOrErr returns the Thread value or an error if the edge
@@ -70,7 +54,7 @@ func (e TraceEdges) ProjectOrErr() (*Project, error) {
 func (e TraceEdges) ThreadOrErr() (*Thread, error) {
 	if e.Thread != nil {
 		return e.Thread, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[0] {
 		return nil, &NotFoundError{label: thread.Label}
 	}
 	return nil, &NotLoadedError{edge: "thread"}
@@ -79,7 +63,7 @@ func (e TraceEdges) ThreadOrErr() (*Thread, error) {
 // RequestsOrErr returns the Requests value or an error if the edge
 // was not loaded in eager-loading.
 func (e TraceEdges) RequestsOrErr() ([]*Request, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[1] {
 		return e.Requests, nil
 	}
 	return nil, &NotLoadedError{edge: "requests"}
@@ -90,7 +74,7 @@ func (*Trace) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case trace.FieldID, trace.FieldProjectID, trace.FieldThreadID:
+		case trace.FieldID, trace.FieldThreadID:
 			values[i] = new(sql.NullInt64)
 		case trace.FieldTraceID, trace.FieldStatus:
 			values[i] = new(sql.NullString)
@@ -129,12 +113,6 @@ func (_m *Trace) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
 			}
-		case trace.FieldProjectID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field project_id", values[i])
-			} else if value.Valid {
-				_m.ProjectID = int(value.Int64)
-			}
 		case trace.FieldTraceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field trace_id", values[i])
@@ -164,11 +142,6 @@ func (_m *Trace) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *Trace) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
-}
-
-// QueryProject queries the "project" edge of the Trace entity.
-func (_m *Trace) QueryProject() *ProjectQuery {
-	return NewTraceClient(_m.config).QueryProject(_m)
 }
 
 // QueryThread queries the "thread" edge of the Trace entity.
@@ -209,9 +182,6 @@ func (_m *Trace) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
 	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
-	builder.WriteString(", ")
-	builder.WriteString("project_id=")
-	builder.WriteString(fmt.Sprintf("%v", _m.ProjectID))
 	builder.WriteString(", ")
 	builder.WriteString("trace_id=")
 	builder.WriteString(_m.TraceID)

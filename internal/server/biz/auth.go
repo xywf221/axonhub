@@ -14,7 +14,6 @@ import (
 	"github.com/looplj/axonhub/internal/authz"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/apikey"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/user"
 	"github.com/looplj/axonhub/internal/log"
 )
@@ -146,7 +145,6 @@ func (s *AuthService) AuthenticateUser(
 		return client.User.Query().
 			Where(user.EmailEQ(email)).
 			Where(user.StatusEQ(user.StatusActivated)).
-			WithRoles().
 			Only(bypassCtx)
 	})
 	if err != nil {
@@ -288,15 +286,6 @@ func (s *AuthService) AuthenticateAPIKey(ctx context.Context, key string) (*ent.
 		return nil, fmt.Errorf("api key not enabled: %w", ErrInvalidAPIKey)
 	}
 
-	proj, err := apiKey.Project(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get api key project: %w", err)
-	}
-
-	if proj == nil || proj.Status != project.StatusActive {
-		return nil, fmt.Errorf("api key project not valid: %w", ErrInvalidAPIKey)
-	}
-
 	if apiKey.Type == apikey.TypeNoauth {
 		return nil, fmt.Errorf("noauth api key is only available when api auth is disabled: %w", ErrInvalidAPIKey)
 	}
@@ -318,15 +307,6 @@ func (s *AuthService) AuthenticateNoAuth(ctx context.Context) (*ent.APIKey, erro
 
 	if apiKey.Status != apikey.StatusEnabled {
 		return nil, fmt.Errorf("api key not enabled: %w", ErrInvalidAPIKey)
-	}
-
-	proj, err := apiKey.Project(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get api key project: %w", err)
-	}
-
-	if proj == nil || proj.Status != project.StatusActive {
-		return nil, fmt.Errorf("api key project not valid: %w", ErrInvalidAPIKey)
 	}
 
 	return apiKey, nil

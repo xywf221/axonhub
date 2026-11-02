@@ -18,12 +18,12 @@ Welcome to the AxonHub documentation center! This index will help you quickly fi
 | [Channel Management](guides/channel-management.md) | Configure and manage AI provider channels |
 | [Model Management](guides/model-management.md) | Model mapping, associations, and priority configuration |
 | [API Key Profiles](guides/api-key-profiles.md) | Create and manage API key profiles |
-| [Permissions](guides/permissions.md) | Enterprise RBAC access control configuration |
+| [Permissions](guides/permissions.md) | Single-tenant access model and API key scopes |
 | [Load Balancing](guides/load-balance.md) | Smart routing and failover settings |
 | [Cost Tracking](guides/cost-tracking.md) | Real-time monitoring and usage analytics |
 | [Request Tracing](guides/tracing.md) | Complete request traceability |
 | [Request Override](guides/request-override.md) | Dynamically modify request parameters |
-| [Security](guides/security.md) | IP access control, IP blocklist, and API key IP restriction |
+| [IP Access Control](guides/security.md) | Global IP allowlist for the AxonHub instance |
 | [Prompt Protection Rules](guides/prompt-protection-rules.md) | Sensitive information filtering and protection |
 | [Antigravity](guides/antigravity.md) | Advanced routing and optimization features |
 

@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { graphqlRequest } from '@/gql/graphql';
-import { useSelectedProjectId } from '@/stores/projectStore';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useErrorHandler } from '@/hooks/use-error-handler';
@@ -21,7 +20,6 @@ const PROMPTS_QUERY = `
           id
           createdAt
           updatedAt
-          projectID
           name
           description
           role
@@ -61,7 +59,6 @@ const CREATE_PROMPT_MUTATION = `
       id
       createdAt
       updatedAt
-      projectID
       name
       description
       role
@@ -91,7 +88,6 @@ const UPDATE_PROMPT_MUTATION = `
       id
       createdAt
       updatedAt
-      projectID
       name
       description
       role
@@ -158,29 +154,23 @@ interface QueryPromptsArgs {
 }
 
 export function useQueryPrompts(args: QueryPromptsArgs) {
-  const selectedProjectId = useSelectedProjectId();
-
   return useQuery({
-    queryKey: ['prompts', args, selectedProjectId],
+    queryKey: ['prompts', args],
     queryFn: async () => {
-      const headers = selectedProjectId ? { 'X-Project-ID': selectedProjectId } : undefined;
-      const data = await graphqlRequest<{ prompts: PromptConnection }>(PROMPTS_QUERY, args, headers);
+      const data = await graphqlRequest<{ prompts: PromptConnection }>(PROMPTS_QUERY, args);
       return promptConnectionSchema.parse(data.prompts);
     },
-    enabled: !!selectedProjectId,
   });
 }
 
 export function useCreatePrompt() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const selectedProjectId = useSelectedProjectId();
   const { handleError } = useErrorHandler();
 
   return useMutation({
     mutationFn: async (input: CreatePromptInput) => {
-      const headers = selectedProjectId ? { 'X-Project-ID': selectedProjectId } : undefined;
-      const data = await graphqlRequest<{ createPrompt: Prompt }>(CREATE_PROMPT_MUTATION, { input }, headers);
+      const data = await graphqlRequest<{ createPrompt: Prompt }>(CREATE_PROMPT_MUTATION, { input });
       return promptSchema.parse(data.createPrompt);
     },
     onSuccess: () => {
@@ -196,13 +186,11 @@ export function useCreatePrompt() {
 export function useUpdatePrompt() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const selectedProjectId = useSelectedProjectId();
   const { handleError } = useErrorHandler();
 
   return useMutation({
     mutationFn: async ({ id, input }: { id: string; input: UpdatePromptInput }) => {
-      const headers = selectedProjectId ? { 'X-Project-ID': selectedProjectId } : undefined;
-      const data = await graphqlRequest<{ updatePrompt: Prompt }>(UPDATE_PROMPT_MUTATION, { id, input }, headers);
+      const data = await graphqlRequest<{ updatePrompt: Prompt }>(UPDATE_PROMPT_MUTATION, { id, input });
       return promptSchema.parse(data.updatePrompt);
     },
     onSuccess: () => {
@@ -218,12 +206,10 @@ export function useUpdatePrompt() {
 export function useDeletePrompt() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const selectedProjectId = useSelectedProjectId();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const headers = selectedProjectId ? { 'X-Project-ID': selectedProjectId } : undefined;
-      await graphqlRequest(DELETE_PROMPT_MUTATION, { id }, headers);
+      await graphqlRequest(DELETE_PROMPT_MUTATION, { id });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['prompts'] });
@@ -238,12 +224,10 @@ export function useDeletePrompt() {
 export function useUpdatePromptStatus() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const selectedProjectId = useSelectedProjectId();
 
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: 'enabled' | 'disabled' }) => {
-      const headers = selectedProjectId ? { 'X-Project-ID': selectedProjectId } : undefined;
-      await graphqlRequest(UPDATE_PROMPT_STATUS_MUTATION, { id, status }, headers);
+      await graphqlRequest(UPDATE_PROMPT_STATUS_MUTATION, { id, status });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['prompts'] });
@@ -258,12 +242,10 @@ export function useUpdatePromptStatus() {
 export function useBulkDeletePrompts() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const selectedProjectId = useSelectedProjectId();
 
   return useMutation({
     mutationFn: async (ids: string[]) => {
-      const headers = selectedProjectId ? { 'X-Project-ID': selectedProjectId } : undefined;
-      const data = await graphqlRequest<{ bulkDeletePrompts: boolean }>(BULK_DELETE_PROMPTS_MUTATION, { ids }, headers);
+      const data = await graphqlRequest<{ bulkDeletePrompts: boolean }>(BULK_DELETE_PROMPTS_MUTATION, { ids });
       return data.bulkDeletePrompts;
     },
     onSuccess: (_data, variables) => {
@@ -279,12 +261,10 @@ export function useBulkDeletePrompts() {
 export function useBulkDisablePrompts() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const selectedProjectId = useSelectedProjectId();
 
   return useMutation({
     mutationFn: async (ids: string[]) => {
-      const headers = selectedProjectId ? { 'X-Project-ID': selectedProjectId } : undefined;
-      const data = await graphqlRequest<{ bulkDisablePrompts: boolean }>(BULK_DISABLE_PROMPTS_MUTATION, { ids }, headers);
+      const data = await graphqlRequest<{ bulkDisablePrompts: boolean }>(BULK_DISABLE_PROMPTS_MUTATION, { ids });
       return data.bulkDisablePrompts;
     },
     onSuccess: (_data, variables) => {
@@ -300,14 +280,12 @@ export function useBulkDisablePrompts() {
 export function useBulkEnablePrompts() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const selectedProjectId = useSelectedProjectId();
   const { handleError } = useErrorHandler();
 
   return useMutation({
     mutationFn: async (ids: string[]) => {
       try {
-        const headers = selectedProjectId ? { 'X-Project-ID': selectedProjectId } : undefined;
-        const data = await graphqlRequest<{ bulkEnablePrompts: boolean }>(BULK_ENABLE_PROMPTS_MUTATION, { ids }, headers);
+        const data = await graphqlRequest<{ bulkEnablePrompts: boolean }>(BULK_ENABLE_PROMPTS_MUTATION, { ids });
         return data.bulkEnablePrompts;
       } catch (error) {
         handleError(error, { context: 'Bulk Enable Prompts' });

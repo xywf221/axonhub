@@ -16,12 +16,10 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/looplj/axonhub/internal/authz"
-	"github.com/looplj/axonhub/internal/contexts"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/apikey"
 	"github.com/looplj/axonhub/internal/ent/channel"
 	"github.com/looplj/axonhub/internal/ent/privacy"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/request"
 	"github.com/looplj/axonhub/internal/ent/requestexecution"
 	"github.com/looplj/axonhub/internal/ent/schema/schematype"
@@ -448,8 +446,7 @@ func (r *queryResolver) APIKeyTokenUsageStats(ctx context.Context, input *APIKey
 	}
 
 	// Query API keys through the privacy-enforced client to validate read_api_keys
-	// scope (both system-level and project-level) and filter to only API keys
-	// the caller can access in their project. Cross-project key IDs are dropped.
+	// scope and filter to only API keys the caller can access.
 	accessibleIDs, err := r.client.APIKey.Query().
 		Where(apikey.IDIn(apiKeyIDs...)).
 		IDs(ctx)
@@ -463,7 +460,7 @@ func (r *queryResolver) APIKeyTokenUsageStats(ctx context.Context, input *APIKey
 
 	// Use a scope-gated decision context for the UsageLog aggregation query.
 	// Access has already been validated through the APIKey privacy policy
-	// (read_api_keys + project filter), so we bypass UsageLog's read_requests
+	// (read_api_keys), so we bypass UsageLog's read_requests
 	// privacy rule for this internal stats query.
 	statsCtx := authz.WithScopeDecision(ctx, scopes.ScopeReadAPIKeys)
 
@@ -606,74 +603,6 @@ func (r *queryResolver) DailyRequestStats(ctx context.Context) ([]*DailyRequestS
 				Count:  0,
 				Tokens: 0,
 				Cost:   0,
-			})
-		}
-	}
-
-	return response, nil
-}
-
-// TopRequestsProjects is the resolver for the topRequestsProjects field.
-// Note: Uses usage_logs table for project-level request statistics.
-// Provides result-only request counts per project.
-func (r *queryResolver) TopRequestsProjects(ctx context.Context) ([]*TopRequestsProjects, error) {
-	ctx = authz.WithScopeDecision(ctx, scopes.ScopeReadDashboard)
-
-	limitCount := 10
-
-	type projectRequestCount struct {
-		ProjectID    int `json:"project_id"`
-		RequestCount int `json:"request_count"`
-	}
-
-	var results []projectRequestCount
-
-	// Use database aggregation without ordering (GroupBy doesn't support Order)
-	err := r.client.UsageLog.Query().
-		Limit(limitCount).
-		Modify(func(s *sql.Selector) {
-			s.Select(
-				usagelog.FieldProjectID,
-				sql.As(sql.Count("*"), "request_count"),
-			).
-				GroupBy(usagelog.FieldProjectID).
-				OrderBy(sql.Desc("request_count"))
-		}).
-		Scan(ctx, &results)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get top projects: %w", err)
-	}
-
-	if len(results) == 0 {
-		return []*TopRequestsProjects{}, nil
-	}
-
-	// Get project details for the top projects
-	projectIDs := lo.Map(results, func(item projectRequestCount, _ int) int {
-		return item.ProjectID
-	})
-
-	projects, err := r.client.Project.Query().
-		Where(project.IDIn(projectIDs...)).
-		All(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get project details: %w", err)
-	}
-
-	projectMap := lo.SliceToMap(projects, func(p *ent.Project) (int, *ent.Project) {
-		return p.ID, p
-	})
-
-	// Build response with project details
-	var response []*TopRequestsProjects
-
-	for _, result := range results {
-		if p, exists := projectMap[result.ProjectID]; exists {
-			response = append(response, &TopRequestsProjects{
-				ProjectID:          objects.GUID{Type: "Project", ID: p.ID},
-				ProjectName:        p.Name,
-				ProjectDescription: p.Description,
-				RequestCount:       result.RequestCount,
 			})
 		}
 	}
@@ -1762,34 +1691,7 @@ func (r *queryResolver) CostStatsByAPIKey(ctx context.Context, timeWindow *strin
 
 // UsageStatsByUser is the resolver for the usageStatsByUser field.
 func (r *queryResolver) UsageStatsByUser(ctx context.Context, timeWindow *string) ([]*UsageStatsByUser, error) {
-	currentUser, ok := contexts.GetUser(ctx)
-	if !ok || currentUser == nil {
-		return nil, fmt.Errorf("user not found in context")
-	}
-
-	projectID, ok := contexts.GetProjectID(ctx)
-	if !ok {
-		return nil, fmt.Errorf("project ID not found in context")
-	}
-
-	// Only allow project owners or system owners to view usage stats by user
-	isProjectOwner := false
-	if currentUser.IsOwner {
-		isProjectOwner = true
-	} else {
-		for _, up := range currentUser.Edges.ProjectUsers {
-			if up.ProjectID == projectID && up.IsOwner {
-				isProjectOwner = true
-				break
-			}
-		}
-	}
-
-	if !isProjectOwner {
-		return nil, fmt.Errorf("permission denied: only project owners can view usage statistics")
-	}
-
-	// For owners/system owners, we allow querying all logs within the project
+	// Allow querying all logs for usage statistics.
 	ctx = privacy.DecisionContext(ctx, privacy.Allow)
 
 	var since time.Time
@@ -1830,8 +1732,7 @@ func (r *queryResolver) UsageStatsByUser(ctx context.Context, timeWindow *string
 	var results []userUsageStats
 
 	query := r.client.UsageLog.Query().
-		Where(usagelog.APIKeyIDNotNil()).
-		Where(usagelog.ProjectIDEQ(projectID))
+		Where(usagelog.APIKeyIDNotNil())
 
 	if applyGTE {
 		query = query.Where(usagelog.CreatedAtGTE(since))

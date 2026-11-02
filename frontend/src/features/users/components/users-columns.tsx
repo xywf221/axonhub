@@ -8,27 +8,24 @@ import LongText from '@/components/long-text';
 import { User } from '../data/schema';
 import { DataTableRowActions } from './data-table-row-actions';
 
-export const createColumns = (t: ReturnType<typeof useTranslation>['t'], canWrite: boolean = false): ColumnDef<User>[] => {
+export const createColumns = (t: ReturnType<typeof useTranslation>['t']): ColumnDef<User>[] => {
   const columns: ColumnDef<User>[] = [];
 
-  // Only show select column if user has write permissions (for potential bulk operations)
-  if (canWrite) {
-    columns.push({
-      id: 'select',
-      header: ({ table }: { table: Table<User> }) => (
-        <Checkbox
-          checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label='Select all'
-        />
-      ),
-      cell: ({ row }: { row: Row<User> }) => (
-        <Checkbox checked={row.getIsSelected()} onCheckedChange={(value) => row.toggleSelected(!!value)} aria-label='Select row' />
-      ),
-      enableSorting: false,
-      enableHiding: false,
-    });
-  }
+  columns.push({
+    id: 'select',
+    header: ({ table }: { table: Table<User> }) => (
+      <Checkbox
+        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label='Select all'
+      />
+    ),
+    cell: ({ row }: { row: Row<User> }) => (
+      <Checkbox checked={row.getIsSelected()} onCheckedChange={(value) => row.toggleSelected(!!value)} aria-label='Select row' />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  });
 
   // Add other columns
   columns.push(
@@ -56,26 +53,6 @@ export const createColumns = (t: ReturnType<typeof useTranslation>['t'], canWrit
           <Badge variant='default'>{t('users.badges.owner')}</Badge>
         ) : (
           <Badge variant='secondary'>{t('users.badges.user')}</Badge>
-        );
-      },
-    },
-    {
-      accessorKey: 'roles',
-      header: t('users.columns.roles'),
-      cell: ({ row }) => {
-        const user = row.original;
-        const roles = user.roles?.edges?.map((edge) => edge.node);
-        if (!roles || roles.length === 0) {
-          return <span className='text-muted-foreground'>{t('users.badges.noRoles')}</span>;
-        }
-        return (
-          <div className='flex flex-wrap gap-1'>
-            {roles.map((role) => (
-              <Badge key={role.id} variant='outline'>
-                {role.name}
-              </Badge>
-            ))}
-          </div>
         );
       },
     },

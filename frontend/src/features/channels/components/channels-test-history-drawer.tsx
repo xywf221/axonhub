@@ -57,7 +57,7 @@ export function ChannelsTestHistoryDrawer({ open, onOpenChange, channel }: Props
         direction: 'DESC',
       },
     },
-    { scopeToSelectedProject: false, projectId: null, enabled: open }
+    { enabled: open }
   );
 
   const requests = useMemo(() => data?.edges?.map((edge) => edge.node) || [], [data]);
@@ -74,7 +74,6 @@ export function ChannelsTestHistoryDrawer({ open, onOpenChange, channel }: Props
   }, [open, selectedRequestId, requests]);
 
   const { data: request, isLoading: isRequestLoading } = useRequest(selectedRequestId ?? '', {
-    projectId: null,
     enabled: open && !!selectedRequestId,
   });
 

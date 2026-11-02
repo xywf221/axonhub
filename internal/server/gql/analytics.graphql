@@ -9,8 +9,6 @@ input AnalyticsFilter {
   startTime: String
   "End date (inclusive, YYYY-MM-DD, parsed in system timezone)"
   endTime: String
-  "Filter by project IDs"
-  projectIDs: [ID!]
   "Filter by channel IDs"
   channelIDs: [ID!]
   "Filter by model IDs (model identifier strings)"

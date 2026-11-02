@@ -20,7 +20,6 @@ import (
 	"github.com/looplj/axonhub/internal/ent/channel"
 	"github.com/looplj/axonhub/internal/ent/enttest"
 	"github.com/looplj/axonhub/internal/ent/model"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/user"
 	"github.com/looplj/axonhub/internal/objects"
 	"github.com/looplj/axonhub/internal/pkg/xcache"
@@ -51,11 +50,6 @@ func TestAdminGraphqlServiceAccount(t *testing.T) {
 		SetStatus(user.StatusActivated).
 		SaveX(setupCtx)
 
-	proj := db.Project.Create().
-		SetName(fmt.Sprintf("project-%d", time.Now().UnixNano())).
-		SetStatus(project.StatusActive).
-		SaveX(setupCtx)
-
 	mustKey := func(name string, keyScopes []string) string {
 		value, err := biz.GenerateAPIKey("ah")
 		require.NoError(t, err)
@@ -64,7 +58,6 @@ func TestAdminGraphqlServiceAccount(t *testing.T) {
 			SetName(name).
 			SetKey(value).
 			SetUserID(owner.ID).
-			SetProjectID(proj.ID).
 			SetType(apikey.TypeServiceAccount).
 			SetStatus(apikey.StatusEnabled).
 			SetScopes(keyScopes).
@@ -102,11 +95,8 @@ func TestAdminGraphqlServiceAccount(t *testing.T) {
 	handler := NewGraphqlHandlers(Dependencies{Ent: db, ChannelService: channelSvc})
 
 	cacheCfg := xcache.Config{Mode: xcache.ModeMemory}
-	projectSvc := &biz.ProjectService{
-		ProjectCache: xcache.NewFromConfig[xcache.Entry[ent.Project]](cacheCfg),
-	}
 	apiKeySvc := biz.NewAPIKeyService(biz.APIKeyServiceParams{
-		CacheConfig: cacheCfg, Ent: db, ProjectService: projectSvc, KeyPrefix: "ah",
+		CacheConfig: cacheCfg, Ent: db, KeyPrefix: "ah",
 	})
 	t.Cleanup(apiKeySvc.Stop)
 	systemSvc := biz.NewSystemService(biz.SystemServiceParams{CacheConfig: cacheCfg, Ent: db})

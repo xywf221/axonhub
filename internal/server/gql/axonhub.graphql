@@ -503,33 +503,8 @@ input APIKeyProfileInput {
   channelTags: [String!]
   channelTagsMatchMode: ChannelTagsMatchMode
   modelIDs: [String!]
-  quota: APIKeyQuotaInput
   loadBalanceStrategy: String
   traceStickyMode: String
-}
-
-input UpdateProjectProfilesInput {
-  activeProfile: String!
-  profiles: [ProjectProfileInput!]
-}
-
-input ProjectProfileInput {
-  name: String!
-  channelIDs: [Int!]
-  channelTags: [String!]
-  channelTagsMatchMode: ChannelTagsMatchMode
-}
-
-type ProjectProfiles {
-  activeProfile: String!
-  profiles: [ProjectProfile!]
-}
-
-type ProjectProfile {
-  name: String!
-  channelIDs: [Int!]
-  channelTags: [String!]
-  channelTagsMatchMode: ChannelTagsMatchMode
 }
 
 input UpdateAPIKeyScopesInput {
@@ -550,7 +525,6 @@ type APIKeyProfile {
   channelTags: [String!]
   channelTagsMatchMode: ChannelTagsMatchMode
   modelIDs: [String!]
-  quota: APIKeyQuota
   loadBalanceStrategy: String
   traceStickyMode: String
 }
@@ -571,85 +545,6 @@ extend type APIKeyProfileTemplate {
 input LoadApiKeyProfileTemplateInput {
   templateID: ID!
   apiKeyID: ID!
-}
-
-input APIKeyQuotaInput {
-  requests: Int
-  totalTokens: Int
-  cost: DecimalInput
-  period: APIKeyQuotaPeriodInput!
-}
-
-input APIKeyQuotaPeriodInput {
-  type: APIKeyQuotaPeriodType!
-  pastDuration: APIKeyQuotaPastDurationInput
-  calendarDuration: APIKeyQuotaCalendarDurationInput
-}
-
-enum APIKeyQuotaPeriodType {
-  all_time
-  past_duration
-  calendar_duration
-}
-
-input APIKeyQuotaPastDurationInput {
-  value: Int!
-  unit: APIKeyQuotaPastDurationUnit!
-}
-
-enum APIKeyQuotaPastDurationUnit {
-  minute
-  hour
-  day
-}
-
-input APIKeyQuotaCalendarDurationInput {
-  unit: APIKeyQuotaCalendarDurationUnit!
-}
-
-enum APIKeyQuotaCalendarDurationUnit {
-  day
-  month
-}
-
-type APIKeyQuota {
-  requests: Int
-  totalTokens: Int
-  cost: Decimal
-  period: APIKeyQuotaPeriod!
-}
-
-type APIKeyQuotaPeriod {
-  type: APIKeyQuotaPeriodType!
-  pastDuration: APIKeyQuotaPastDuration
-  calendarDuration: APIKeyQuotaCalendarDuration
-}
-
-type APIKeyQuotaPastDuration {
-  value: Int!
-  unit: APIKeyQuotaPastDurationUnit!
-}
-
-type APIKeyQuotaCalendarDuration {
-  unit: APIKeyQuotaCalendarDurationUnit!
-}
-
-type APIKeyQuotaUsage {
-  requestCount: Int!
-  totalTokens: Int!
-  totalCost: Decimal!
-}
-
-type APIKeyQuotaWindow {
-  start: Time
-  end: Time
-}
-
-type APIKeyProfileQuotaUsage {
-  profileName: String!
-  quota: APIKeyQuota!
-  window: APIKeyQuotaWindow!
-  usage: APIKeyQuotaUsage!
 }
 
 input FetchModelsInput {
@@ -685,28 +580,6 @@ input QueryModelsInput {
 type ChannelTypeCount {
   type: String!
   count: Int!
-}
-
-input AddUserToProjectInput {
-  projectId: ID!
-  userId: ID!
-  isOwner: Boolean
-  scopes: [String!]
-  roleIDs: [ID!]
-}
-
-input UpdateProjectUserInput {
-  projectId: ID!
-  userId: ID!
-  isOwner: Boolean
-  scopes: [String!]
-  addRoleIDs: [ID!]
-  removeRoleIDs: [ID!]
-}
-
-input RemoveUserFromProjectInput {
-  projectId: ID!
-  userId: ID!
 }
 
 input DataStorageSettingsInput {
@@ -1002,21 +875,6 @@ type Mutation {
   updateUserStatus(id: ID!, status: UserStatus!): User!
   deleteUser(id: ID!): Boolean!
 
-  createRole(input: CreateRoleInput!): Role!
-  updateRole(id: ID!, input: UpdateRoleInput!): Role!
-  deleteRole(id: ID!): Boolean!
-  bulkDeleteRoles(ids: [ID!]!): Boolean!
-
-  createProject(input: CreateProjectInput!): Project!
-  updateProject(id: ID!, input: UpdateProjectInput!): Project!
-  updateProjectStatus(id: ID!, status: ProjectStatus!): Project!
-  updateProjectProfiles(id: ID!, input: UpdateProjectProfilesInput!): Project!
-  deleteProject(id: ID!): Boolean!
-
-  addUserToProject(input: AddUserToProjectInput!): UserProject!
-  removeUserFromProject(input: RemoveUserFromProjectInput!): Boolean!
-  updateProjectUser(input: UpdateProjectUserInput!): UserProject!
-
   createDataStorage(input: CreateDataStorageInput!): DataStorage!
   updateDataStorage(id: ID!, input: UpdateDataStorageInput!): DataStorage!
 
@@ -1125,9 +983,4 @@ extend type Query {
   hasTag: String
   """
   queryChannels(input: QueryChannelInput!): ChannelConnection!
-
-  """
-  Returns quota usage for profiles that have quota enabled for an API key.
-  """
-  apiKeyQuotaUsages(apiKeyId: ID!): [APIKeyProfileQuotaUsage!]!
 }

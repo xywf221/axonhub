@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/looplj/axonhub/internal/ent/predicate"
 )
 
@@ -78,11 +77,6 @@ func Name(v string) predicate.APIKeyProfileTemplate {
 // Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
 func Description(v string) predicate.APIKeyProfileTemplate {
 	return predicate.APIKeyProfileTemplate(sql.FieldEQ(FieldDescription, v))
-}
-
-// ProjectID applies equality check predicate on the "project_id" field. It's identical to ProjectIDEQ.
-func ProjectID(v int) predicate.APIKeyProfileTemplate {
-	return predicate.APIKeyProfileTemplate(sql.FieldEQ(FieldProjectID, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
@@ -335,26 +329,6 @@ func DescriptionContainsFold(v string) predicate.APIKeyProfileTemplate {
 	return predicate.APIKeyProfileTemplate(sql.FieldContainsFold(FieldDescription, v))
 }
 
-// ProjectIDEQ applies the EQ predicate on the "project_id" field.
-func ProjectIDEQ(v int) predicate.APIKeyProfileTemplate {
-	return predicate.APIKeyProfileTemplate(sql.FieldEQ(FieldProjectID, v))
-}
-
-// ProjectIDNEQ applies the NEQ predicate on the "project_id" field.
-func ProjectIDNEQ(v int) predicate.APIKeyProfileTemplate {
-	return predicate.APIKeyProfileTemplate(sql.FieldNEQ(FieldProjectID, v))
-}
-
-// ProjectIDIn applies the In predicate on the "project_id" field.
-func ProjectIDIn(vs ...int) predicate.APIKeyProfileTemplate {
-	return predicate.APIKeyProfileTemplate(sql.FieldIn(FieldProjectID, vs...))
-}
-
-// ProjectIDNotIn applies the NotIn predicate on the "project_id" field.
-func ProjectIDNotIn(vs ...int) predicate.APIKeyProfileTemplate {
-	return predicate.APIKeyProfileTemplate(sql.FieldNotIn(FieldProjectID, vs...))
-}
-
 // ProfileIsNil applies the IsNil predicate on the "profile" field.
 func ProfileIsNil() predicate.APIKeyProfileTemplate {
 	return predicate.APIKeyProfileTemplate(sql.FieldIsNull(FieldProfile))
@@ -363,29 +337,6 @@ func ProfileIsNil() predicate.APIKeyProfileTemplate {
 // ProfileNotNil applies the NotNil predicate on the "profile" field.
 func ProfileNotNil() predicate.APIKeyProfileTemplate {
 	return predicate.APIKeyProfileTemplate(sql.FieldNotNull(FieldProfile))
-}
-
-// HasProject applies the HasEdge predicate on the "project" edge.
-func HasProject() predicate.APIKeyProfileTemplate {
-	return predicate.APIKeyProfileTemplate(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, ProjectTable, ProjectColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasProjectWith applies the HasEdge predicate on the "project" edge with a given conditions (other predicates).
-func HasProjectWith(preds ...predicate.Project) predicate.APIKeyProfileTemplate {
-	return predicate.APIKeyProfileTemplate(func(s *sql.Selector) {
-		step := newProjectStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
 }
 
 // And groups predicates with the AND operator between them.

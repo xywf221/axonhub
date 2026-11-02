@@ -3,19 +3,6 @@ import { create } from 'zustand';
 export const ACCESS_TOKEN = 'axonhub_access_token';
 const USER_INFO = 'axonhub_user_info';
 
-interface Role {
-  code: string;
-  name: string;
-}
-
-interface Project {
-  projectID: string;
-  isOwner: boolean;
-  scopes: string[];
-  effectiveScopes?: string[];
-  roles: Role[];
-}
-
 export interface AuthUser {
   id: string;
   email: string;
@@ -24,9 +11,6 @@ export interface AuthUser {
   isOwner: boolean;
   preferLanguage: string;
   avatar?: string;
-  scopes: string[];
-  roles: Role[];
-  projects: Project[];
   oidcIdentities?: { id: string; idpName: string; issuer: string; subject: string; email: string }[];
   hasPassword?: boolean;
 }

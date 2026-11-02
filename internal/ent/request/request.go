@@ -26,8 +26,6 @@ const (
 	FieldAPIKeyID = "api_key_id"
 	// FieldUserID holds the string denoting the user_id field in the database.
 	FieldUserID = "user_id"
-	// FieldProjectID holds the string denoting the project_id field in the database.
-	FieldProjectID = "project_id"
 	// FieldTraceID holds the string denoting the trace_id field in the database.
 	FieldTraceID = "trace_id"
 	// FieldDataStorageID holds the string denoting the data_storage_id field in the database.
@@ -78,8 +76,6 @@ const (
 	FieldContentSavedAt = "content_saved_at"
 	// EdgeAPIKey holds the string denoting the api_key edge name in mutations.
 	EdgeAPIKey = "api_key"
-	// EdgeProject holds the string denoting the project edge name in mutations.
-	EdgeProject = "project"
 	// EdgeTrace holds the string denoting the trace edge name in mutations.
 	EdgeTrace = "trace"
 	// EdgeDataStorage holds the string denoting the data_storage edge name in mutations.
@@ -99,13 +95,6 @@ const (
 	APIKeyInverseTable = "api_keys"
 	// APIKeyColumn is the table column denoting the api_key relation/edge.
 	APIKeyColumn = "api_key_id"
-	// ProjectTable is the table that holds the project relation/edge.
-	ProjectTable = "requests"
-	// ProjectInverseTable is the table name for the Project entity.
-	// It exists in this package in order to avoid circular dependency with the "project" package.
-	ProjectInverseTable = "projects"
-	// ProjectColumn is the table column denoting the project relation/edge.
-	ProjectColumn = "project_id"
 	// TraceTable is the table that holds the trace relation/edge.
 	TraceTable = "requests"
 	// TraceInverseTable is the table name for the Trace entity.
@@ -150,7 +139,6 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldAPIKeyID,
 	FieldUserID,
-	FieldProjectID,
 	FieldTraceID,
 	FieldDataStorageID,
 	FieldSource,
@@ -201,8 +189,6 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// DefaultProjectID holds the default value on creation for the "project_id" field.
-	DefaultProjectID int
 	// DefaultFormat holds the default value on creation for the "format" field.
 	DefaultFormat string
 	// ExternalIDValidator is a validator for the "external_id" field. It is called by the builders before save.
@@ -296,11 +282,6 @@ func ByAPIKeyID(opts ...sql.OrderTermOption) OrderOption {
 // ByUserID orders the results by the user_id field.
 func ByUserID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUserID, opts...).ToFunc()
-}
-
-// ByProjectID orders the results by the project_id field.
-func ByProjectID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldProjectID, opts...).ToFunc()
 }
 
 // ByTraceID orders the results by the trace_id field.
@@ -405,13 +386,6 @@ func ByAPIKeyField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
-// ByProjectField orders the results by project field.
-func ByProjectField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newProjectStep(), sql.OrderByField(field, opts...))
-	}
-}
-
 // ByTraceField orders the results by trace field.
 func ByTraceField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -465,13 +439,6 @@ func newAPIKeyStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(APIKeyInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, APIKeyTable, APIKeyColumn),
-	)
-}
-func newProjectStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ProjectInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, ProjectTable, ProjectColumn),
 	)
 }
 func newTraceStep() *sqlgraph.Step {

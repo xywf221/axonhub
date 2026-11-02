@@ -213,19 +213,22 @@ func (s *QuotaService) CheckQuota(ctx context.Context, apiKeyID int) error {
 ### 场景二：权限校验辅助查询
 
 ```go
-func (v *PermissionValidator) HasPermission(ctx context.Context, userID int, permission string) (bool, error) {
-    // 使用 RunWithBypass 查询权限数据
-    roles, err := authz.RunWithBypass(ctx, "permission-check", func(bypassCtx context.Context) ([]*ent.Role, error) {
-        return v.client.User.Query().
-            Where(user.ID(userID)).
-            QueryRoles().
-            All(bypassCtx)
+func (v *PermissionValidator) HasPermission(ctx context.Context, apiKeyID int, permission string) (bool, error) {
+    // 使用 RunWithBypass 查询 API Key 的作用域
+    apiKey, err := authz.RunWithBypass(ctx, "permission-check", func(bypassCtx context.Context) (*ent.APIKey, error) {
+        return v.client.APIKey.Get(bypassCtx, apiKeyID)
     })
     if err != nil {
         return false, err
     }
 
-    // 校验权限...
+    for _, scope := range apiKey.Scopes {
+        if scope == permission {
+            return true, nil
+        }
+    }
+
+    return false, nil
 }
 ```
 

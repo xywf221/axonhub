@@ -14,7 +14,6 @@ import (
 	"github.com/looplj/axonhub/internal/ent/apikey"
 	"github.com/looplj/axonhub/internal/ent/channel"
 	"github.com/looplj/axonhub/internal/ent/datastorage"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/request"
 	"github.com/looplj/axonhub/internal/ent/requestexecution"
 	"github.com/looplj/axonhub/internal/ent/trace"
@@ -82,20 +81,6 @@ func (_c *RequestCreate) SetUserID(v int) *RequestCreate {
 func (_c *RequestCreate) SetNillableUserID(v *int) *RequestCreate {
 	if v != nil {
 		_c.SetUserID(*v)
-	}
-	return _c
-}
-
-// SetProjectID sets the "project_id" field.
-func (_c *RequestCreate) SetProjectID(v int) *RequestCreate {
-	_c.mutation.SetProjectID(v)
-	return _c
-}
-
-// SetNillableProjectID sets the "project_id" field if the given value is not nil.
-func (_c *RequestCreate) SetNillableProjectID(v *int) *RequestCreate {
-	if v != nil {
-		_c.SetProjectID(*v)
 	}
 	return _c
 }
@@ -385,11 +370,6 @@ func (_c *RequestCreate) SetAPIKey(v *APIKey) *RequestCreate {
 	return _c.SetAPIKeyID(v.ID)
 }
 
-// SetProject sets the "project" edge to the Project entity.
-func (_c *RequestCreate) SetProject(v *Project) *RequestCreate {
-	return _c.SetProjectID(v.ID)
-}
-
 // SetTrace sets the "trace" edge to the Trace entity.
 func (_c *RequestCreate) SetTrace(v *Trace) *RequestCreate {
 	return _c.SetTraceID(v.ID)
@@ -486,10 +466,6 @@ func (_c *RequestCreate) defaults() error {
 		v := request.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := _c.mutation.ProjectID(); !ok {
-		v := request.DefaultProjectID
-		_c.mutation.SetProjectID(v)
-	}
 	if _, ok := _c.mutation.Source(); !ok {
 		v := request.DefaultSource
 		_c.mutation.SetSource(v)
@@ -519,9 +495,6 @@ func (_c *RequestCreate) defaults() error {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *RequestCreate) check() error {
-	if _, ok := _c.mutation.ProjectID(); !ok {
-		return &ValidationError{Name: "project_id", err: errors.New(`ent: missing required field "Request.project_id"`)}
-	}
 	if _, ok := _c.mutation.Source(); !ok {
 		return &ValidationError{Name: "source", err: errors.New(`ent: missing required field "Request.source"`)}
 	}
@@ -563,9 +536,6 @@ func (_c *RequestCreate) check() error {
 	}
 	if _, ok := _c.mutation.ContentSaved(); !ok {
 		return &ValidationError{Name: "content_saved", err: errors.New(`ent: missing required field "Request.content_saved"`)}
-	}
-	if len(_c.mutation.ProjectIDs()) == 0 {
-		return &ValidationError{Name: "project", err: errors.New(`ent: missing required edge "Request.project"`)}
 	}
 	return nil
 }
@@ -705,23 +675,6 @@ func (_c *RequestCreate) createSpec() (*Request, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.APIKeyID = nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.ProjectIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   request.ProjectTable,
-			Columns: []string{request.ProjectColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.ProjectID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.TraceIDs(); len(nodes) > 0 {
@@ -1154,9 +1107,6 @@ func (u *RequestUpsertOne) UpdateNewValues() *RequestUpsertOne {
 		}
 		if _, exists := u.create.mutation.UserID(); exists {
 			s.SetIgnore(request.FieldUserID)
-		}
-		if _, exists := u.create.mutation.ProjectID(); exists {
-			s.SetIgnore(request.FieldProjectID)
 		}
 		if _, exists := u.create.mutation.TraceID(); exists {
 			s.SetIgnore(request.FieldTraceID)
@@ -1725,9 +1675,6 @@ func (u *RequestUpsertBulk) UpdateNewValues() *RequestUpsertBulk {
 			}
 			if _, exists := b.mutation.UserID(); exists {
 				s.SetIgnore(request.FieldUserID)
-			}
-			if _, exists := b.mutation.ProjectID(); exists {
-				s.SetIgnore(request.FieldProjectID)
 			}
 			if _, exists := b.mutation.TraceID(); exists {
 				s.SetIgnore(request.FieldTraceID)

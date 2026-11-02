@@ -37,14 +37,13 @@ func TestStreamDeliveryAccountingBaseline(t *testing.T) {
 			client := enttest.NewEntClient(t, "sqlite3", "file:ent?mode=memory&_fk=0")
 			t.Cleanup(func() { require.NoError(t, client.Close()) })
 			ctx := authz.WithTestBypass(ent.NewContext(t.Context(), client))
-			project := createTestProject(t, ctx, client)
 			channel := createTestChannel(t, ctx, client)
 			_, requestService, _, usageService := setupTestServices(t, client)
-			req, err := client.Request.Create().SetProjectID(project.ID).SetChannelID(channel.ID).
+			req, err := client.Request.Create().SetChannelID(channel.ID).
 				SetModelID("gpt-5").SetStatus(request.StatusProcessing).SetStream(true).
 				SetRequestBody([]byte(`{"stream":true}`)).Save(ctx)
 			require.NoError(t, err)
-			exec, err := client.RequestExecution.Create().SetRequestID(req.ID).SetProjectID(project.ID).
+			exec, err := client.RequestExecution.Create().SetRequestID(req.ID).
 				SetChannelID(channel.ID).SetModelID("gpt-5").SetFormat(llm.APIFormatOpenAIResponse.String()).
 				SetStatus(requestexecution.StatusProcessing).SetStream(true).
 				SetRequestBody([]byte(`{"stream":true}`)).Save(ctx)

@@ -27,7 +27,6 @@ import (
 	"github.com/looplj/axonhub/internal/pkg/xerrors"
 	"github.com/looplj/axonhub/internal/pkg/xregexp"
 	"github.com/looplj/axonhub/internal/pkg/xtime"
-	"github.com/looplj/axonhub/llm/httpclient"
 )
 
 const (
@@ -70,10 +69,6 @@ const (
 	// SystemKeyRetryPolicy is the key used to store the retry policy configuration.
 	// The value is JSON-encoded RetryPolicy struct.
 	SystemKeyRetryPolicy = "retry_policy"
-
-	// SystemKeyWebhookNotifierConfig is the key used to store the webhook notifier configuration.
-	// The value is JSON-encoded WebhookNotifierConfig struct.
-	SystemKeyWebhookNotifierConfig = "webhook_notifier_config"
 
 	// SystemKeyDefaultDataStorage is the key used to store the default data storage ID.
 	// If not set, the primary data storage will be used.
@@ -129,10 +124,6 @@ const (
 	// SystemKeyQuotaRoutingMigrationDone marks completion of quota routing migration.
 	SystemKeyQuotaRoutingMigrationDone = "quota_routing_migration_done"
 
-	// SystemKeySecuritySettings is the key used to store security settings.
-	// The value is JSON-encoded SecuritySettings struct.
-	SystemKeySecuritySettings = "security_settings"
-
 	// SystemKeyWebSearchSettings is the key used to store the global web search endpoint.
 	// The value is JSON-encoded WebSearchSettings struct.
 	SystemKeyWebSearchSettings = "web_search_settings"
@@ -182,19 +173,6 @@ type legacyQuotaEnforcementSettings struct {
 	DePrioritize      bool   `json:"dePrioritize"`
 	AllowedChannelIDs []int  `json:"allowedChannelIDs"`
 	Mode              string `json:"mode"`
-}
-
-// SecuritySettings represents system-wide request access controls.
-type SecuritySettings struct {
-	// BlockedIPs contains IP addresses or CIDR ranges that cannot use external APIs.
-	BlockedIPs []string `json:"blocked_ips"`
-	// ShowRequestLogIPBanIcon controls whether the request log IP column shows the quick ban action.
-	ShowRequestLogIPBanIcon bool `json:"show_request_log_ip_ban_icon"`
-}
-
-type securitySettingsJSON struct {
-	BlockedIPs              []string `json:"blocked_ips"`
-	ShowRequestLogIPBanIcon *bool    `json:"show_request_log_ip_ban_icon"`
 }
 
 // BackupFrequency represents how often automatic backups should run.
@@ -423,26 +401,6 @@ type AutoDisableChannelStatus struct {
 
 	// Times is the number of times the status code occurs before auto-disable the channel.
 	Times int `json:"times"`
-}
-
-type WebhookNotifierConfig struct {
-	Targets       []WebhookTarget       `json:"targets"`
-	Subscriptions []WebhookSubscription `json:"subscriptions"`
-}
-
-type WebhookTarget struct {
-	Name      string                  `json:"name"`
-	Enabled   bool                    `json:"enabled"`
-	URL       string                  `json:"url"`
-	Proxy     *httpclient.ProxyConfig `json:"proxy,omitempty"`
-	TimeoutMs int                     `json:"timeout_ms"`
-	Headers   []objects.HeaderEntry   `json:"headers"`
-	Body      string                  `json:"body"`
-}
-
-type WebhookSubscription struct {
-	Event       string   `json:"event"`
-	TargetNames []string `json:"target_names"`
 }
 
 // SystemModelSettings represents model-related configuration settings.
@@ -781,7 +739,6 @@ func (s *SystemService) Initialize(ctx context.Context, params *InitializeSystem
 		SetLastName(params.OwnerLastName).
 		SetPreferLanguage(preferLanguage).
 		SetIsOwner(true).
-		SetScopes([]string{"*"}). // Give owner all scopes
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to create owner user: %w", err)
@@ -789,21 +746,8 @@ func (s *SystemService) Initialize(ctx context.Context, params *InitializeSystem
 
 	log.Info(ctx, "created owner user", zap.Int("user_id", user.ID))
 
-	// Set user in context for project creation
+	// Set user in context
 	ctx = contexts.WithUser(ctx, user)
-	// Create default project and assign owner
-	projectService := NewProjectService(ProjectServiceParams{})
-	projectInput := ent.CreateProjectInput{
-		Name:        "Default",
-		Description: lo.ToPtr("Default project"),
-	}
-
-	_, err = projectService.CreateProject(ctx, projectInput)
-	if err != nil {
-		return fmt.Errorf("failed to create default project: %w", err)
-	}
-
-	log.Info(ctx, "created default project", zap.String("slug", "default"))
 
 	// Set secret key.
 	err = s.setSystemValue(ctx, SystemKeySecretKey, secretKey)
@@ -1181,68 +1125,6 @@ func normalizeRetryPolicy(policy *RetryPolicy) {
 		strings.TrimSpace(policy.UpstreamErrorPolicy.CustomMessage) == "" {
 		policy.UpstreamErrorPolicy.Mode = UpstreamErrorModeHidden
 	}
-}
-
-func normalizeWebhookNotifierConfig(cfg *WebhookNotifierConfig) {
-	if cfg == nil {
-		return
-	}
-
-	if cfg.Targets == nil {
-		cfg.Targets = []WebhookTarget{}
-	}
-
-	if cfg.Subscriptions == nil {
-		cfg.Subscriptions = []WebhookSubscription{}
-	}
-}
-
-func (s *SystemService) WebhookNotifierConfig(ctx context.Context) (*WebhookNotifierConfig, error) {
-	value, err := s.getSystemValue(ctx, SystemKeyWebhookNotifierConfig)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			cfg := WebhookNotifierConfig{}
-			normalizeWebhookNotifierConfig(&cfg)
-
-			return &cfg, nil
-		}
-
-		return nil, fmt.Errorf("failed to get webhook notifier config: %w", err)
-	}
-
-	var cfg WebhookNotifierConfig
-	if err := json.Unmarshal([]byte(value), &cfg); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal webhook notifier config: %w", err)
-	}
-
-	normalizeWebhookNotifierConfig(&cfg)
-
-	return &cfg, nil
-}
-
-func (s *SystemService) WebhookNotifierConfigOrDefault(ctx context.Context) *WebhookNotifierConfig {
-	cfg, err := s.WebhookNotifierConfig(ctx)
-	if err != nil {
-		log.Error(ctx, "failed to get webhook notifier config", log.Cause(err))
-
-		defaultCfg := WebhookNotifierConfig{}
-		normalizeWebhookNotifierConfig(&defaultCfg)
-
-		return &defaultCfg
-	}
-
-	return cfg
-}
-
-func (s *SystemService) SetWebhookNotifierConfig(ctx context.Context, cfg *WebhookNotifierConfig) error {
-	normalizeWebhookNotifierConfig(cfg)
-
-	jsonBytes, err := json.Marshal(cfg)
-	if err != nil {
-		return fmt.Errorf("failed to marshal webhook notifier config: %w", err)
-	}
-
-	return s.setSystemValue(ctx, SystemKeyWebhookNotifierConfig, string(jsonBytes))
 }
 
 // ModelSettings retrieves the model settings configuration.
@@ -1903,85 +1785,6 @@ func isQuotaRoutingMode(mode objects.QuotaRoutingMode) bool {
 	default:
 		return false
 	}
-}
-
-// SecuritySettings retrieves the security settings.
-func (s *SystemService) SecuritySettings(ctx context.Context) (*SecuritySettings, error) {
-	value, err := s.getSystemValue(ctx, SystemKeySecuritySettings)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return lo.ToPtr(defaultSecuritySettings), nil
-		}
-
-		return nil, fmt.Errorf("failed to get security settings: %w", err)
-	}
-
-	var storedSettings securitySettingsJSON
-	if err := json.Unmarshal([]byte(value), &storedSettings); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal security settings: %w", err)
-	}
-
-	settings := defaultSecuritySettings
-	settings.BlockedIPs = storedSettings.BlockedIPs
-	if storedSettings.ShowRequestLogIPBanIcon != nil {
-		settings.ShowRequestLogIPBanIcon = *storedSettings.ShowRequestLogIPBanIcon
-	}
-
-	normalizeSecuritySettings(&settings)
-
-	return &settings, nil
-}
-
-// SecuritySettingsOrDefault retrieves the security settings or returns the default.
-func (s *SystemService) SecuritySettingsOrDefault(ctx context.Context) *SecuritySettings {
-	settings, err := s.SecuritySettings(ctx)
-	if err != nil {
-		log.Warn(ctx, "failed to get security settings", log.Cause(err))
-
-		return lo.ToPtr(defaultSecuritySettings)
-	}
-
-	return settings
-}
-
-// SetSecuritySettings sets the security settings.
-func (s *SystemService) SetSecuritySettings(ctx context.Context, settings SecuritySettings) error {
-	normalizeSecuritySettings(&settings)
-
-	jsonBytes, err := json.Marshal(settings)
-	if err != nil {
-		return fmt.Errorf("failed to marshal security settings: %w", err)
-	}
-
-	return s.setSystemValue(ctx, SystemKeySecuritySettings, string(jsonBytes))
-}
-
-func normalizeSecuritySettings(settings *SecuritySettings) {
-	if settings == nil {
-		return
-	}
-
-	if settings.BlockedIPs == nil {
-		settings.BlockedIPs = []string{}
-	}
-
-	seen := make(map[string]struct{}, len(settings.BlockedIPs))
-	blockedIPs := make([]string, 0, len(settings.BlockedIPs))
-	for _, value := range settings.BlockedIPs {
-		value = strings.TrimSpace(value)
-		if value == "" {
-			continue
-		}
-
-		if _, ok := seen[value]; ok {
-			continue
-		}
-
-		seen[value] = struct{}{}
-		blockedIPs = append(blockedIPs, value)
-	}
-
-	settings.BlockedIPs = blockedIPs
 }
 
 // WebSearchSettings retrieves the global web search endpoint settings.

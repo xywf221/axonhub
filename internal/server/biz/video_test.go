@@ -66,27 +66,30 @@ func newVideoServiceFixture(t *testing.T, channelType channel.Type, baseURL stri
 }
 
 func (f videoServiceFixture) createTask(t *testing.T, format, externalID string) *ent.Request {
-	return f.createTaskInProject(t, 1, format, externalID)
+	return f.createTaskForAPIKey(t, 0, format, externalID)
 }
 
-func (f videoServiceFixture) createTaskInProject(t *testing.T, projectID int, format, externalID string) *ent.Request {
+func (f videoServiceFixture) createTaskForAPIKey(t *testing.T, apiKeyID int, format, externalID string) *ent.Request {
 	t.Helper()
 
-	task, err := f.client.Request.Create().
-		SetProjectID(projectID).
+	create := f.client.Request.Create().
 		SetModelID("video-model").
 		SetFormat(format).
 		SetRequestBody(objects.JSONRawMessage(`{}`)).
 		SetStatus(request.StatusProcessing).
 		SetChannelID(f.channel.ID).
-		SetExternalID(externalID).
-		Save(f.ctx)
+		SetExternalID(externalID)
+	if apiKeyID != 0 {
+		create.SetAPIKeyID(apiKeyID)
+	}
+
+	task, err := create.Save(f.ctx)
 	require.NoError(t, err)
 
 	return task
 }
 
-func TestVideoService_ExternalIDLookupRespectsAPIKeyProjectScope(t *testing.T) {
+func TestVideoService_ExternalIDLookupRespectsAPIKeyScope(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"id":"task","object":"video","status":"queued"}`))
@@ -96,43 +99,42 @@ func TestVideoService_ExternalIDLookupRespectsAPIKeyProjectScope(t *testing.T) {
 	fixture := newVideoServiceFixture(t, channel.TypeZenmux, server.URL)
 	fixture.service.ChannelService.httpClient = httpclient.NewHttpClientWithClient(server.Client())
 	fixture.service.RequestService.SystemService = NewSystemService(SystemServiceParams{Ent: fixture.client, CacheConfig: xcache.Config{Mode: xcache.ModeMemory}})
-	projectOneTask := fixture.createTaskInProject(t, 1, llm.APIFormatOpenAIVideo.String(), "project-one-task")
-	projectTwoTask := fixture.createTaskInProject(t, 2, llm.APIFormatOpenAIVideo.String(), "project-two-task")
-	fixture.createExecution(t, projectOneTask, llm.APIFormatZenmuxVideo.String(), "project-one-task")
-	fixture.createExecution(t, projectTwoTask, llm.APIFormatZenmuxVideo.String(), "project-two-task")
 
 	keyOne, err := fixture.client.APIKey.Create().
-		SetName("project-one-key").
-		SetKey("project-one-secret").
+		SetName("key-one").
+		SetKey("key-one-secret").
 		SetType(apikey.TypeServiceAccount).
-		SetProjectID(1).
 		SetScopes([]string{string(scopes.ScopeWriteRequests)}).
 		Save(fixture.ctx)
 	require.NoError(t, err)
 	keyTwo, err := fixture.client.APIKey.Create().
-		SetName("project-two-key").
-		SetKey("project-two-secret").
+		SetName("key-two").
+		SetKey("key-two-secret").
 		SetType(apikey.TypeServiceAccount).
-		SetProjectID(2).
 		SetScopes([]string{string(scopes.ScopeWriteRequests)}).
 		Save(fixture.ctx)
 	require.NoError(t, err)
 
-	projectOneCtx := contexts.WithAPIKey(contexts.WithProjectID(fixture.ctx, 1), keyOne)
-	projectTwoCtx := contexts.WithAPIKey(contexts.WithProjectID(fixture.ctx, 2), keyTwo)
+	keyOneTask := fixture.createTaskForAPIKey(t, keyOne.ID, llm.APIFormatOpenAIVideo.String(), "key-one-task")
+	keyTwoTask := fixture.createTaskForAPIKey(t, keyTwo.ID, llm.APIFormatOpenAIVideo.String(), "key-two-task")
+	fixture.createExecution(t, keyOneTask, llm.APIFormatZenmuxVideo.String(), "key-one-task")
+	fixture.createExecution(t, keyTwoTask, llm.APIFormatZenmuxVideo.String(), "key-two-task")
 
-	_, err = fixture.service.GetTaskByExternalID(projectOneCtx, "project-one-task")
+	keyOneCtx := contexts.WithAPIKey(fixture.ctx, keyOne)
+	keyTwoCtx := contexts.WithAPIKey(fixture.ctx, keyTwo)
+
+	_, err = fixture.service.GetTaskByExternalID(keyOneCtx, "key-one-task")
 	require.NoError(t, err)
 
-	_, err = fixture.service.GetTaskByExternalID(projectTwoCtx, "project-two-task")
+	_, err = fixture.service.GetTaskByExternalID(keyTwoCtx, "key-two-task")
 	require.NoError(t, err)
 
-	_, err = fixture.service.GetTaskByExternalID(projectOneCtx, "project-two-task")
+	_, err = fixture.service.GetTaskByExternalID(keyOneCtx, "key-two-task")
 	require.Error(t, err)
-	_, err = fixture.service.GetTaskByExternalID(projectTwoCtx, "project-one-task")
+	_, err = fixture.service.GetTaskByExternalID(keyTwoCtx, "key-one-task")
 	require.Error(t, err)
-	require.Error(t, fixture.service.DeleteTaskByExternalID(projectOneCtx, "project-two-task"))
-	require.Error(t, fixture.service.DeleteTaskByExternalID(projectTwoCtx, "project-one-task"))
+	require.Error(t, fixture.service.DeleteTaskByExternalID(keyOneCtx, "key-two-task"))
+	require.Error(t, fixture.service.DeleteTaskByExternalID(keyTwoCtx, "key-one-task"))
 }
 
 func (f videoServiceFixture) createExecution(t *testing.T, task *ent.Request, format, externalID string) {

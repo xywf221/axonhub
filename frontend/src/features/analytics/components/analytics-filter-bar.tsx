@@ -10,9 +10,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useApiKeyOptions, useApiKeyOptionsByIDs } from '@/features/apikeys/data/apikeys';
 import { useAllChannelSummarys } from '@/features/channels/data/channels';
-import { useProjects } from '@/features/projects/data/projects';
 import { useUsers } from '@/features/users/data/users';
-import { usePermissions } from '@/hooks/usePermissions';
 import { AnalyticsFacetedFilter } from './analytics-faceted-filter';
 
 // Calendar Date → 'YYYY-MM-DD' 字符串（直接取本地年月日，不做时区转换）
@@ -123,10 +121,8 @@ export function AnalyticsFilterBar({ earliestDate }: AnalyticsFilterBarProps) {
   const filter = useAnalyticsFilterStore((state) => state.filter);
   const [apiKeySearch, setApiKeySearch] = useState('');
   const debouncedApiKeySearch = useDebounce(apiKeySearch, 300);
-  const { setStartTime, setEndTime, setProjectIDs, setChannelIDs, setModelIDs, setAPIKeyIDs, setUserIDs, resetFilter } =
+  const { setStartTime, setEndTime, setChannelIDs, setModelIDs, setAPIKeyIDs, setUserIDs, resetFilter } =
     useAnalyticsFilterStore();
-  const { userPermissions } = usePermissions();
-  const canViewUsers = userPermissions.canRead;
 
   // Fetch real data for dropdowns
   const { data: channels, isLoading: isLoadingChannels } = useAllChannelSummarys();
@@ -140,8 +136,7 @@ export function AnalyticsFilterBar({ earliestDate }: AnalyticsFilterBarProps) {
   const { data: selectedApiKeysData } = useApiKeyOptionsByIDs(filter.apiKeyIDs, {
     enabled: !!filter.apiKeyIDs?.length,
   });
-  const { data: usersData, isLoading: isLoadingUsers } = useUsers({ first: 100 }, { disableAutoFetch: !canViewUsers });
-  const { data: projectsData, isLoading: isLoadingProjects } = useProjects({ first: 100 });
+  const { data: usersData, isLoading: isLoadingUsers } = useUsers({ first: 100 });
 
   const channelOptions = useMemo(
     () =>
@@ -184,15 +179,6 @@ export function AnalyticsFilterBar({ earliestDate }: AnalyticsFilterBarProps) {
         value: String(edge.node.id),
       })),
     [usersData]
-  );
-
-  const projectOptions = useMemo(
-    () =>
-      (projectsData?.edges || []).map((edge) => ({
-        label: edge.node.name,
-        value: String(edge.node.id),
-      })),
-    [projectsData]
   );
 
   const handleStartDate = useCallback(
@@ -243,7 +229,7 @@ export function AnalyticsFilterBar({ earliestDate }: AnalyticsFilterBarProps) {
   }, [earliestDate, setStartTime, setEndTime]);
 
   const hasFilters =
-    filter.startTime || filter.endTime || filter.projectIDs || filter.channelIDs || filter.modelIDs || filter.apiKeyIDs || filter.userIDs;
+    filter.startTime || filter.endTime || filter.channelIDs || filter.modelIDs || filter.apiKeyIDs || filter.userIDs;
 
   return (
     <div className='bg-card space-y-3 rounded-lg border p-4'>
@@ -288,14 +274,6 @@ export function AnalyticsFilterBar({ earliestDate }: AnalyticsFilterBarProps) {
       {/* Dimension Filters */}
       <div className='flex flex-wrap items-center gap-2'>
         <AnalyticsFacetedFilter
-          title={t('analytics.filter.project')}
-          options={projectOptions}
-          selectedValues={filter.projectIDs || []}
-          onSelectedValuesChange={setProjectIDs}
-          isLoading={isLoadingProjects}
-        />
-
-        <AnalyticsFacetedFilter
           title={t('analytics.filter.channel')}
           options={channelOptions}
           selectedValues={filter.channelIDs || []}
@@ -324,15 +302,13 @@ export function AnalyticsFilterBar({ earliestDate }: AnalyticsFilterBarProps) {
           onLoadMore={fetchNextApiKeyPage}
         />
 
-        {canViewUsers && (
-          <AnalyticsFacetedFilter
-            title={t('analytics.filter.user')}
-            options={userOptions}
-            selectedValues={filter.userIDs || []}
-            onSelectedValuesChange={setUserIDs}
-            isLoading={isLoadingUsers}
-          />
-        )}
+        <AnalyticsFacetedFilter
+          title={t('analytics.filter.user')}
+          options={userOptions}
+          selectedValues={filter.userIDs || []}
+          onSelectedValuesChange={setUserIDs}
+          isLoading={isLoadingUsers}
+        />
 
         {/* Reset Button */}
         {hasFilters && (

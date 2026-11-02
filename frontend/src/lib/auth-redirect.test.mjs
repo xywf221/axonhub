@@ -21,8 +21,8 @@ function setup(t) {
 
 test('preserves local return paths, queries and fragments after normalization', (t) => {
   setup(t);
-  assert.equal(getSafeRedirect('/project/requests?status=error#details'), '/project/requests?status=error#details');
-  assert.equal(getSafeRedirect('/project/../settings'), '/settings');
+  assert.equal(getSafeRedirect('/requests?status=error#details'), '/requests?status=error#details');
+  assert.equal(getSafeRedirect('/requests/../settings'), '/settings');
   assert.equal(getSafeRedirect('/'), '/');
 });
 
@@ -37,7 +37,7 @@ test('rejects external, malformed and normalized sign-in destinations', (t) => {
     '/\t/evil.example',
     '/.//evil.example',
     '/sign-in?redirect=/',
-    '/project/../sign-in',
+    '/requests/../sign-in',
     '/%73ign-in',
     '/%2e/sign-in',
     '/%invalid',
@@ -48,16 +48,16 @@ test('rejects external, malformed and normalized sign-in destinations', (t) => {
 
 test('OIDC retains the return path across navigation and consumes it only once', (t) => {
   setup(t);
-  storeOIDCRedirect('/project/requests?status=error#details');
+  storeOIDCRedirect('/requests?status=error#details');
   window.location.pathname = '/oauth/oidc/idp-callback';
-  assert.equal(consumeOIDCRedirect(), '/project/requests?status=error#details');
+  assert.equal(consumeOIDCRedirect(), '/requests?status=error#details');
   assert.equal(consumeOIDCRedirect(), undefined);
 });
 
 test('a new OIDC login without a valid return path clears an earlier destination', (t) => {
   setup(t);
   for (const redirect of [undefined, '/\\evil.example', '/sign-in']) {
-    storeOIDCRedirect('/project/requests');
+    storeOIDCRedirect('/requests');
     storeOIDCRedirect(redirect);
     assert.equal(consumeOIDCRedirect(), undefined);
   }
@@ -65,7 +65,7 @@ test('a new OIDC login without a valid return path clears an earlier destination
 
 test('OIDC validates stored destinations again before consuming them', (t) => {
   const values = setup(t);
-  storeOIDCRedirect('/project/requests');
+  storeOIDCRedirect('/requests');
   const [key] = values.keys();
   values.set(key, '/\\evil.example');
   assert.equal(consumeOIDCRedirect(), undefined);
@@ -79,6 +79,6 @@ test('blocked session storage falls back without failing authentication', (t) =>
       throw new Error('storage blocked');
     },
   });
-  assert.doesNotThrow(() => storeOIDCRedirect('/project/requests'));
+  assert.doesNotThrow(() => storeOIDCRedirect('/requests'));
   assert.equal(consumeOIDCRedirect(), undefined);
 });

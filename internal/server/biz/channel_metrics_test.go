@@ -677,7 +677,6 @@ func TestChannelMetrics_LoadAllFromExecutions_TimeFormatCompat(t *testing.T) {
 
 	// failed record 1: current driver format (written via ent)
 	failed1 := client.RequestExecution.Create().
-		SetProjectID(1).
 		SetRequestID(1001).
 		SetChannelID(1).
 		SetModelID("gpt-4").
@@ -690,7 +689,6 @@ func TestChannelMetrics_LoadAllFromExecutions_TimeFormatCompat(t *testing.T) {
 	// failed record 2: created_at rewritten via raw SQL to the legacy .000000000 format
 	legacyAt := now.Add(-1 * time.Hour).Format("2006-01-02 15:04:05.000000000 -0700 MST")
 	failed2 := client.RequestExecution.Create().
-		SetProjectID(1).
 		SetRequestID(1002).
 		SetChannelID(1).
 		SetModelID("gpt-4").
@@ -709,7 +707,6 @@ func TestChannelMetrics_LoadAllFromExecutions_TimeFormatCompat(t *testing.T) {
 
 	// completed record: counts toward request_count but not last_failure_at
 	client.RequestExecution.Create().
-		SetProjectID(1).
 		SetRequestID(1003).
 		SetChannelID(1).
 		SetModelID("gpt-4").
@@ -721,7 +718,6 @@ func TestChannelMetrics_LoadAllFromExecutions_TimeFormatCompat(t *testing.T) {
 
 	// channel with only completed records: MAX(CASE ...) is NULL and must not error
 	client.RequestExecution.Create().
-		SetProjectID(1).
 		SetRequestID(2001).
 		SetChannelID(2).
 		SetModelID("gpt-4").
@@ -765,7 +761,6 @@ func TestChannelMetrics_LoadAllFromExecutions_RebuildsExpiringWindow(t *testing.
 	createExecution := func(requestID int, status requestexecution.Status, createdAt time.Time) {
 		t.Helper()
 		client.RequestExecution.Create().
-			SetProjectID(1).
 			SetRequestID(requestID).
 			SetChannelID(1).
 			SetModelID("gpt-4").
@@ -917,7 +912,7 @@ func TestChannelMetrics_RecoveryUsesCompletionOrderWithinCreationWindow(t *testi
 			now := time.Now().UTC().Truncate(time.Second)
 			create := func(id int, status requestexecution.Status, start, end time.Time) {
 				t.Helper()
-				client.RequestExecution.Create().SetProjectID(1).SetRequestID(id).
+				client.RequestExecution.Create().SetRequestID(id).
 					SetChannelID(1).SetModelID("gpt-4").SetRequestBody(objects.JSONRawMessage(`{}`)).
 					SetStatus(status).SetCreatedAt(start).SetUpdatedAt(end).SaveX(ctx)
 			}
@@ -975,7 +970,7 @@ func TestChannelMetrics_RecoveryCompletionOrderAcrossBatches(t *testing.T) {
 		if i == 0 {
 			status, end = requestexecution.StatusCompleted, now
 		}
-		client.RequestExecution.Create().SetProjectID(1).SetRequestID(i + 1).
+		client.RequestExecution.Create().SetRequestID(i + 1).
 			SetChannelID(1).SetModelID("gpt-4").SetRequestBody(objects.JSONRawMessage(`{}`)).
 			SetStatus(status).SetCreatedAt(now.Add(-2 * time.Minute)).SetUpdatedAt(end).SaveX(ctx)
 	}

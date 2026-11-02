@@ -14,7 +14,6 @@ import (
 	"github.com/looplj/axonhub/internal/contexts"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/enttest"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/pkg/xcache"
 	"github.com/looplj/axonhub/internal/server/biz"
 	"github.com/looplj/axonhub/internal/tracing"
@@ -104,20 +103,9 @@ func TestWithTrace_ClaudeCodeDisabled(t *testing.T) {
 	router, client, traceService := setupTestTraceMiddleware(t)
 	defer client.Close()
 
-	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
-	ctx = ent.NewContext(ctx, client)
-
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(c.Request.Context())
 		ctx = ent.NewContext(ctx, client)
-		ctx = contexts.WithProjectID(ctx, testProject.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -178,20 +166,9 @@ func TestWithTrace_ClaudeCodeSetsTraceHeader(t *testing.T) {
 	router, client, traceService := setupTestTraceMiddleware(t)
 	defer client.Close()
 
-	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
-	ctx = ent.NewContext(ctx, client)
-
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(c.Request.Context())
 		ctx = ent.NewContext(ctx, client)
-		ctx = contexts.WithProjectID(ctx, testProject.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -258,20 +235,9 @@ func TestWithTrace_ClaudeCodePreservesExistingTraceHeader(t *testing.T) {
 	router, client, traceService := setupTestTraceMiddleware(t)
 	defer client.Close()
 
-	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
-	ctx = ent.NewContext(ctx, client)
-
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(c.Request.Context())
 		ctx = ent.NewContext(ctx, client)
-		ctx = contexts.WithProjectID(ctx, testProject.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -338,20 +304,9 @@ func TestWithTrace_OpenCodeDisabled(t *testing.T) {
 	router, client, traceService := setupTestTraceMiddleware(t)
 	defer client.Close()
 
-	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
-	ctx = ent.NewContext(ctx, client)
-
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(c.Request.Context())
 		ctx = ent.NewContext(ctx, client)
-		ctx = contexts.WithProjectID(ctx, testProject.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -432,20 +387,9 @@ func TestWithTrace_OpenCodeHeaderSetsTrace(t *testing.T) {
 	router, client, traceService := setupTestTraceMiddleware(t)
 	defer client.Close()
 
-	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
-	ctx = ent.NewContext(ctx, client)
-
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(c.Request.Context())
 		ctx = ent.NewContext(ctx, client)
-		ctx = contexts.WithProjectID(ctx, testProject.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -492,20 +436,9 @@ func TestWithTrace_OpenCodeHeaderHasLowerPriorityThanPrimaryTraceHeader(t *testi
 	router, client, traceService := setupTestTraceMiddleware(t)
 	defer client.Close()
 
-	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
-	ctx = ent.NewContext(ctx, client)
-
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(c.Request.Context())
 		ctx = ent.NewContext(ctx, client)
-		ctx = contexts.WithProjectID(ctx, testProject.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -541,20 +474,9 @@ func TestWithTrace_CodexDisabled(t *testing.T) {
 	router, client, traceService := setupTestTraceMiddleware(t)
 	defer client.Close()
 
-	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
-	ctx = ent.NewContext(ctx, client)
-
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(c.Request.Context())
 		ctx = ent.NewContext(ctx, client)
-		ctx = contexts.WithProjectID(ctx, testProject.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -591,20 +513,9 @@ func TestWithTrace_CodexHeaderSetsTrace(t *testing.T) {
 	router, client, traceService := setupTestTraceMiddleware(t)
 	defer client.Close()
 
-	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
-	ctx = ent.NewContext(ctx, client)
-
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(c.Request.Context())
 		ctx = ent.NewContext(ctx, client)
-		ctx = contexts.WithProjectID(ctx, testProject.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -649,19 +560,9 @@ func TestWithTrace_CodexTurnMetadataSetsTrace(t *testing.T) {
 	router, client, traceService := setupTestTraceMiddleware(t)
 	defer client.Close()
 
-	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
-	ctx = ent.NewContext(ctx, client)
-
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(c.Request.Context())
 		ctx = ent.NewContext(ctx, client)
-		ctx = contexts.WithProjectID(ctx, testProject.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -709,19 +610,9 @@ func TestWithTrace_CodexHeaderHasPriorityOverTurnMetadata(t *testing.T) {
 	router, client, traceService := setupTestTraceMiddleware(t)
 	defer client.Close()
 
-	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
-	ctx = ent.NewContext(ctx, client)
-
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(c.Request.Context())
 		ctx = ent.NewContext(ctx, client)
-		ctx = contexts.WithProjectID(ctx, testProject.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -790,19 +681,9 @@ func TestWithTrace_CodexTurnMetadataInvalidOrMissingSessionDoesNotSetTrace(t *te
 			router, client, traceService := setupTestTraceMiddleware(t)
 			defer client.Close()
 
-			ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
-			ctx = ent.NewContext(ctx, client)
-
-			testProject, err := client.Project.Create().
-				SetName("test-project").
-				SetStatus(project.StatusActive).
-				Save(ctx)
-			require.NoError(t, err)
-
 			router.Use(func(c *gin.Context) {
 				ctx := authz.WithTestBypass(c.Request.Context())
 				ctx = ent.NewContext(ctx, client)
-				ctx = contexts.WithProjectID(ctx, testProject.ID)
 				c.Request = c.Request.WithContext(ctx)
 				c.Next()
 			})
@@ -844,19 +725,9 @@ func TestWithTrace_CodexSessionMissingDoesNotSetTrace(t *testing.T) {
 	router, client, traceService := setupTestTraceMiddleware(t)
 	defer client.Close()
 
-	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
-	ctx = ent.NewContext(ctx, client)
-
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(c.Request.Context())
 		ctx = ent.NewContext(ctx, client)
-		ctx = contexts.WithProjectID(ctx, testProject.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -892,17 +763,11 @@ func TestWithTraceID_Success(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 
 	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	// Setup middleware and test endpoint
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(c.Request.Context())
 		ctx = ent.NewContext(ctx, client)
-		ctx = contexts.WithProjectID(ctx, testProject.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -928,7 +793,7 @@ func TestWithTraceID_Success(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 
 	// Verify trace was created and stored in context
-	trace, err := traceService.GetTraceByID(ctx, "trace-test-123", testProject.ID)
+	trace, err := traceService.GetTraceByID(ctx, "trace-test-123")
 	require.NoError(t, err)
 	require.Equal(t, "trace-test-123", trace.TraceID)
 }
@@ -942,17 +807,9 @@ func TestWithTraceID_WithThread(t *testing.T) {
 	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
 	ctx = ent.NewContext(ctx, client)
 
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	// Create a test thread
 	testThread, err := client.Thread.Create().
 		SetThreadID("thread-123").
-		SetProjectID(testProject.ID).
 		Save(ctx)
 	require.NoError(t, err)
 
@@ -960,7 +817,6 @@ func TestWithTraceID_WithThread(t *testing.T) {
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(c.Request.Context())
 		ctx = ent.NewContext(ctx, client)
-		ctx = contexts.WithProjectID(ctx, testProject.ID)
 		ctx = contexts.WithThread(ctx, testThread)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
@@ -987,7 +843,7 @@ func TestWithTraceID_WithThread(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 
 	// Verify trace was created with thread relationship
-	trace, err := traceService.GetTraceByID(ctx, "trace-with-thread-123", testProject.ID)
+	trace, err := traceService.GetTraceByID(ctx, "trace-with-thread-123")
 	require.NoError(t, err)
 	require.Equal(t, "trace-with-thread-123", trace.TraceID)
 	require.Equal(t, testThread.ID, trace.ThreadID)
@@ -1014,34 +870,6 @@ func TestWithTraceID_NoHeader(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 }
 
-func TestWithTraceID_NoProjectID(t *testing.T) {
-	config := tracing.Config{}
-
-	router, client, traceService := setupTestTraceMiddleware(t)
-	defer client.Close()
-
-	router.Use(func(c *gin.Context) {
-		c.Request = c.Request.WithContext(ent.NewContext(c.Request.Context(), client))
-		c.Next()
-	})
-	router.Use(WithTrace(config, traceService))
-	router.GET("/test", func(c *gin.Context) {
-		_, ok := contexts.GetTrace(c.Request.Context())
-		c.JSON(200, gin.H{"has_trace": ok})
-	})
-
-	// Test with AH-Trace-Id header but no project ID in context
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	req.Header.Set("Ah-Trace-Id", "trace-test-123")
-
-	w := httptest.NewRecorder()
-
-	router.ServeHTTP(w, req)
-
-	// Should skip trace creation and continue
-	require.Equal(t, http.StatusOK, w.Code)
-}
-
 func TestWithTraceID_Idempotent(t *testing.T) {
 	router, client, traceService := setupTestTraceMiddleware(t)
 	defer client.Close()
@@ -1049,17 +877,9 @@ func TestWithTraceID_Idempotent(t *testing.T) {
 	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
 	ctx = ent.NewContext(ctx, client)
 
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(c.Request.Context())
 		ctx = ent.NewContext(ctx, client)
-		ctx = contexts.WithProjectID(ctx, testProject.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -1084,7 +904,7 @@ func TestWithTraceID_Idempotent(t *testing.T) {
 	router.ServeHTTP(w1, req1)
 	require.Equal(t, http.StatusOK, w1.Code)
 
-	trace1, err := traceService.GetTraceByID(ctx, traceID, testProject.ID)
+	trace1, err := traceService.GetTraceByID(ctx, traceID)
 	require.NoError(t, err)
 
 	// Second request with same trace ID
@@ -1095,7 +915,7 @@ func TestWithTraceID_Idempotent(t *testing.T) {
 	router.ServeHTTP(w2, req2)
 	require.Equal(t, http.StatusOK, w2.Code)
 
-	trace2, err := traceService.GetTraceByID(ctx, traceID, testProject.ID)
+	trace2, err := traceService.GetTraceByID(ctx, traceID)
 	require.NoError(t, err)
 
 	// Should return the same trace
@@ -1112,20 +932,9 @@ func TestWithTrace_ExtraTraceBodyFields(t *testing.T) {
 	router, client, traceService := setupTestTraceMiddleware(t)
 	defer client.Close()
 
-	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
-	ctx = ent.NewContext(ctx, client)
-
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(c.Request.Context())
 		ctx = ent.NewContext(ctx, client)
-		ctx = contexts.WithProjectID(ctx, testProject.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -1172,20 +981,9 @@ func TestWithTrace_ExtraTraceBodyFields_Nested(t *testing.T) {
 	router, client, traceService := setupTestTraceMiddleware(t)
 	defer client.Close()
 
-	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
-	ctx = ent.NewContext(ctx, client)
-
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(c.Request.Context())
 		ctx = ent.NewContext(ctx, client)
-		ctx = contexts.WithProjectID(ctx, testProject.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -1235,20 +1033,9 @@ func TestWithTrace_ExtraTraceBodyFields_Priority(t *testing.T) {
 	router, client, traceService := setupTestTraceMiddleware(t)
 	defer client.Close()
 
-	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
-	ctx = ent.NewContext(ctx, client)
-
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(c.Request.Context())
 		ctx = ent.NewContext(ctx, client)
-		ctx = contexts.WithProjectID(ctx, testProject.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -1289,20 +1076,9 @@ func TestWithTrace_ExtraTraceBodyFields_InvalidJSON(t *testing.T) {
 	router, client, traceService := setupTestTraceMiddleware(t)
 	defer client.Close()
 
-	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
-	ctx = ent.NewContext(ctx, client)
-
-	// Create a test project
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(c.Request.Context())
 		ctx = ent.NewContext(ctx, client)
-		ctx = contexts.WithProjectID(ctx, testProject.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -1331,17 +1107,11 @@ func TestWithTrace_DoesNotPersistLoggingTraceWithoutExplicitSource(t *testing.T)
 
 	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
 	ctx = ent.NewContext(ctx, client)
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	router.Use(WithLoggingTracing(config))
 	router.Use(func(c *gin.Context) {
 		requestCtx := authz.WithTestBypass(c.Request.Context())
 		requestCtx = ent.NewContext(requestCtx, client)
-		requestCtx = contexts.WithProjectID(requestCtx, testProject.ID)
 		c.Request = c.Request.WithContext(requestCtx)
 		c.Next()
 	})
@@ -1388,17 +1158,11 @@ func TestWithTrace_UsesExtraHeaderForResponseAlias(t *testing.T) {
 
 	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
 	ctx = ent.NewContext(ctx, client)
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
 
 	router.Use(WithLoggingTracing(config))
 	router.Use(func(c *gin.Context) {
 		requestCtx := authz.WithTestBypass(c.Request.Context())
 		requestCtx = ent.NewContext(requestCtx, client)
-		requestCtx = contexts.WithProjectID(requestCtx, testProject.ID)
 		c.Request = c.Request.WithContext(requestCtx)
 		c.Next()
 	})
@@ -1462,16 +1226,9 @@ func TestWithTrace_SkipsPersistedTraceForEmbeddingEndpoint(t *testing.T) {
 	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
 	ctx = ent.NewContext(ctx, client)
 
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(c.Request.Context())
 		ctx = ent.NewContext(ctx, client)
-		ctx = contexts.WithProjectID(ctx, testProject.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -1511,16 +1268,9 @@ func TestWithTrace_PersistsTraceForChatEndpoint(t *testing.T) {
 	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
 	ctx = ent.NewContext(ctx, client)
 
-	testProject, err := client.Project.Create().
-		SetName("test-project").
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	router.Use(func(c *gin.Context) {
 		ctx := authz.WithTestBypass(c.Request.Context())
 		ctx = ent.NewContext(ctx, client)
-		ctx = contexts.WithProjectID(ctx, testProject.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -1571,10 +1321,6 @@ func TestWithTrace_WritesResponseAliasesWhenTracePersistenceFails(t *testing.T) 
 	}
 
 	router := gin.New()
-	router.Use(func(c *gin.Context) {
-		c.Request = c.Request.WithContext(contexts.WithProjectID(c.Request.Context(), 1))
-		c.Next()
-	})
 	router.Use(WithTrace(config, biz.NewTraceService(biz.TraceServiceParams{})))
 	router.GET("/test", func(c *gin.Context) {
 		traceID, ok := tracing.GetTraceID(c.Request.Context())

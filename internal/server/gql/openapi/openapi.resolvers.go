@@ -91,38 +91,6 @@ func (r *queryResolver) APIKey(ctx context.Context, id *objects.GUID, key *strin
 	return toOpenAPIAPIKey(apiKey), nil
 }
 
-// APIKeyQuotaUsages is the resolver for the apiKeyQuotaUsages field.
-func (r *queryResolver) APIKeyQuotaUsages(ctx context.Context, apiKeyID *objects.GUID, key *string, name *string) ([]*APIKeyProfileQuotaUsage, error) {
-	apiKey, err := r.resolveAPIKey(ctx, apiKeyID, key, name)
-	if err != nil {
-		return nil, err
-	}
-
-	usages, err := r.quotaService.ProfileQuotaUsages(ctx, apiKey)
-	if err != nil {
-		return nil, err
-	}
-
-	out := make([]*APIKeyProfileQuotaUsage, 0, len(usages))
-	for _, u := range usages {
-		out = append(out, &APIKeyProfileQuotaUsage{
-			ProfileName: u.ProfileName,
-			Quota:       u.Quota,
-			Window: &APIKeyQuotaWindow{
-				Start: u.Window.Start,
-				End:   u.Window.End,
-			},
-			Usage: &APIKeyQuotaUsage{
-				RequestCount: int(u.Usage.RequestCount),
-				TotalTokens:  int(u.Usage.TotalTokens),
-				TotalCost:    u.Usage.TotalCost,
-			},
-		})
-	}
-
-	return out, nil
-}
-
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 

@@ -5,7 +5,6 @@
   "traces.common.badges.response": "响应",
   "traces.common.badges.trace": "追踪",
   "traces.columns.traceId": "追踪ID",
-  "traces.columns.project": "项目",
   "traces.columns.thread": "线程",
   "traces.columns.userQuery": "用户提问",
   "traces.columns.requestCount": "请求次数",

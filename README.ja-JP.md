@@ -151,7 +151,7 @@ OpenAI SDK、Anthropic SDK、またはその他のAI SDKを使用している場
 |---------|-------------|
 | 🔄 [**あらゆるSDK → あらゆるモデル**](docs/en/api-reference/openai-api.md) | OpenAI SDKでClaudeを呼び出したり、Anthropic SDKでGPTを呼び出したり。コード変更不要。 |
 | 🔍 [**完全なリクエストトレーシング**](docs/en/guides/tracing.md) | スレッド対応のオブザーバビリティで完全なリクエストタイムラインを提供。デバッグを高速化。 |
-| 🔐 [**エンタープライズRBAC**](docs/en/guides/permissions.md) | きめ細かなアクセス制御、使用量クォータ、データ分離。 |
+| 🔐 [**シングルテナントアクセス**](docs/en/guides/permissions.md) | ログインユーザーはすべての機能にアクセス。APIキーはスコープで制限。 |
 | ⚡ [**スマートロードバランシング**](docs/en/guides/load-balance.md) | 100ms未満の自動フェイルオーバー。常に最も正常なチャネルにルーティング。 |
 | 💰 [**リアルタイムコスト追跡**](docs/en/guides/cost-tracking.md) | リクエストごとのコスト内訳。入力、出力、キャッシュトークン - すべて追跡。 |
 

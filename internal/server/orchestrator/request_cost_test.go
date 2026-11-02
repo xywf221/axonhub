@@ -70,12 +70,11 @@ func setupUsageCostMiddleware(t *testing.T, format, modelID string) (*persistReq
 
 	state := &PersistenceState{
 		Request: &ent.Request{
-			ID:        1,
-			ProjectID: 1,
-			APIKeyID:  1,
-			Source:    "test",
-			Format:    format,
-			ModelID:   modelID,
+			ID:       1,
+			APIKeyID: 1,
+			Source:   "test",
+			Format:   format,
+			ModelID:  modelID,
 		},
 		RequestExec: &ent.RequestExecution{
 			ID:        1,

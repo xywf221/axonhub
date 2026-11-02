@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/looplj/axonhub/internal/authz"
-	"github.com/looplj/axonhub/internal/contexts"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/channel"
 	"github.com/looplj/axonhub/internal/ent/enttest"
@@ -58,7 +57,6 @@ func TestChatCompletionOrchestrator_PreservesFields_whenChannelRequiresStream(t 
 	client := enttest.NewEntClient(t, "sqlite3", "file:"+t.Name()+"?mode=memory&_fk=0")
 	defer client.Close()
 	ctx := ent.NewContext(authz.WithTestBypass(t.Context()), client)
-	project := createTestProject(t, ctx, client)
 	ch, err := client.Channel.Create().
 		SetType(channel.TypeOpenai).
 		SetName("Require stream fields").
@@ -81,7 +79,6 @@ func TestChatCompletionOrchestrator_PreservesFields_whenChannelRequiresStream(t 
 		ModelMapper:     NewModelMapper(), channelLimiterManager: NewChannelLimiterManager(),
 		Middlewares: []pipeline.Middleware{stream.EnsureUsage()},
 	}
-	ctx = contexts.WithProjectID(ctx, project.ID)
 	gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if !assert.NoError(t, err) {

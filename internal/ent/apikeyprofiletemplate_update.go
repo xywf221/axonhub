@@ -144,14 +144,6 @@ func (_u *APIKeyProfileTemplateUpdate) defaults() error {
 	return nil
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *APIKeyProfileTemplateUpdate) check() error {
-	if _u.mutation.ProjectCleared() && len(_u.mutation.ProjectIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "APIKeyProfileTemplate.project"`)
-	}
-	return nil
-}
-
 // Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
 func (_u *APIKeyProfileTemplateUpdate) Modify(modifiers ...func(u *sql.UpdateBuilder)) *APIKeyProfileTemplateUpdate {
 	_u.modifiers = append(_u.modifiers, modifiers...)
@@ -159,9 +151,6 @@ func (_u *APIKeyProfileTemplateUpdate) Modify(modifiers ...func(u *sql.UpdateBui
 }
 
 func (_u *APIKeyProfileTemplateUpdate) sqlSave(ctx context.Context) (_node int, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(apikeyprofiletemplate.Table, apikeyprofiletemplate.Columns, sqlgraph.NewFieldSpec(apikeyprofiletemplate.FieldID, field.TypeInt))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -340,14 +329,6 @@ func (_u *APIKeyProfileTemplateUpdateOne) defaults() error {
 	return nil
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *APIKeyProfileTemplateUpdateOne) check() error {
-	if _u.mutation.ProjectCleared() && len(_u.mutation.ProjectIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "APIKeyProfileTemplate.project"`)
-	}
-	return nil
-}
-
 // Modify adds a statement modifier for attaching custom logic to the UPDATE statement.
 func (_u *APIKeyProfileTemplateUpdateOne) Modify(modifiers ...func(u *sql.UpdateBuilder)) *APIKeyProfileTemplateUpdateOne {
 	_u.modifiers = append(_u.modifiers, modifiers...)
@@ -355,9 +336,6 @@ func (_u *APIKeyProfileTemplateUpdateOne) Modify(modifiers ...func(u *sql.Update
 }
 
 func (_u *APIKeyProfileTemplateUpdateOne) sqlSave(ctx context.Context) (_node *APIKeyProfileTemplate, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(apikeyprofiletemplate.Table, apikeyprofiletemplate.Columns, sqlgraph.NewFieldSpec(apikeyprofiletemplate.FieldID, field.TypeInt))
 	id, ok := _u.mutation.ID()
 	if !ok {

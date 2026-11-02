@@ -81,12 +81,12 @@ func TestRequestService_UpdateRequestCompletedWithAudio_ExternalStorage(t *testi
 	require.NotNil(t, updated.ContentStorageID)
 	require.Equal(t, ds.ID, *updated.ContentStorageID)
 	require.NotNil(t, updated.ContentStorageKey)
-	expectedKey := GenerateAudioKey(updated.ProjectID, reqRow.ID, "audio.mp3")
+	expectedKey := GenerateAudioKey(reqRow.ID, "audio.mp3")
 	require.Equal(t, expectedKey, *updated.ContentStorageKey)
 
 	// With external storage, the metadata placeholder is offloaded too (not the DB column);
 	// it never contains the raw audio bytes.
-	respKey := GenerateResponseBodyKey(updated.ProjectID, reqRow.ID)
+	respKey := GenerateResponseBodyKey(reqRow.ID)
 	storedBody, err := dataStorageService.LoadData(ctx, ds, respKey)
 	require.NoError(t, err)
 	require.Contains(t, string(storedBody), "audio.speech")

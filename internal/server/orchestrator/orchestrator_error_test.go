@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/looplj/axonhub/internal/authz"
-	"github.com/looplj/axonhub/internal/contexts"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/enttest"
 	"github.com/looplj/axonhub/internal/ent/request"
@@ -31,7 +30,6 @@ func TestChatCompletionOrchestrator_Process_ErrorHandling(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 
 	// Setup
-	project := createTestProject(t, ctx, client)
 	ch := createTestChannel(t, ctx, client)
 	channelService, requestService, systemService, usageLogService := setupTestServices(t, client)
 
@@ -55,16 +53,16 @@ func TestChatCompletionOrchestrator_Process_ErrorHandling(t *testing.T) {
 	channelSelector := &staticChannelSelector{candidates: channelsToTestCandidates([]*biz.Channel{bizChannel}, "gpt-4")}
 
 	orchestrator := &ChatCompletionOrchestrator{
-		channelSelector:   channelSelector,
-		Inbound:           openai.NewInboundTransformer(),
-		RequestService:    requestService,
-		ChannelService:    channelService,
-		PromptProvider:    &stubPromptProvider{},
-		SystemService:     systemService,
-		UsageLogService:   usageLogService,
-		PipelineFactory:   pipeline.NewFactory(executor),
-		ModelMapper:       NewModelMapper(),
-		channelLimiterManager:      NewChannelLimiterManager(),
+		channelSelector:       channelSelector,
+		Inbound:               openai.NewInboundTransformer(),
+		RequestService:        requestService,
+		ChannelService:        channelService,
+		PromptProvider:        &stubPromptProvider{},
+		SystemService:         systemService,
+		UsageLogService:       usageLogService,
+		PipelineFactory:       pipeline.NewFactory(executor),
+		ModelMapper:           NewModelMapper(),
+		channelLimiterManager: NewChannelLimiterManager(),
 		Middlewares: []pipeline.Middleware{
 			stream.EnsureUsage(),
 		},
@@ -72,9 +70,6 @@ func TestChatCompletionOrchestrator_Process_ErrorHandling(t *testing.T) {
 
 	// Build request
 	httpRequest := buildTestRequest("gpt-4", "This will fail", false)
-
-	// Set project ID in context
-	ctx = contexts.WithProjectID(ctx, project.ID)
 
 	// Execute
 	result, err := orchestrator.Process(ctx, httpRequest)
@@ -111,7 +106,6 @@ func TestChatCompletionOrchestrator_Process_NoChannelsAvailable(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 
 	// Setup
-	project := createTestProject(t, ctx, client)
 	channelService, requestService, systemService, usageLogService := setupTestServices(t, client)
 
 	executor := &mockExecutor{}
@@ -120,16 +114,16 @@ func TestChatCompletionOrchestrator_Process_NoChannelsAvailable(t *testing.T) {
 	channelSelector := &staticChannelSelector{candidates: []*ChannelModelsCandidate{}}
 
 	orchestrator := &ChatCompletionOrchestrator{
-		channelSelector:   channelSelector,
-		Inbound:           openai.NewInboundTransformer(),
-		RequestService:    requestService,
-		ChannelService:    channelService,
-		PromptProvider:    &stubPromptProvider{},
-		SystemService:     systemService,
-		UsageLogService:   usageLogService,
-		PipelineFactory:   pipeline.NewFactory(executor),
-		ModelMapper:       NewModelMapper(),
-		channelLimiterManager:      NewChannelLimiterManager(),
+		channelSelector:       channelSelector,
+		Inbound:               openai.NewInboundTransformer(),
+		RequestService:        requestService,
+		ChannelService:        channelService,
+		PromptProvider:        &stubPromptProvider{},
+		SystemService:         systemService,
+		UsageLogService:       usageLogService,
+		PipelineFactory:       pipeline.NewFactory(executor),
+		ModelMapper:           NewModelMapper(),
+		channelLimiterManager: NewChannelLimiterManager(),
 		Middlewares: []pipeline.Middleware{
 			stream.EnsureUsage(),
 		},
@@ -137,7 +131,6 @@ func TestChatCompletionOrchestrator_Process_NoChannelsAvailable(t *testing.T) {
 
 	// Build request
 	httpRequest := buildTestRequest("gpt-4", "No channels", false)
-	ctx = contexts.WithProjectID(ctx, project.ID)
 
 	// Execute
 	_, err := orchestrator.Process(ctx, httpRequest)
@@ -155,7 +148,6 @@ func TestChatCompletionOrchestrator_Process_InvalidRequest(t *testing.T) {
 	ctx = ent.NewContext(ctx, client)
 
 	// Setup
-	project := createTestProject(t, ctx, client)
 	ch := createTestChannel(t, ctx, client)
 	channelService, requestService, systemService, usageLogService := setupTestServices(t, client)
 
@@ -172,16 +164,16 @@ func TestChatCompletionOrchestrator_Process_InvalidRequest(t *testing.T) {
 	channelSelector := &staticChannelSelector{candidates: channelsToTestCandidates([]*biz.Channel{bizChannel}, "gpt-4")}
 
 	orchestrator := &ChatCompletionOrchestrator{
-		channelSelector:   channelSelector,
-		Inbound:           openai.NewInboundTransformer(),
-		RequestService:    requestService,
-		ChannelService:    channelService,
-		PromptProvider:    &stubPromptProvider{},
-		SystemService:     systemService,
-		UsageLogService:   usageLogService,
-		PipelineFactory:   pipeline.NewFactory(executor),
-		ModelMapper:       NewModelMapper(),
-		channelLimiterManager:      NewChannelLimiterManager(),
+		channelSelector:       channelSelector,
+		Inbound:               openai.NewInboundTransformer(),
+		RequestService:        requestService,
+		ChannelService:        channelService,
+		PromptProvider:        &stubPromptProvider{},
+		SystemService:         systemService,
+		UsageLogService:       usageLogService,
+		PipelineFactory:       pipeline.NewFactory(executor),
+		ModelMapper:           NewModelMapper(),
+		channelLimiterManager: NewChannelLimiterManager(),
 		Middlewares: []pipeline.Middleware{
 			stream.EnsureUsage(),
 		},
@@ -196,8 +188,6 @@ func TestChatCompletionOrchestrator_Process_InvalidRequest(t *testing.T) {
 		},
 		Body: []byte(`{"messages":[{"role":"user","content":"test"}]}`),
 	}
-
-	ctx = contexts.WithProjectID(ctx, project.ID)
 
 	// Execute
 	_, err = orchestrator.Process(ctx, invalidReq)

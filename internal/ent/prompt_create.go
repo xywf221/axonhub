@@ -11,7 +11,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/prompt"
 	"github.com/looplj/axonhub/internal/objects"
 )
@@ -63,12 +62,6 @@ func (_c *PromptCreate) SetNillableDeletedAt(v *int) *PromptCreate {
 	if v != nil {
 		_c.SetDeletedAt(*v)
 	}
-	return _c
-}
-
-// SetProjectID sets the "project_id" field.
-func (_c *PromptCreate) SetProjectID(v int) *PromptCreate {
-	_c.mutation.SetProjectID(v)
 	return _c
 }
 
@@ -136,11 +129,6 @@ func (_c *PromptCreate) SetNillableOrder(v *int) *PromptCreate {
 func (_c *PromptCreate) SetSettings(v objects.PromptSettings) *PromptCreate {
 	_c.mutation.SetSettings(v)
 	return _c
-}
-
-// SetProject sets the "project" edge to the Project entity.
-func (_c *PromptCreate) SetProject(v *Project) *PromptCreate {
-	return _c.SetProjectID(v.ID)
 }
 
 // Mutation returns the PromptMutation object of the builder.
@@ -218,9 +206,6 @@ func (_c *PromptCreate) check() error {
 	if _, ok := _c.mutation.DeletedAt(); !ok {
 		return &ValidationError{Name: "deleted_at", err: errors.New(`ent: missing required field "Prompt.deleted_at"`)}
 	}
-	if _, ok := _c.mutation.ProjectID(); !ok {
-		return &ValidationError{Name: "project_id", err: errors.New(`ent: missing required field "Prompt.project_id"`)}
-	}
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Prompt.name"`)}
 	}
@@ -246,9 +231,6 @@ func (_c *PromptCreate) check() error {
 	}
 	if _, ok := _c.mutation.Settings(); !ok {
 		return &ValidationError{Name: "settings", err: errors.New(`ent: missing required field "Prompt.settings"`)}
-	}
-	if len(_c.mutation.ProjectIDs()) == 0 {
-		return &ValidationError{Name: "project", err: errors.New(`ent: missing required edge "Prompt.project"`)}
 	}
 	return nil
 }
@@ -316,23 +298,6 @@ func (_c *PromptCreate) createSpec() (*Prompt, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Settings(); ok {
 		_spec.SetField(prompt.FieldSettings, field.TypeJSON, value)
 		_node.Settings = value
-	}
-	if nodes := _c.mutation.ProjectIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   prompt.ProjectTable,
-			Columns: []string{prompt.ProjectColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.ProjectID = nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }
@@ -519,9 +484,6 @@ func (u *PromptUpsertOne) UpdateNewValues() *PromptUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(prompt.FieldCreatedAt)
-		}
-		if _, exists := u.create.mutation.ProjectID(); exists {
-			s.SetIgnore(prompt.FieldProjectID)
 		}
 	}))
 	return u
@@ -872,9 +834,6 @@ func (u *PromptUpsertBulk) UpdateNewValues() *PromptUpsertBulk {
 		for _, b := range u.create.builders {
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(prompt.FieldCreatedAt)
-			}
-			if _, exists := b.mutation.ProjectID(); exists {
-				s.SetIgnore(prompt.FieldProjectID)
 			}
 		}
 	}))

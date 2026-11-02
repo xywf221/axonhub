@@ -30,23 +30,18 @@ export interface CodexAccess {
   readonly canEdit: boolean;
 }
 
-export type CodexSettingsViewState = 'permission' | 'loading' | 'loadFailed' | 'ready';
+export type CodexSettingsViewState = 'loading' | 'loadFailed' | 'ready';
 
 export function codexSettingsViewState(input: {
-  readonly canReadSettings: boolean;
   readonly isLoading: boolean;
   readonly hasData: boolean;
 }): CodexSettingsViewState {
-  if (!input.canReadSettings) return 'permission';
   if (input.isLoading) return 'loading';
   return input.hasData ? 'ready' : 'loadFailed';
 }
 
-// Listing needs settings and channel read, and every write or test needs the same plus settings write,
-// because the backend authorizes a saved channel reference with the caller's channel read scope.
-export function codexAccess(hasScope: (scope: string) => boolean): CodexAccess {
-  const canListChannels = hasScope('read_settings') && hasScope('read_channels');
-  return { canListChannels, canEdit: canListChannels && hasScope('write_settings') };
+export function codexAccess(): CodexAccess {
+  return { canListChannels: true, canEdit: true };
 }
 
 // --- channel selection ---------------------------------------------------------------------------------

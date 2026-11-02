@@ -89,7 +89,7 @@ export function useThreadsColumns(): ColumnDef<Thread>[] {
       cell: ({ row }) => {
         const handleClick = useCallback(() => {
           navigateWithSearch({
-            to: '/project/threads/$threadId',
+            to: '/threads/$threadId',
             params: { threadId: row.original.id },
           });
         }, [row.original.id, navigateWithSearch]);
@@ -129,19 +129,6 @@ export function useThreadsColumns(): ColumnDef<Thread>[] {
       },
       enableSorting: false,
     },
-    // {
-    //   id: 'project',
-    //   header: ({ column }) => <DataTableColumnHeader column={column} title={t('threads.columns.project')} />,
-    //   cell: ({ row }) => {
-    //     const project = row.original.project
-    //     return (
-    //       <div className='max-w-48 truncate text-xs' title={project?.name || ''}>
-    //         {project?.name || t('threads.columns.unknownProject')}
-    //       </div>
-    //     )
-    //   },
-    //   enableSorting: false,
-    // },
     {
       id: 'traceCount',
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('threads.columns.traceCount')} />,
@@ -171,7 +158,7 @@ export function useThreadsColumns(): ColumnDef<Thread>[] {
       cell: ({ row }) => {
         const handleViewDetails = () => {
           navigateWithSearch({
-            to: '/project/threads/$threadId',
+            to: '/threads/$threadId',
             params: { threadId: row.original.id },
           });
         };

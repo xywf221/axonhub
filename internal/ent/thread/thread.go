@@ -22,25 +22,14 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
-	// FieldProjectID holds the string denoting the project_id field in the database.
-	FieldProjectID = "project_id"
 	// FieldThreadID holds the string denoting the thread_id field in the database.
 	FieldThreadID = "thread_id"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
-	// EdgeProject holds the string denoting the project edge name in mutations.
-	EdgeProject = "project"
 	// EdgeTraces holds the string denoting the traces edge name in mutations.
 	EdgeTraces = "traces"
 	// Table holds the table name of the thread in the database.
 	Table = "threads"
-	// ProjectTable is the table that holds the project relation/edge.
-	ProjectTable = "threads"
-	// ProjectInverseTable is the table name for the Project entity.
-	// It exists in this package in order to avoid circular dependency with the "project" package.
-	ProjectInverseTable = "projects"
-	// ProjectColumn is the table column denoting the project relation/edge.
-	ProjectColumn = "project_id"
 	// TracesTable is the table that holds the traces relation/edge.
 	TracesTable = "traces"
 	// TracesInverseTable is the table name for the Trace entity.
@@ -55,7 +44,6 @@ var Columns = []string{
 	FieldID,
 	FieldCreatedAt,
 	FieldUpdatedAt,
-	FieldProjectID,
 	FieldThreadID,
 	FieldStatus,
 }
@@ -131,11 +119,6 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
-// ByProjectID orders the results by the project_id field.
-func ByProjectID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldProjectID, opts...).ToFunc()
-}
-
 // ByThreadID orders the results by the thread_id field.
 func ByThreadID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldThreadID, opts...).ToFunc()
@@ -144,13 +127,6 @@ func ByThreadID(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
-}
-
-// ByProjectField orders the results by project field.
-func ByProjectField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newProjectStep(), sql.OrderByField(field, opts...))
-	}
 }
 
 // ByTracesCount orders the results by traces count.
@@ -165,13 +141,6 @@ func ByTraces(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newTracesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
-}
-func newProjectStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ProjectInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, ProjectTable, ProjectColumn),
-	)
 }
 func newTracesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(

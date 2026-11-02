@@ -26,7 +26,6 @@ interface ApiKeySaveTemplateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   profileData: ApiKeyProfile;
-  projectID: string | null;
 }
 
 const formSchemaFactory = (t: (key: string) => string) =>
@@ -37,11 +36,11 @@ const formSchemaFactory = (t: (key: string) => string) =>
 
 type FormValues = z.infer<ReturnType<typeof formSchemaFactory>>;
 
-export function ApiKeySaveTemplateDialog({ open, onOpenChange, profileData, projectID }: ApiKeySaveTemplateDialogProps) {
+export function ApiKeySaveTemplateDialog({ open, onOpenChange, profileData }: ApiKeySaveTemplateDialogProps) {
   const { t } = useTranslation();
   const createTemplate = useCreateApiKeyProfileTemplate();
   const updateTemplate = useUpdateApiKeyProfileTemplate();
-  const { data: existingTemplates } = useApiKeyProfileTemplates(projectID);
+  const { data: existingTemplates } = useApiKeyProfileTemplates();
   const [overwriteValues, setOverwriteValues] = useState<FormValues | null>(null);
 
   const formSchema = useMemo(() => formSchemaFactory(t), [t]);
@@ -80,7 +79,6 @@ export function ApiKeySaveTemplateDialog({ open, onOpenChange, profileData, proj
     await createTemplate.mutateAsync({
       name: values.name.trim(),
       description: values.description || '',
-      projectID,
       profile: profileData,
     });
     toast.success(t('apikeys.templates.successMessage'));

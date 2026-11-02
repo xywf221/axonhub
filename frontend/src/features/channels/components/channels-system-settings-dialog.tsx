@@ -11,7 +11,6 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useChannelSetting, useUpdateChannelSetting, type AutoSyncFrequency, type ProbeFrequency } from '@/features/system/data/system';
-import { usePermissions } from '@/hooks/usePermissions';
 import { useChannels } from '../context/channels-context';
 
 const MAX_PROMPT_CODE_POINTS = 4096;
@@ -36,11 +35,8 @@ const AUTO_SYNC_FREQUENCY_OPTIONS: { value: AutoSyncFrequency; label: string }[]
 export function ChannelsSystemSettingsDialog() {
   const { t } = useTranslation();
   const { open, setOpen } = useChannels();
-  const { hasSystemScope } = usePermissions();
   const isOpen = open === 'channelSettings';
-  const canReadSettings = hasSystemScope('read_settings');
-  const canWriteSettings = hasSystemScope('write_settings');
-  const { data: settings, isLoading } = useChannelSetting({ enabled: isOpen && canReadSettings });
+  const { data: settings, isLoading } = useChannelSetting({ enabled: isOpen });
   const updateSettings = useUpdateChannelSetting();
 
   const [probeEnabled, setProbeEnabled] = React.useState(false);
@@ -67,7 +63,7 @@ export function ChannelsSystemSettingsDialog() {
   const promptTooLong = systemPromptLength > MAX_PROMPT_CODE_POINTS || userPromptLength > MAX_PROMPT_CODE_POINTS;
 
   const handleSave = useCallback(async () => {
-    if (!canWriteSettings || promptTooLong) return;
+    if (promptTooLong) return;
     await updateSettings.mutateAsync({
       probe: {
         enabled: probeEnabled,
@@ -80,13 +76,11 @@ export function ChannelsSystemSettingsDialog() {
       testUserPrompt,
     });
     setOpen(null);
-  }, [updateSettings, probeEnabled, probeFrequency, autoSyncFrequency, testSystemPrompt, testUserPrompt, canWriteSettings, promptTooLong, setOpen]);
+  }, [updateSettings, probeEnabled, probeFrequency, autoSyncFrequency, testSystemPrompt, testUserPrompt, promptTooLong, setOpen]);
 
   const handleClose = useCallback(() => {
     setOpen(null);
   }, [setOpen]);
-
-  if (!canReadSettings) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -123,7 +117,7 @@ export function ChannelsSystemSettingsDialog() {
                     id='probe-enabled'
                     checked={probeEnabled}
                     onCheckedChange={setProbeEnabled}
-                    disabled={updateSettings.isPending || !canWriteSettings}
+                    disabled={updateSettings.isPending}
                   />
                 </div>
 
@@ -133,7 +127,7 @@ export function ChannelsSystemSettingsDialog() {
                       {t('channels.dialogs.systemSettings.channelProbe.frequencyLabel')}
                     </label>
                     <Select value={probeFrequency} onValueChange={(value) => setProbeFrequency(value as ProbeFrequency)}>
-                      <SelectTrigger id='probe-frequency' disabled={updateSettings.isPending || !canWriteSettings}>
+                      <SelectTrigger id='probe-frequency' disabled={updateSettings.isPending}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -163,7 +157,7 @@ export function ChannelsSystemSettingsDialog() {
                     {t('channels.dialogs.systemSettings.autoSync.frequencyLabel')}
                   </label>
                   <Select value={autoSyncFrequency} onValueChange={(value) => setAutoSyncFrequency(value as AutoSyncFrequency)}>
-                    <SelectTrigger id='auto-sync-frequency' disabled={updateSettings.isPending || !canWriteSettings}>
+                    <SelectTrigger id='auto-sync-frequency' disabled={updateSettings.isPending}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -204,7 +198,7 @@ export function ChannelsSystemSettingsDialog() {
                       variant='ghost'
                       size='sm'
                       onClick={() => setTestSystemPrompt(DEFAULT_TEST_SYSTEM_PROMPT)}
-                      disabled={updateSettings.isPending || !canWriteSettings}
+                      disabled={updateSettings.isPending}
                       data-testid='channel-test-system-prompt-reset'
                     >
                       <RotateCcw className='mr-1 h-3.5 w-3.5' />
@@ -217,7 +211,7 @@ export function ChannelsSystemSettingsDialog() {
                     rows={4}
                     value={testSystemPrompt}
                     onChange={(event) => setTestSystemPrompt(event.target.value)}
-                    disabled={updateSettings.isPending || !canWriteSettings}
+                    disabled={updateSettings.isPending}
                     aria-describedby='channel-test-system-prompt-count'
                   />
                   <p
@@ -246,7 +240,7 @@ export function ChannelsSystemSettingsDialog() {
                       variant='ghost'
                       size='sm'
                       onClick={() => setTestUserPrompt(DEFAULT_TEST_USER_PROMPT)}
-                      disabled={updateSettings.isPending || !canWriteSettings}
+                      disabled={updateSettings.isPending}
                       data-testid='channel-test-user-prompt-reset'
                     >
                       <RotateCcw className='mr-1 h-3.5 w-3.5' />
@@ -259,7 +253,7 @@ export function ChannelsSystemSettingsDialog() {
                     rows={4}
                     value={testUserPrompt}
                     onChange={(event) => setTestUserPrompt(event.target.value)}
-                    disabled={updateSettings.isPending || !canWriteSettings}
+                    disabled={updateSettings.isPending}
                     aria-describedby='channel-test-user-prompt-count'
                   />
                   <p
@@ -286,7 +280,7 @@ export function ChannelsSystemSettingsDialog() {
           <Button variant='outline' onClick={handleClose} disabled={updateSettings.isPending}>
             {t('common.buttons.cancel')}
           </Button>
-          <Button onClick={handleSave} disabled={updateSettings.isPending || isLoading || !canWriteSettings || promptTooLong}>
+          <Button onClick={handleSave} disabled={updateSettings.isPending || isLoading || promptTooLong}>
             {updateSettings.isPending ? (
               <>
                 <Loader2 className='mr-2 h-4 w-4 animate-spin' />

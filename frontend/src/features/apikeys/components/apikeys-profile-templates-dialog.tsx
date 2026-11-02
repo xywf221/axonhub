@@ -3,7 +3,6 @@ import { format } from 'date-fns';
 import { IconCopy, IconLoader2, IconPencil, IconPlus, IconTemplate, IconTrash, IconUpload } from '@tabler/icons-react';
 import { zhCN, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
-import { useSelectedProjectId } from '@/stores/projectStore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -94,7 +93,6 @@ function TemplateItem({
 
 export function ApiKeysProfileTemplatesDialog({ open, onOpenChange }: ApiKeysProfileTemplatesDialogProps) {
   const { t } = useTranslation();
-  const selectedProjectId = useSelectedProjectId();
   const [deleteTarget, setDeleteTarget] = useState<ApiKeyProfileTemplate | null>(null);
   const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -103,7 +101,7 @@ export function ApiKeysProfileTemplatesDialog({ open, onOpenChange }: ApiKeysPro
   const [copyTarget, setCopyTarget] = useState<ApiKeyProfileTemplate | null>(null);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
-  const { data: templates, isLoading: isLoadingTemplates } = useApiKeyProfileTemplates(selectedProjectId);
+  const { data: templates, isLoading: isLoadingTemplates } = useApiKeyProfileTemplates();
   const deleteTemplate = useDeleteApiKeyProfileTemplate();
 
   const confirmDelete = () => {

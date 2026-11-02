@@ -4,7 +4,6 @@ import { Row } from '@tanstack/react-table';
 import { IconUserOff, IconUserCheck, IconEdit, IconSettings, IconArchive, IconCheck, IconRefresh } from '@tabler/icons-react';
 import { BarChart3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { usePermissions } from '@/hooks/usePermissions';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -19,7 +18,6 @@ interface DataTableRowActionsProps {
 export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const { t } = useTranslation();
   const { openDialog } = useApiKeysContext();
-  const { apiKeyPermissions } = usePermissions();
   const currentUser = useAuthStore((state) => state.auth.user);
   const apiKey = row.original;
   const [open, setOpen] = React.useState(false);
@@ -30,12 +28,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   // else instead of letting them fail.
   const isOthersPersonalKey =
     apiKey.type === 'personal' && !currentUser?.isOwner && apiKey.user?.id != null && apiKey.user.id !== currentUser?.id;
-  const canMutate = apiKeyPermissions.canWrite && !isOthersPersonalKey;
-
-  // Don't show menu if user has no permissions
-  if (!apiKeyPermissions.canRead && !apiKeyPermissions.canWrite) {
-    return null;
-  }
+  const canMutate = !isOthersPersonalKey;
 
   const handleEdit = (apiKey: ApiKey) => {
     setOpen(false);

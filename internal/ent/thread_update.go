@@ -154,9 +154,6 @@ func (_u *ThreadUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Thread.status": %w`, err)}
 		}
 	}
-	if _u.mutation.ProjectCleared() && len(_u.mutation.ProjectIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "Thread.project"`)
-	}
 	return nil
 }
 
@@ -390,9 +387,6 @@ func (_u *ThreadUpdateOne) check() error {
 		if err := thread.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Thread.status": %w`, err)}
 		}
-	}
-	if _u.mutation.ProjectCleared() && len(_u.mutation.ProjectIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "Thread.project"`)
 	}
 	return nil
 }

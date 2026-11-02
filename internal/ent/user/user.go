@@ -40,29 +40,14 @@ const (
 	FieldAvatar = "avatar"
 	// FieldIsOwner holds the string denoting the is_owner field in the database.
 	FieldIsOwner = "is_owner"
-	// FieldScopes holds the string denoting the scopes field in the database.
-	FieldScopes = "scopes"
-	// EdgeProjects holds the string denoting the projects edge name in mutations.
-	EdgeProjects = "projects"
 	// EdgeAPIKeys holds the string denoting the api_keys edge name in mutations.
 	EdgeAPIKeys = "api_keys"
-	// EdgeRoles holds the string denoting the roles edge name in mutations.
-	EdgeRoles = "roles"
 	// EdgeChannelOverrideTemplates holds the string denoting the channel_override_templates edge name in mutations.
 	EdgeChannelOverrideTemplates = "channel_override_templates"
 	// EdgeOidcIdentities holds the string denoting the oidc_identities edge name in mutations.
 	EdgeOidcIdentities = "oidc_identities"
-	// EdgeProjectUsers holds the string denoting the project_users edge name in mutations.
-	EdgeProjectUsers = "project_users"
-	// EdgeUserRoles holds the string denoting the user_roles edge name in mutations.
-	EdgeUserRoles = "user_roles"
 	// Table holds the table name of the user in the database.
 	Table = "users"
-	// ProjectsTable is the table that holds the projects relation/edge. The primary key declared below.
-	ProjectsTable = "user_projects"
-	// ProjectsInverseTable is the table name for the Project entity.
-	// It exists in this package in order to avoid circular dependency with the "project" package.
-	ProjectsInverseTable = "projects"
 	// APIKeysTable is the table that holds the api_keys relation/edge.
 	APIKeysTable = "api_keys"
 	// APIKeysInverseTable is the table name for the APIKey entity.
@@ -70,11 +55,6 @@ const (
 	APIKeysInverseTable = "api_keys"
 	// APIKeysColumn is the table column denoting the api_keys relation/edge.
 	APIKeysColumn = "user_id"
-	// RolesTable is the table that holds the roles relation/edge. The primary key declared below.
-	RolesTable = "user_roles"
-	// RolesInverseTable is the table name for the Role entity.
-	// It exists in this package in order to avoid circular dependency with the "role" package.
-	RolesInverseTable = "roles"
 	// ChannelOverrideTemplatesTable is the table that holds the channel_override_templates relation/edge.
 	ChannelOverrideTemplatesTable = "channel_override_templates"
 	// ChannelOverrideTemplatesInverseTable is the table name for the ChannelOverrideTemplate entity.
@@ -89,20 +69,6 @@ const (
 	OidcIdentitiesInverseTable = "oidc_identities"
 	// OidcIdentitiesColumn is the table column denoting the oidc_identities relation/edge.
 	OidcIdentitiesColumn = "user_id"
-	// ProjectUsersTable is the table that holds the project_users relation/edge.
-	ProjectUsersTable = "user_projects"
-	// ProjectUsersInverseTable is the table name for the UserProject entity.
-	// It exists in this package in order to avoid circular dependency with the "userproject" package.
-	ProjectUsersInverseTable = "user_projects"
-	// ProjectUsersColumn is the table column denoting the project_users relation/edge.
-	ProjectUsersColumn = "user_id"
-	// UserRolesTable is the table that holds the user_roles relation/edge.
-	UserRolesTable = "user_roles"
-	// UserRolesInverseTable is the table name for the UserRole entity.
-	// It exists in this package in order to avoid circular dependency with the "userrole" package.
-	UserRolesInverseTable = "user_roles"
-	// UserRolesColumn is the table column denoting the user_roles relation/edge.
-	UserRolesColumn = "user_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -119,17 +85,7 @@ var Columns = []string{
 	FieldLastName,
 	FieldAvatar,
 	FieldIsOwner,
-	FieldScopes,
 }
-
-var (
-	// ProjectsPrimaryKey and ProjectsColumn2 are the table columns denoting the
-	// primary key for the projects relation (M2M).
-	ProjectsPrimaryKey = []string{"project_id", "user_id"}
-	// RolesPrimaryKey and RolesColumn2 are the table columns denoting the
-	// primary key for the roles relation (M2M).
-	RolesPrimaryKey = []string{"user_id", "role_id"}
-)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -147,9 +103,8 @@ func ValidColumn(column string) bool {
 //
 //	import _ "github.com/looplj/axonhub/internal/ent/runtime"
 var (
-	Hooks        [2]ent.Hook
+	Hooks        [1]ent.Hook
 	Interceptors [1]ent.Interceptor
-	Policy       ent.Policy
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -166,8 +121,6 @@ var (
 	DefaultLastName string
 	// DefaultIsOwner holds the default value on creation for the "is_owner" field.
 	DefaultIsOwner bool
-	// DefaultScopes holds the default value on creation for the "scopes" field.
-	DefaultScopes []string
 )
 
 // Status defines the type for the "status" enum field.
@@ -259,20 +212,6 @@ func ByIsOwner(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsOwner, opts...).ToFunc()
 }
 
-// ByProjectsCount orders the results by projects count.
-func ByProjectsCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newProjectsStep(), opts...)
-	}
-}
-
-// ByProjects orders the results by projects terms.
-func ByProjects(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newProjectsStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
 // ByAPIKeysCount orders the results by api_keys count.
 func ByAPIKeysCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -284,20 +223,6 @@ func ByAPIKeysCount(opts ...sql.OrderTermOption) OrderOption {
 func ByAPIKeys(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newAPIKeysStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
-// ByRolesCount orders the results by roles count.
-func ByRolesCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newRolesStep(), opts...)
-	}
-}
-
-// ByRoles orders the results by roles terms.
-func ByRoles(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newRolesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
@@ -328,53 +253,11 @@ func ByOidcIdentities(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newOidcIdentitiesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-
-// ByProjectUsersCount orders the results by project_users count.
-func ByProjectUsersCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newProjectUsersStep(), opts...)
-	}
-}
-
-// ByProjectUsers orders the results by project_users terms.
-func ByProjectUsers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newProjectUsersStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
-// ByUserRolesCount orders the results by user_roles count.
-func ByUserRolesCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newUserRolesStep(), opts...)
-	}
-}
-
-// ByUserRoles orders the results by user_roles terms.
-func ByUserRoles(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newUserRolesStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-func newProjectsStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ProjectsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2M, true, ProjectsTable, ProjectsPrimaryKey...),
-	)
-}
 func newAPIKeysStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(APIKeysInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, APIKeysTable, APIKeysColumn),
-	)
-}
-func newRolesStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(RolesInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2M, false, RolesTable, RolesPrimaryKey...),
 	)
 }
 func newChannelOverrideTemplatesStep() *sqlgraph.Step {
@@ -389,20 +272,6 @@ func newOidcIdentitiesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(OidcIdentitiesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, true, OidcIdentitiesTable, OidcIdentitiesColumn),
-	)
-}
-func newProjectUsersStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ProjectUsersInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, true, ProjectUsersTable, ProjectUsersColumn),
-	)
-}
-func newUserRolesStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(UserRolesInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, true, UserRolesTable, UserRolesColumn),
 	)
 }
 

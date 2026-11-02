@@ -65,11 +65,6 @@ func UpdatedAt(v time.Time) predicate.Thread {
 	return predicate.Thread(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
-// ProjectID applies equality check predicate on the "project_id" field. It's identical to ProjectIDEQ.
-func ProjectID(v int) predicate.Thread {
-	return predicate.Thread(sql.FieldEQ(FieldProjectID, v))
-}
-
 // ThreadID applies equality check predicate on the "thread_id" field. It's identical to ThreadIDEQ.
 func ThreadID(v string) predicate.Thread {
 	return predicate.Thread(sql.FieldEQ(FieldThreadID, v))
@@ -155,26 +150,6 @@ func UpdatedAtLTE(v time.Time) predicate.Thread {
 	return predicate.Thread(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
-// ProjectIDEQ applies the EQ predicate on the "project_id" field.
-func ProjectIDEQ(v int) predicate.Thread {
-	return predicate.Thread(sql.FieldEQ(FieldProjectID, v))
-}
-
-// ProjectIDNEQ applies the NEQ predicate on the "project_id" field.
-func ProjectIDNEQ(v int) predicate.Thread {
-	return predicate.Thread(sql.FieldNEQ(FieldProjectID, v))
-}
-
-// ProjectIDIn applies the In predicate on the "project_id" field.
-func ProjectIDIn(vs ...int) predicate.Thread {
-	return predicate.Thread(sql.FieldIn(FieldProjectID, vs...))
-}
-
-// ProjectIDNotIn applies the NotIn predicate on the "project_id" field.
-func ProjectIDNotIn(vs ...int) predicate.Thread {
-	return predicate.Thread(sql.FieldNotIn(FieldProjectID, vs...))
-}
-
 // ThreadIDEQ applies the EQ predicate on the "thread_id" field.
 func ThreadIDEQ(v string) predicate.Thread {
 	return predicate.Thread(sql.FieldEQ(FieldThreadID, v))
@@ -258,29 +233,6 @@ func StatusIn(vs ...Status) predicate.Thread {
 // StatusNotIn applies the NotIn predicate on the "status" field.
 func StatusNotIn(vs ...Status) predicate.Thread {
 	return predicate.Thread(sql.FieldNotIn(FieldStatus, vs...))
-}
-
-// HasProject applies the HasEdge predicate on the "project" edge.
-func HasProject() predicate.Thread {
-	return predicate.Thread(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, ProjectTable, ProjectColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasProjectWith applies the HasEdge predicate on the "project" edge with a given conditions (other predicates).
-func HasProjectWith(preds ...predicate.Project) predicate.Thread {
-	return predicate.Thread(func(s *sql.Selector) {
-		step := newProjectStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
 }
 
 // HasTraces applies the HasEdge predicate on the "traces" edge.

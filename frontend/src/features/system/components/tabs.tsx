@@ -11,22 +11,18 @@ import { DiagnosticsSettings } from './diagnostics-settings';
 import { GeneralSettings } from './general-settings';
 import { QuotaSettings } from './quota-settings';
 import { RetrySettings } from './retry-settings';
-import { SecuritySettings } from './security-settings';
 import { StorageSettings } from './storage-settings';
 import { BackupSettings } from './backup-settings';
 import { ProxyPresetsSettings } from './proxy-presets-settings';
 import { WebSearchSettings } from './web-search-settings';
-import { WebhookSettings } from './webhook-settings';
-import { usePermissions } from '@/hooks/usePermissions';
+import { useAuthStore } from '@/stores/authStore';
 
 export type SystemTabKey =
   | 'general'
-  | 'security'
   | 'websearch'
   | 'brand'
   | 'storage'
   | 'retry'
-  | 'webhook'
   | 'proxy'
   | 'quota'
   | 'codex'
@@ -36,12 +32,10 @@ export type SystemTabKey =
 
 const systemTabKeys = new Set<SystemTabKey>([
   'general',
-  'security',
   'websearch',
   'brand',
   'storage',
   'retry',
-  'webhook',
   'proxy',
   'quota',
   'codex',
@@ -60,7 +54,7 @@ interface SystemSettingsTabsProps {
 
 export function SystemSettingsTabs({ initialTab }: SystemSettingsTabsProps) {
   const { t } = useTranslation();
-  const { isOwner } = usePermissions();
+  const isOwner = useAuthStore((state) => state.auth.user?.isOwner);
   const [activeTab, setActiveTab] = useState<SystemTabKey>('general');
   const tabListRef = useRef<HTMLDivElement>(null);
   const horizontalScrollRef = useHorizontalScroll<HTMLDivElement>();
@@ -127,9 +121,6 @@ export function SystemSettingsTabs({ initialTab }: SystemSettingsTabsProps) {
         <TabsTrigger value='general' data-value='general'>
           {t('system.tabs.general')}
         </TabsTrigger>
-        <TabsTrigger value='security' data-value='security'>
-          {t('system.tabs.security')}
-        </TabsTrigger>
         <TabsTrigger value='websearch' data-value='websearch'>
           {t('system.tabs.websearch')}
         </TabsTrigger>
@@ -138,9 +129,6 @@ export function SystemSettingsTabs({ initialTab }: SystemSettingsTabsProps) {
         </TabsTrigger>
         <TabsTrigger value='retry' data-value='retry'>
           {t('system.tabs.retry')}
-        </TabsTrigger>
-        <TabsTrigger value='webhook' data-value='webhook'>
-          {t('system.tabs.webhook')}
         </TabsTrigger>
         <TabsTrigger value='storage' data-value='storage'>
           {t('system.tabs.storage')}
@@ -172,9 +160,6 @@ export function SystemSettingsTabs({ initialTab }: SystemSettingsTabsProps) {
         <TabsContent value='general' className='mt-0 p-0'>
           <GeneralSettings />
         </TabsContent>
-        <TabsContent value='security' className='mt-0 p-0'>
-          <SecuritySettings />
-        </TabsContent>
         <TabsContent value='websearch' className='mt-0 p-0'>
           <WebSearchSettings />
         </TabsContent>
@@ -186,9 +171,6 @@ export function SystemSettingsTabs({ initialTab }: SystemSettingsTabsProps) {
         </TabsContent>
         <TabsContent value='retry' className='mt-0 p-0'>
           <RetrySettings />
-        </TabsContent>
-        <TabsContent value='webhook' className='mt-0 p-0'>
-          <WebhookSettings />
         </TabsContent>
         <TabsContent value='proxy' className='mt-0 p-0'>
           <ProxyPresetsSettings />

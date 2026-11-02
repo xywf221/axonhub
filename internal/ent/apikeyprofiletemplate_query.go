@@ -14,19 +14,17 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/looplj/axonhub/internal/ent/apikeyprofiletemplate"
 	"github.com/looplj/axonhub/internal/ent/predicate"
-	"github.com/looplj/axonhub/internal/ent/project"
 )
 
 // APIKeyProfileTemplateQuery is the builder for querying APIKeyProfileTemplate entities.
 type APIKeyProfileTemplateQuery struct {
 	config
-	ctx         *QueryContext
-	order       []apikeyprofiletemplate.OrderOption
-	inters      []Interceptor
-	predicates  []predicate.APIKeyProfileTemplate
-	withProject *ProjectQuery
-	loadTotal   []func(context.Context, []*APIKeyProfileTemplate) error
-	modifiers   []func(*sql.Selector)
+	ctx        *QueryContext
+	order      []apikeyprofiletemplate.OrderOption
+	inters     []Interceptor
+	predicates []predicate.APIKeyProfileTemplate
+	loadTotal  []func(context.Context, []*APIKeyProfileTemplate) error
+	modifiers  []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -61,28 +59,6 @@ func (_q *APIKeyProfileTemplateQuery) Unique(unique bool) *APIKeyProfileTemplate
 func (_q *APIKeyProfileTemplateQuery) Order(o ...apikeyprofiletemplate.OrderOption) *APIKeyProfileTemplateQuery {
 	_q.order = append(_q.order, o...)
 	return _q
-}
-
-// QueryProject chains the current query on the "project" edge.
-func (_q *APIKeyProfileTemplateQuery) QueryProject() *ProjectQuery {
-	query := (&ProjectClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(apikeyprofiletemplate.Table, apikeyprofiletemplate.FieldID, selector),
-			sqlgraph.To(project.Table, project.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, apikeyprofiletemplate.ProjectTable, apikeyprofiletemplate.ProjectColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
 }
 
 // First returns the first APIKeyProfileTemplate entity from the query.
@@ -272,28 +248,16 @@ func (_q *APIKeyProfileTemplateQuery) Clone() *APIKeyProfileTemplateQuery {
 		return nil
 	}
 	return &APIKeyProfileTemplateQuery{
-		config:      _q.config,
-		ctx:         _q.ctx.Clone(),
-		order:       append([]apikeyprofiletemplate.OrderOption{}, _q.order...),
-		inters:      append([]Interceptor{}, _q.inters...),
-		predicates:  append([]predicate.APIKeyProfileTemplate{}, _q.predicates...),
-		withProject: _q.withProject.Clone(),
+		config:     _q.config,
+		ctx:        _q.ctx.Clone(),
+		order:      append([]apikeyprofiletemplate.OrderOption{}, _q.order...),
+		inters:     append([]Interceptor{}, _q.inters...),
+		predicates: append([]predicate.APIKeyProfileTemplate{}, _q.predicates...),
 		// clone intermediate query.
 		sql:       _q.sql.Clone(),
 		path:      _q.path,
 		modifiers: append([]func(*sql.Selector){}, _q.modifiers...),
 	}
-}
-
-// WithProject tells the query-builder to eager-load the nodes that are connected to
-// the "project" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *APIKeyProfileTemplateQuery) WithProject(opts ...func(*ProjectQuery)) *APIKeyProfileTemplateQuery {
-	query := (&ProjectClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withProject = query
-	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -378,11 +342,8 @@ func (_q *APIKeyProfileTemplateQuery) prepareQuery(ctx context.Context) error {
 
 func (_q *APIKeyProfileTemplateQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*APIKeyProfileTemplate, error) {
 	var (
-		nodes       = []*APIKeyProfileTemplate{}
-		_spec       = _q.querySpec()
-		loadedTypes = [1]bool{
-			_q.withProject != nil,
-		}
+		nodes = []*APIKeyProfileTemplate{}
+		_spec = _q.querySpec()
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*APIKeyProfileTemplate).scanValues(nil, columns)
@@ -390,7 +351,6 @@ func (_q *APIKeyProfileTemplateQuery) sqlAll(ctx context.Context, hooks ...query
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &APIKeyProfileTemplate{config: _q.config}
 		nodes = append(nodes, node)
-		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if len(_q.modifiers) > 0 {
@@ -405,48 +365,12 @@ func (_q *APIKeyProfileTemplateQuery) sqlAll(ctx context.Context, hooks ...query
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withProject; query != nil {
-		if err := _q.loadProject(ctx, query, nodes, nil,
-			func(n *APIKeyProfileTemplate, e *Project) { n.Edges.Project = e }); err != nil {
-			return nil, err
-		}
-	}
 	for i := range _q.loadTotal {
 		if err := _q.loadTotal[i](ctx, nodes); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
-}
-
-func (_q *APIKeyProfileTemplateQuery) loadProject(ctx context.Context, query *ProjectQuery, nodes []*APIKeyProfileTemplate, init func(*APIKeyProfileTemplate), assign func(*APIKeyProfileTemplate, *Project)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*APIKeyProfileTemplate)
-	for i := range nodes {
-		fk := nodes[i].ProjectID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(project.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "project_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
 }
 
 func (_q *APIKeyProfileTemplateQuery) sqlCount(ctx context.Context) (int, error) {
@@ -476,9 +400,6 @@ func (_q *APIKeyProfileTemplateQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != apikeyprofiletemplate.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
-		}
-		if _q.withProject != nil {
-			_spec.Node.AddColumnOnce(apikeyprofiletemplate.FieldProjectID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

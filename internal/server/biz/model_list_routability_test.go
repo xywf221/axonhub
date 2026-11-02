@@ -170,7 +170,7 @@ func TestListEnabledModels_HideUnroutableModelsInList(t *testing.T) {
 	require.False(t, listed["unroutable-embedding"], "hidden configured model must not reappear as a channel-derived facade")
 }
 
-func TestListEnabledModels_HideUnroutableRespectsExcludedProjectTags(t *testing.T) {
+func TestListEnabledModels_HideUnroutableRespectsExcludedProfileTags(t *testing.T) {
 	ctx, client, modelSvc, channelSvc, systemSvc := setupListEnabledModelsTest(t)
 
 	excludedChannel, err := client.Channel.Create().
@@ -203,19 +203,14 @@ func TestListEnabledModels_HideUnroutableRespectsExcludedProjectTags(t *testing.
 
 	apiKey := &ent.APIKey{
 		ID:   1,
-		Name: "project-a-key",
-		Edges: ent.APIKeyEdges{
-			Project: &ent.Project{
-				ID: 1,
-				Profiles: &objects.ProjectProfiles{
-					ActiveProfile: "default",
-					Profiles: []objects.ProjectProfile{
-						{
-							Name:                 "default",
-							ChannelTags:          []string{"AAA"},
-							ChannelTagsMatchMode: objects.ChannelTagsMatchModeNone,
-						},
-					},
+		Name: "profile-a-key",
+		Profiles: &objects.APIKeyProfiles{
+			ActiveProfile: "default",
+			Profiles: []objects.APIKeyProfile{
+				{
+					Name:                 "default",
+					ChannelTags:          []string{"AAA"},
+					ChannelTagsMatchMode: objects.ChannelTagsMatchModeNone,
 				},
 			},
 		},
@@ -225,7 +220,7 @@ func TestListEnabledModels_HideUnroutableRespectsExcludedProjectTags(t *testing.
 	require.False(t, listed["tagged-only-model"], "model only served by an excluded-tag channel must not appear")
 
 	listed = listedModelIDs(t, ctx, modelSvc)
-	require.True(t, listed["tagged-only-model"], "the same model remains visible without the project tag filter")
+	require.True(t, listed["tagged-only-model"], "the same model remains visible without the profile tag filter")
 }
 
 func TestListEnabledModels_HideUnroutableKeepsChannelDerivedModels(t *testing.T) {

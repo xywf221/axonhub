@@ -29,7 +29,6 @@ func NewChatCompletionOrchestrator(
 	systemService *biz.SystemService,
 	usageLogService *biz.UsageLogService,
 	promptService *biz.PromptService,
-	quotaService *biz.QuotaService,
 	promptProtectionRuleService *biz.PromptProtectionRuleService,
 	liveStreamRegistry *biz.LiveStreamRegistry,
 	channelLimiterManager *ChannelLimiterManager,
@@ -77,7 +76,6 @@ func NewChatCompletionOrchestrator(
 		ChannelService:     channelService,
 		SystemService:      systemService,
 		UsageLogService:    usageLogService,
-		QuotaService:       quotaService,
 		LiveStreamRegistry: liveStreamRegistry,
 		PromptProvider:     promptService,
 		PromptProtecter:    promptProtectionRuleService,
@@ -108,7 +106,6 @@ type ChatCompletionOrchestrator struct {
 	ChannelService     *biz.ChannelService
 	SystemService      *biz.SystemService
 	UsageLogService    *biz.UsageLogService
-	QuotaService       *biz.QuotaService
 	LiveStreamRegistry *biz.LiveStreamRegistry
 	PromptProvider     PromptProvider
 	PromptProtecter    PromptProtecter
@@ -271,7 +268,6 @@ func (processor *ChatCompletionOrchestrator) Process(ctx context.Context, reques
 
 	// Add inbound middlewares (executed after inbound.TransformRequest)
 	middlewares = append(middlewares,
-		enforceQuota(inbound, processor.QuotaService),
 		applyAutoReasoningEffort(processor.SystemService),
 		checkApiKeyModelAccess(inbound),
 		applyModelMapping(inbound),

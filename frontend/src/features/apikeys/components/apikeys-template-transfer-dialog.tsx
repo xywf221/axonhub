@@ -17,10 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useMyProjects } from '@/features/projects/data/projects';
-import { useSelectedProjectId } from '@/stores/projectStore';
 import {
   useApiKeyProfileTemplates,
   useCreateApiKeyProfileTemplate,
@@ -34,7 +31,6 @@ const templateExportSchema = z.object({
   version: z.literal(1),
   type: z.literal(TEMPLATE_EXPORT_TYPE),
   exportedAt: z.string().optional(),
-  sourceProjectID: z.string().optional().nullable(),
   template: z.object({
     name: z.string().trim().min(1),
     description: z.string().optional().default(''),
@@ -50,7 +46,6 @@ function buildTemplateExport(template: ApiKeyProfileTemplate): TemplateExport {
     version: 1,
     type: TEMPLATE_EXPORT_TYPE,
     exportedAt: new Date().toISOString(),
-    sourceProjectID: template.projectID,
     template: {
       name: template.name,
       description: template.description ?? '',
@@ -82,22 +77,14 @@ interface ApiKeyTemplateTransferDialogProps {
 
 export function ApiKeyTemplateTransferDialog({ open, onOpenChange, mode, template }: ApiKeyTemplateTransferDialogProps) {
   const { t } = useTranslation();
-  const selectedProjectId = useSelectedProjectId();
-  const { data: projects = [], isLoading: isLoadingProjects } = useMyProjects();
   const createTemplate = useCreateApiKeyProfileTemplate();
   const updateTemplate = useUpdateApiKeyProfileTemplate();
   const [payload, setPayload] = useState<TemplateExport | null>(null);
-  const [targetProjectID, setTargetProjectID] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [importError, setImportError] = useState('');
   const [confirmOverwrite, setConfirmOverwrite] = useState(false);
   const [fileInputKey, setFileInputKey] = useState(0);
-
-  const availableProjects = useMemo(
-    () => projects.filter((project) => project.status === 'active' && (mode !== 'copy' || project.id !== selectedProjectId)),
-    [mode, projects, selectedProjectId]
-  );
 
   useEffect(() => {
     if (!open) return;
@@ -106,49 +93,36 @@ export function ApiKeyTemplateTransferDialog({ open, onOpenChange, mode, templat
     setPayload(initialPayload);
     setName(initialPayload?.template.name ?? '');
     setDescription(initialPayload?.template.description ?? '');
-    setTargetProjectID(mode === 'import' ? selectedProjectId ?? '' : '');
     setImportError('');
     setConfirmOverwrite(false);
     setFileInputKey((key) => key + 1);
-  }, [mode, open, selectedProjectId, template]);
+  }, [mode, open, template]);
 
-  useEffect(() => {
-    if (!open || targetProjectID || availableProjects.length === 0) return;
-    setTargetProjectID(availableProjects[0].id);
-  }, [availableProjects, open, targetProjectID]);
-
-  const { data: targetTemplates, isLoading: isLoadingTargetTemplates } = useApiKeyProfileTemplates(
-    open && payload && targetProjectID ? targetProjectID : null
-  );
+  const { data: targetTemplates, isLoading: isLoadingTargetTemplates } = useApiKeyProfileTemplates();
   const matchingTemplate = useMemo(
     () => targetTemplates?.find((item) => item.name.trim().toLowerCase() === name.trim().toLowerCase()),
     [name, targetTemplates]
   );
 
-  const sourceChannelIDs = payload?.template.profile.channelIDs ?? [];
-  const crossesProjects = !payload?.sourceProjectID || payload.sourceProjectID !== targetProjectID;
-  const removedChannelCount = crossesProjects ? sourceChannelIDs.length : 0;
   const isPending = createTemplate.isPending || updateTemplate.isPending;
-  const canSubmit = !!payload && !!targetProjectID && !!name.trim() && !isLoadingTargetTemplates && !isPending;
+  const canSubmit = !!payload && !!name.trim() && !isLoadingTargetTemplates && !isPending;
 
   const profileForTarget = (): ApiKeyProfile | null => {
     if (!payload) return null;
     return {
       ...payload.template.profile,
       name: name.trim(),
-      channelIDs: crossesProjects ? [] : payload.template.profile.channelIDs,
     };
   };
 
   const saveToTarget = async (overwrite: boolean) => {
     const profile = profileForTarget();
-    if (!profile || !targetProjectID) return;
+    if (!profile) return;
 
     try {
       if (overwrite && matchingTemplate) {
         await updateTemplate.mutateAsync({
           id: matchingTemplate.id,
-          projectID: targetProjectID,
           input: {
             name: name.trim(),
             description,
@@ -159,7 +133,6 @@ export function ApiKeyTemplateTransferDialog({ open, onOpenChange, mode, templat
         await createTemplate.mutateAsync({
           name: name.trim(),
           description,
-          projectID: targetProjectID,
           profile,
         });
       }
@@ -205,8 +178,6 @@ export function ApiKeyTemplateTransferDialog({ open, onOpenChange, mode, templat
     }
   };
 
-  const noCopyTargets = mode === 'copy' && !isLoadingProjects && availableProjects.length === 0;
-
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -236,26 +207,8 @@ export function ApiKeyTemplateTransferDialog({ open, onOpenChange, mode, templat
               </div>
             )}
 
-            {noCopyTargets && <p className='text-muted-foreground text-sm'>{t('apikeys.templateTransfer.noTargetProjects')}</p>}
-
-            {payload && !noCopyTargets && (
+            {payload && (
               <>
-                <div className='space-y-2'>
-                  <Label>{t('apikeys.templateTransfer.targetProject')}</Label>
-                  <Select value={targetProjectID} onValueChange={setTargetProjectID} disabled={isLoadingProjects || isPending}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('apikeys.templateTransfer.selectProject')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableProjects.map((project) => (
-                        <SelectItem key={project.id} value={project.id}>
-                          {project.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
                 <div className='space-y-2'>
                   <Label htmlFor='transferred-template-name'>{t('apikeys.templates.nameLabel')}</Label>
                   <Input id='transferred-template-name' value={name} onChange={(event) => setName(event.target.value)} disabled={isPending} />
@@ -271,12 +224,6 @@ export function ApiKeyTemplateTransferDialog({ open, onOpenChange, mode, templat
                     disabled={isPending}
                   />
                 </div>
-
-                {removedChannelCount > 0 && (
-                  <div className='rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300'>
-                    {t('apikeys.templateTransfer.channelIDsRemoved', { count: removedChannelCount })}
-                  </div>
-                )}
 
                 {matchingTemplate && (
                   <div className='rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300'>

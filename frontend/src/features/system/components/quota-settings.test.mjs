@@ -77,9 +77,9 @@ test('selection is persisted through the routing mutation hook', () => {
   );
 });
 
-test('routing query is scope-gated in the data layer', () => {
+test('routing query is unconditional in the data layer', () => {
   const hook = extractFunction(systemData, 'useQuotaRoutingSettings');
-  assert.match(hook, /enabled: hasSystemScope\('read_settings'\)/);
+  assert.match(hook, /enabled: true/);
 });
 
 test('card degrades gracefully when settings data is absent (no read_settings scope)', () => {

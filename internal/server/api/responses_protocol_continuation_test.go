@@ -52,12 +52,12 @@ func TestResponsesProtocolNativeContinuationRetainsCompletedConnection(t *testin
 					}
 				}
 			}))
-			client, handlers, project := newResponsesIntegrationFixture(t, upstream.URL, func(create *ent.ChannelCreate) {
+			client, handlers := newResponsesIntegrationFixture(t, upstream.URL, func(create *ent.ChannelCreate) {
 				create.SetType(provider)
 				create.SetEndpoints([]objects.ChannelEndpoint{{APIFormat: "openai/responses-ws"}})
 				create.SetSettings(&objects.ChannelSettings{ModelProtocols: []objects.ModelProtocol{{Model: "synthetic-model", APIFormats: []string{"openai/responses-ws"}}}})
 			})
-			gateway := responsesIntegrationGateway(t, client, handlers, project)
+			gateway := responsesIntegrationGateway(t, client, handlers)
 			conn := responsesIntegrationDial(t, gateway)
 			first := responsesIntegrationTurn(t, conn, `{"type":"response.create","model":"synthetic-model","input":"root-canary"}`)
 			require.Equal(t, "provider-tool", gjson.GetBytes(first, "response.id").String(), string(first))

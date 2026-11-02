@@ -11,7 +11,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/looplj/axonhub/internal/ent/apikeyprofiletemplate"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/objects"
 )
 
@@ -30,36 +29,9 @@ type APIKeyProfileTemplate struct {
 	Name string `json:"name,omitempty"`
 	// Template description
 	Description string `json:"description,omitempty"`
-	// Project ID, set via project edge
-	ProjectID int `json:"project_id,omitempty"`
 	// Profile holds the value of the "profile" field.
-	Profile *objects.APIKeyProfile `json:"profile,omitempty"`
-	// Edges holds the relations/edges for other nodes in the graph.
-	// The values are being populated by the APIKeyProfileTemplateQuery when eager-loading is set.
-	Edges        APIKeyProfileTemplateEdges `json:"edges"`
+	Profile      *objects.APIKeyProfile `json:"profile,omitempty"`
 	selectValues sql.SelectValues
-}
-
-// APIKeyProfileTemplateEdges holds the relations/edges for other nodes in the graph.
-type APIKeyProfileTemplateEdges struct {
-	// Project holds the value of the project edge.
-	Project *Project `json:"project,omitempty"`
-	// loadedTypes holds the information for reporting if a
-	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
-	// totalCount holds the count of the edges above.
-	totalCount [1]map[string]int
-}
-
-// ProjectOrErr returns the Project value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e APIKeyProfileTemplateEdges) ProjectOrErr() (*Project, error) {
-	if e.Project != nil {
-		return e.Project, nil
-	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: project.Label}
-	}
-	return nil, &NotLoadedError{edge: "project"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -69,7 +41,7 @@ func (*APIKeyProfileTemplate) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case apikeyprofiletemplate.FieldProfile:
 			values[i] = new([]byte)
-		case apikeyprofiletemplate.FieldID, apikeyprofiletemplate.FieldDeletedAt, apikeyprofiletemplate.FieldProjectID:
+		case apikeyprofiletemplate.FieldID, apikeyprofiletemplate.FieldDeletedAt:
 			values[i] = new(sql.NullInt64)
 		case apikeyprofiletemplate.FieldName, apikeyprofiletemplate.FieldDescription:
 			values[i] = new(sql.NullString)
@@ -126,12 +98,6 @@ func (_m *APIKeyProfileTemplate) assignValues(columns []string, values []any) er
 			} else if value.Valid {
 				_m.Description = value.String
 			}
-		case apikeyprofiletemplate.FieldProjectID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field project_id", values[i])
-			} else if value.Valid {
-				_m.ProjectID = int(value.Int64)
-			}
 		case apikeyprofiletemplate.FieldProfile:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field profile", values[i])
@@ -151,11 +117,6 @@ func (_m *APIKeyProfileTemplate) assignValues(columns []string, values []any) er
 // This includes values selected through modifiers, order, etc.
 func (_m *APIKeyProfileTemplate) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
-}
-
-// QueryProject queries the "project" edge of the APIKeyProfileTemplate entity.
-func (_m *APIKeyProfileTemplate) QueryProject() *ProjectQuery {
-	return NewAPIKeyProfileTemplateClient(_m.config).QueryProject(_m)
 }
 
 // Update returns a builder for updating this APIKeyProfileTemplate.
@@ -195,9 +156,6 @@ func (_m *APIKeyProfileTemplate) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("description=")
 	builder.WriteString(_m.Description)
-	builder.WriteString(", ")
-	builder.WriteString("project_id=")
-	builder.WriteString(fmt.Sprintf("%v", _m.ProjectID))
 	builder.WriteString(", ")
 	builder.WriteString("profile=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Profile))

@@ -14,7 +14,6 @@ import (
 	"github.com/looplj/axonhub/internal/ent/channel"
 	"github.com/looplj/axonhub/internal/ent/channelmodelprice"
 	"github.com/looplj/axonhub/internal/ent/model"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/request"
 	"github.com/looplj/axonhub/internal/ent/system"
 	"github.com/looplj/axonhub/internal/ent/usagelog"
@@ -75,9 +74,6 @@ func (svc *BackupService) doBackupToWriter(ctx context.Context, opts BackupOptio
 	if err := svc.streamSystemConfigs(ctx, o, opts); err != nil {
 		return err
 	}
-	if err := svc.streamProjects(ctx, o, opts); err != nil {
-		return err
-	}
 	if err := svc.streamChannels(ctx, o, opts); err != nil {
 		return err
 	}
@@ -111,7 +107,6 @@ var systemConfigBackupKeys = []string{
 	biz.SystemKeyStoreChunks,
 	biz.SystemKeyStoragePolicy,
 	biz.SystemKeyRetryPolicy,
-	biz.SystemKeyWebhookNotifierConfig,
 	biz.SystemKeyModelSettings,
 	biz.SystemKeyChannelSettings,
 	biz.SystemKeyGeneralSettings,
@@ -120,7 +115,6 @@ var systemConfigBackupKeys = []string{
 	biz.SystemKeyInjectUsageCost,
 	biz.SystemKeyQuotaEnforcementSettings,
 	biz.SystemKeyQuotaRoutingSettings,
-	biz.SystemKeySecuritySettings,
 	biz.SystemKeyProxyPresets,
 }
 
@@ -144,30 +138,6 @@ func (svc *BackupService) streamSystemConfigs(ctx context.Context, o *objWriter,
 		func(config *ent.System) ([]byte, bool, error) {
 			data, err := json.Marshal(&BackupSystemConfig{Key: config.Key, Value: config.Value})
 			return data, true, err
-		},
-	)
-}
-
-func (svc *BackupService) streamProjects(ctx context.Context, o *objWriter, opts BackupOptions) error {
-	return streamArrayField(o, "projects", opts.IncludeProjects, true,
-		func(lastID int) ([]*ent.Project, int, error) {
-			rows, err := svc.db.Project.Query().
-				Where(project.IDGT(lastID)).
-				Order(ent.Asc(project.FieldID)).
-				Limit(backupBatchSize).
-				All(ctx)
-			if err != nil {
-				return nil, 0, err
-			}
-			nextID := 0
-			if len(rows) > 0 {
-				nextID = rows[len(rows)-1].ID
-			}
-			return rows, nextID, nil
-		},
-		func(p *ent.Project) ([]byte, bool, error) {
-			b, err := json.Marshal(&BackupProject{Project: *p})
-			return b, true, err
 		},
 	)
 }
@@ -260,7 +230,6 @@ func (svc *BackupService) streamAPIKeys(ctx context.Context, o *objWriter, opts 
 	return streamArrayField(o, "api_keys", opts.IncludeAPIKeys, true,
 		func(lastID int) ([]*ent.APIKey, int, error) {
 			rows, err := svc.db.APIKey.Query().
-				WithProject().
 				Where(apikey.IDGT(lastID)).
 				Order(ent.Asc(apikey.FieldID)).
 				Limit(backupBatchSize).
@@ -275,14 +244,7 @@ func (svc *BackupService) streamAPIKeys(ctx context.Context, o *objWriter, opts 
 			return rows, nextID, nil
 		},
 		func(ak *ent.APIKey) ([]byte, bool, error) {
-			projectName := ""
-			if ak.Edges.Project != nil {
-				projectName = ak.Edges.Project.Name
-			}
-			b, err := json.Marshal(&BackupAPIKey{
-				APIKey:      *ak,
-				ProjectName: projectName,
-			})
+			b, err := json.Marshal(&BackupAPIKey{APIKey: *ak})
 			return b, true, err
 		},
 	)
@@ -295,7 +257,6 @@ func (svc *BackupService) streamUsageRequests(ctx context.Context, o *objWriter,
 				Where(request.IDGT(lastID)).
 				Order(ent.Asc(request.FieldID)).
 				Limit(backupBatchSize).
-				WithProject().
 				WithChannel()
 			if opts.IncludeAPIKeys {
 				query.WithAPIKey()
@@ -336,7 +297,6 @@ func (svc *BackupService) streamUsageLogs(ctx context.Context, o *objWriter, opt
 				Where(usagelog.IDGT(lastID)).
 				Order(ent.Asc(usagelog.FieldID)).
 				Limit(backupBatchSize).
-				WithProject().
 				WithChannel().
 				All(ctx)
 			if err != nil {
@@ -446,9 +406,6 @@ func streamArrayField[T any](
 
 func backupUsageRequest(req *ent.Request, includeAPIKeyValues bool) *BackupUsageRequest {
 	data := &BackupUsageRequest{Request: *req}
-	if req.Edges.Project != nil {
-		data.ProjectName = req.Edges.Project.Name
-	}
 	if req.Edges.Channel != nil {
 		data.ChannelName = req.Edges.Channel.Name
 	}
@@ -462,9 +419,6 @@ func backupUsageRequest(req *ent.Request, includeAPIKeyValues bool) *BackupUsage
 
 func backupUsageLog(ul *ent.UsageLog, apiKeyKeys map[int]string) *BackupUsageLog {
 	data := &BackupUsageLog{UsageLog: *ul}
-	if ul.Edges.Project != nil {
-		data.ProjectName = ul.Edges.Project.Name
-	}
 	if ul.Edges.Channel != nil {
 		data.ChannelName = ul.Edges.Channel.Name
 	}

@@ -15,7 +15,6 @@ import (
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/apikey"
 	"github.com/looplj/axonhub/internal/ent/enttest"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/user"
 	"github.com/looplj/axonhub/internal/pkg/xcache"
 	"github.com/looplj/axonhub/internal/server/biz"
@@ -52,12 +51,6 @@ func setupAdminGraphqlAuth(t *testing.T) adminGraphqlAuthFixture {
 		Save(ctx)
 	require.NoError(t, err)
 
-	proj, err := client.Project.Create().
-		SetName(fmt.Sprintf("project-%d", time.Now().UnixNano())).
-		SetStatus(project.StatusActive).
-		Save(ctx)
-	require.NoError(t, err)
-
 	mustKey := func(name string, keyType apikey.Type) string {
 		value, err := biz.GenerateAPIKey("ah")
 		require.NoError(t, err)
@@ -66,7 +59,6 @@ func setupAdminGraphqlAuth(t *testing.T) adminGraphqlAuthFixture {
 			SetName(name).
 			SetKey(value).
 			SetUserID(owner.ID).
-			SetProjectID(proj.ID).
 			SetType(keyType).
 			SetStatus(apikey.StatusEnabled).
 			SaveX(ctx)
@@ -75,11 +67,8 @@ func setupAdminGraphqlAuth(t *testing.T) adminGraphqlAuthFixture {
 	}
 
 	cacheCfg := xcache.Config{Mode: xcache.ModeMemory}
-	projectSvc := &biz.ProjectService{
-		ProjectCache: xcache.NewFromConfig[xcache.Entry[ent.Project]](cacheCfg),
-	}
 	apiKeySvc := biz.NewAPIKeyService(biz.APIKeyServiceParams{
-		CacheConfig: cacheCfg, Ent: client, ProjectService: projectSvc, KeyPrefix: "ah",
+		CacheConfig: cacheCfg, Ent: client, KeyPrefix: "ah",
 	})
 	t.Cleanup(apiKeySvc.Stop)
 	userSvc := biz.NewUserService(biz.UserServiceParams{

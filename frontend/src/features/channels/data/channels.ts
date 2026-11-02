@@ -5,7 +5,6 @@ import { graphqlRequest } from '@/gql/graphql';
 import { pageInfoSchema } from '@/gql/pagination';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { useSelectedProjectId } from '@/stores/projectStore';
 import { useErrorHandler } from '@/hooks/use-error-handler';
 import { mergeChannelSettingsForUpdate } from '../utils/merge';
 import { shouldNotifyChannelQueryError } from './channel-query-error';
@@ -2074,19 +2073,17 @@ export function useBulkImportChannels() {
   });
 }
 
-export function useAllChannelSummarys(projectId?: string | null, options?: { enabled?: boolean; includeArchived?: boolean }) {
+export function useAllChannelSummarys(options?: { enabled?: boolean; includeArchived?: boolean }) {
   const { handleError } = useErrorHandler();
   const { t } = useTranslation();
 
   return useQuery({
-    queryKey: ['allChannelSummarys', projectId, options?.includeArchived],
+    queryKey: ['allChannelSummarys', options?.includeArchived],
     queryFn: async () => {
       try {
-        const headers = projectId ? { 'X-Project-ID': projectId } : undefined;
         const data = await graphqlRequest<{ allChannelSummarys: ChannelSummaryConnection['edges'][number]['node'][] }>(
           ALL_CHANNEL_SUMMARYS_QUERY,
-          { includeArchived: options?.includeArchived },
-          headers
+          { includeArchived: options?.includeArchived }
         );
         return channelSummaryConnectionSchema.parse({
           edges: (data?.allChannelSummarys || []).map((node) => ({ node })),
@@ -2104,17 +2101,13 @@ export function useAllChannelSummarys(projectId?: string | null, options?: { ena
 export function useChannelAutoDisableCopySources(options?: { enabled?: boolean }) {
   const { handleError } = useErrorHandler();
   const { t } = useTranslation();
-  const projectId = useSelectedProjectId();
 
   return useQuery({
-    queryKey: ['channelAutoDisableCopySources', projectId],
+    queryKey: ['channelAutoDisableCopySources'],
     queryFn: async () => {
       try {
-        const headers = projectId ? { 'X-Project-ID': projectId } : undefined;
         const data = await graphqlRequest<{ allChannelSummarys: ChannelAutoDisableCopySource[] }>(
-          CHANNEL_AUTO_DISABLE_COPY_SOURCES_QUERY,
-          undefined,
-          headers
+          CHANNEL_AUTO_DISABLE_COPY_SOURCES_QUERY
         );
         return z.array(channelAutoDisableCopySourceSchema).parse(data.allChannelSummarys ?? []);
       } catch (error) {
@@ -2313,16 +2306,15 @@ export function useErrorChannelsCount() {
   });
 }
 
-export function useAllChannelTags(projectId?: string | null) {
+export function useAllChannelTags() {
   const { handleError } = useErrorHandler();
   const { t } = useTranslation();
 
   return useQuery({
-    queryKey: ['allChannelTags', projectId],
+    queryKey: ['allChannelTags'],
     queryFn: async () => {
       try {
-        const headers = projectId ? { 'X-Project-ID': projectId } : undefined;
-        const data = await graphqlRequest<{ allChannelTags: string[] }>(ALL_CHANNEL_TAGS_QUERY, undefined, headers);
+        const data = await graphqlRequest<{ allChannelTags: string[] }>(ALL_CHANNEL_TAGS_QUERY);
         return data.allChannelTags || [];
       } catch (error) {
         handleError(error, t('common.errors.internalServerError'));

@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/looplj/axonhub/internal/ent/apikeyprofiletemplate"
-	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/objects"
 )
 
@@ -86,21 +85,10 @@ func (_c *APIKeyProfileTemplateCreate) SetNillableDescription(v *string) *APIKey
 	return _c
 }
 
-// SetProjectID sets the "project_id" field.
-func (_c *APIKeyProfileTemplateCreate) SetProjectID(v int) *APIKeyProfileTemplateCreate {
-	_c.mutation.SetProjectID(v)
-	return _c
-}
-
 // SetProfile sets the "profile" field.
 func (_c *APIKeyProfileTemplateCreate) SetProfile(v *objects.APIKeyProfile) *APIKeyProfileTemplateCreate {
 	_c.mutation.SetProfile(v)
 	return _c
-}
-
-// SetProject sets the "project" edge to the Project entity.
-func (_c *APIKeyProfileTemplateCreate) SetProject(v *Project) *APIKeyProfileTemplateCreate {
-	return _c.SetProjectID(v.ID)
 }
 
 // Mutation returns the APIKeyProfileTemplateMutation object of the builder.
@@ -180,12 +168,6 @@ func (_c *APIKeyProfileTemplateCreate) check() error {
 	if _, ok := _c.mutation.Description(); !ok {
 		return &ValidationError{Name: "description", err: errors.New(`ent: missing required field "APIKeyProfileTemplate.description"`)}
 	}
-	if _, ok := _c.mutation.ProjectID(); !ok {
-		return &ValidationError{Name: "project_id", err: errors.New(`ent: missing required field "APIKeyProfileTemplate.project_id"`)}
-	}
-	if len(_c.mutation.ProjectIDs()) == 0 {
-		return &ValidationError{Name: "project", err: errors.New(`ent: missing required edge "APIKeyProfileTemplate.project"`)}
-	}
 	return nil
 }
 
@@ -236,23 +218,6 @@ func (_c *APIKeyProfileTemplateCreate) createSpec() (*APIKeyProfileTemplate, *sq
 	if value, ok := _c.mutation.Profile(); ok {
 		_spec.SetField(apikeyprofiletemplate.FieldProfile, field.TypeJSON, value)
 		_node.Profile = value
-	}
-	if nodes := _c.mutation.ProjectIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   apikeyprofiletemplate.ProjectTable,
-			Columns: []string{apikeyprofiletemplate.ProjectColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.ProjectID = nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }
@@ -391,9 +356,6 @@ func (u *APIKeyProfileTemplateUpsertOne) UpdateNewValues() *APIKeyProfileTemplat
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(apikeyprofiletemplate.FieldCreatedAt)
-		}
-		if _, exists := u.create.mutation.ProjectID(); exists {
-			s.SetIgnore(apikeyprofiletemplate.FieldProjectID)
 		}
 	}))
 	return u
@@ -688,9 +650,6 @@ func (u *APIKeyProfileTemplateUpsertBulk) UpdateNewValues() *APIKeyProfileTempla
 		for _, b := range u.create.builders {
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(apikeyprofiletemplate.FieldCreatedAt)
-			}
-			if _, exists := b.mutation.ProjectID(); exists {
-				s.SetIgnore(apikeyprofiletemplate.FieldProjectID)
 			}
 		}
 	}))
